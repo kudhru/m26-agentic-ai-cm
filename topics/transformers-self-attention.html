@@ -285,6 +285,18 @@
     }
     .step-sublabel:first-child { margin-top: 0; }
 
+    /* ── causal mask toggle ── */
+    .mask-label {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 17px; color: var(--base01); cursor: pointer;
+    }
+    .mask-label input[type=checkbox] {
+      width: 18px; height: 18px; cursor: pointer; accent-color: var(--blue);
+    }
+    .mask-note {
+      font-size: 15px; color: var(--base1); margin-left: 4px;
+    }
+
     /* ── references ── */
     .references {
       margin-top: 56px; padding-top: 32px;
@@ -623,6 +635,14 @@
               <button class="head-tab active" onclick="selectHead(0)">Head 0</button>
               <button class="head-tab" onclick="selectHead(1)">Head 1</button>
             </div>
+          </div>
+          <div class="control-row" style="margin-top:12px;">
+            <span class="control-label">Causal mask</span>
+            <label class="mask-label">
+              <input type="checkbox" id="maskToggle" onchange="onMaskChange()">
+              Decoder mode — future tokens invisible
+              <span class="mask-note">(sets upper triangle to −∞ before softmax)</span>
+            </label>
           </div>
         </div>
 
@@ -975,6 +995,7 @@ function avgEntropy(weights) {
 ══════════════════════════════════════════════════════════════════ */
 let currentHead = 0;
 let scalingT    = 2.0;
+let causalMask  = false;
 const TOKENS    = GT.metadata.tokens;   // ["The", "cat", "sat"]
 const D_K       = GT.metadata.d_k;      // 4
 const SQRT_DK   = Math.sqrt(D_K);       // 2.0
@@ -1058,16 +1079,19 @@ function heatmapHTML(weights, tokens) {
    INSIGHT TEXT — updates dynamically with T
 ══════════════════════════════════════════════════════════════════ */
 function step4InsightText(T, scMin, scMax) {
-  const d = T.toFixed(2);
+  const d    = T.toFixed(2);
+  const mask = causalMask
+    ? ' <span style="color:var(--blue);font-weight:600;">[Causal mask on: upper triangle set to −1e9 before softmax — future tokens invisible.]</span>'
+    : '';
   if (T < 0.6)
-    return `<strong>T&nbsp;=&nbsp;${d} — very sharp.</strong> Scaled range: ${scMin} to ${scMax}. The largest score dominates exp(·) and softmax is nearly one-hot. Gradients through softmax are tiny — this is the saturation problem √d_k was designed to avoid.`;
+    return `<strong>T&nbsp;=&nbsp;${d} — very sharp.</strong> Scaled range: ${scMin} to ${scMax}. The largest score dominates exp(·) and softmax is nearly one-hot. Gradients through softmax are tiny — this is the saturation problem √d_k was designed to avoid.${mask}`;
   if (T < 1.5)
-    return `<strong>T&nbsp;=&nbsp;${d} — below √d_k.</strong> Scaled range: ${scMin} to ${scMax}. Attention is fairly concentrated; a few tokens receive most weight.`;
+    return `<strong>T&nbsp;=&nbsp;${d} — below √d_k.</strong> Scaled range: ${scMin} to ${scMax}. Attention is fairly concentrated; a few tokens receive most weight.${mask}`;
   if (T <= 2.5)
-    return `<strong>T&nbsp;=&nbsp;${d} ≈ √d_k&nbsp;=&nbsp;${SQRT_DK.toFixed(2)}.</strong> Standard scaling (Vaswani et al., 2017). Range: ${scMin} to ${scMax}. Softmax receives well-calibrated inputs; gradients flow cleanly.`;
+    return `<strong>T&nbsp;=&nbsp;${d} ≈ √d_k&nbsp;=&nbsp;${SQRT_DK.toFixed(2)}.</strong> Standard scaling (Vaswani et al., 2017). Range: ${scMin} to ${scMax}. Softmax receives well-calibrated inputs; gradients flow cleanly.${mask}`;
   if (T <= 5.5)
-    return `<strong>T&nbsp;=&nbsp;${d} — above √d_k.</strong> Range: ${scMin} to ${scMax}. Values compressed toward 0; softmax approaches uniform — the model can no longer discriminate between positions.`;
-  return `<strong>T&nbsp;=&nbsp;${d} — very large.</strong> Near-zero range: ${scMin} to ${scMax}. Softmax ≈ 1/${TOKENS.length}&nbsp;=&nbsp;${(1/TOKENS.length).toFixed(3)} everywhere — completely uniform attention regardless of content.`;
+    return `<strong>T&nbsp;=&nbsp;${d} — above √d_k.</strong> Range: ${scMin} to ${scMax}. Values compressed toward 0; softmax approaches uniform — the model can no longer discriminate between positions.${mask}`;
+  return `<strong>T&nbsp;=&nbsp;${d} — very large.</strong> Near-zero range: ${scMin} to ${scMax}. Softmax ≈ 1/${TOKENS.length}&nbsp;=&nbsp;${(1/TOKENS.length).toFixed(3)} everywhere — completely uniform attention regardless of content.${mask}`;
 }
 
 function step5InsightText(weights) {
@@ -1114,10 +1138,15 @@ function renderStaticSteps() {
   document.getElementById('step3Content').innerHTML = matTable(scores, TOKENS, TOKENS);
 }
 
+function applyCausalMask(M) {
+  return M.map((row, i) => row.map((v, j) => j > i ? -1e9 : v));
+}
+
 function renderDynamicSteps() {
   const { scores, V } = _cache;
   const scaled  = scaleMatrix(scores, 1 / scalingT);
-  const weights = rowwiseSoftmax(scaled);
+  const masked  = causalMask ? applyCausalMask(scaled) : scaled;
+  const weights = rowwiseSoftmax(masked);
   const output  = matmul(weights, V);
   const d4      = ['d₀','d₁','d₂','d₃'];
 
@@ -1125,7 +1154,8 @@ function renderDynamicSteps() {
   const scMin = Math.min(...sf).toFixed(2);
   const scMax = Math.max(...sf).toFixed(2);
 
-  document.getElementById('step4Content').innerHTML = matTable(scaled,  TOKENS, TOKENS);
+  // Step 4: show the masked matrix when mask is on, unmasked otherwise
+  document.getElementById('step4Content').innerHTML = matTable(masked,  TOKENS, TOKENS);
   document.getElementById('step4Insight').innerHTML = step4InsightText(scalingT, scMin, scMax);
   document.getElementById('step5Content').innerHTML = heatmapHTML(weights, TOKENS);
   document.getElementById('step5Insight').innerHTML = step5InsightText(weights);
@@ -1163,6 +1193,11 @@ function resetScaling() {
   scalingT = SQRT_DK;
   document.getElementById('scalingSlider').value = SQRT_DK;
   onScalingChange();
+}
+
+function onMaskChange() {
+  causalMask = document.getElementById('maskToggle').checked;
+  renderDynamicSteps();
 }
 
 function selectHead(idx) {

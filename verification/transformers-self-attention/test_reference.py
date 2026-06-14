@@ -18,6 +18,7 @@ from reference import (
     EMBEDDINGS, W_Q, W_K, W_V, W_O,
     D_K, D_V, D_MODEL, H,
     softmax, scaled_dot_product_attention, multi_head_attention,
+    causal_scaled_dot_product_attention,
 )
 
 TOL = 1e-6
@@ -181,3 +182,64 @@ class TestNumericalStability:
         stable = softmax(x, axis=-1)
         naive = np.exp(x) / np.exp(x).sum(axis=-1, keepdims=True)
         assert np.allclose(stable, naive, atol=TOL)
+
+
+# ===========================================================================
+# 5. Causal (decoder) attention mask
+#
+# Structural properties that must hold for any causal attention:
+#   - weight[i, j] ≈ 0 for all j > i  (no future information)
+#   - each row still sums to 1          (valid probability distribution)
+#   - weight[0, 0] == 1.0              (first token sees only itself)
+#   - all weights in last row > 0      (last token sees all prior tokens)
+#   - masked score values (upper triangle) == mask_value (-1e9)
+# ===========================================================================
+
+class TestCausalMask:
+    def setup_method(self):
+        Q = EMBEDDINGS @ W_Q[0]
+        K = EMBEDDINGS @ W_K[0]
+        V = EMBEDDINGS @ W_V[0]
+        self.result = causal_scaled_dot_product_attention(Q, K, V)
+        self.n = self.result["weights"].shape[0]
+
+    def test_future_weights_are_zero(self):
+        """Position i must not attend to any j > i."""
+        w = self.result["weights"]
+        for i in range(self.n):
+            for j in range(i + 1, self.n):
+                assert w[i, j] < TOL, \
+                    f"Causal mask failed: weights[{i},{j}] = {w[i,j]:.2e}"
+
+    def test_rows_still_sum_to_one(self):
+        """Masking changes the logits but softmax must still produce a distribution."""
+        assert np.allclose(self.result["weights"].sum(axis=-1), 1.0, atol=TOL)
+
+    def test_first_token_attends_only_to_itself(self):
+        """Row 0 has all future positions masked; weight[0,0] must equal 1.0."""
+        assert np.allclose(self.result["weights"][0, 0], 1.0, atol=TOL)
+
+    def test_weights_non_negative(self):
+        assert np.all(self.result["weights"] >= 0)
+
+    def test_last_row_has_access_to_all_tokens(self):
+        """The last position can attend to every token, so all weights > 0."""
+        last = self.result["weights"][-1, :]
+        assert np.all(last > TOL), f"Last row has near-zero weights: {last}"
+
+    def test_masked_positions_hold_mask_value(self):
+        """Upper triangle of the masked scores must equal the mask_value."""
+        masked = self.result["masked"]
+        for i in range(self.n):
+            for j in range(i + 1, self.n):
+                assert masked[i, j] == pytest.approx(-1e9), \
+                    f"masked[{i},{j}] should be -1e9, got {masked[i,j]}"
+
+    def test_unmasked_positions_unchanged(self):
+        """Lower triangle of masked must equal lower triangle of scaled."""
+        scaled = self.result["scaled"]
+        masked = self.result["masked"]
+        for i in range(self.n):
+            for j in range(i + 1):
+                assert masked[i, j] == pytest.approx(scaled[i, j], abs=TOL), \
+                    f"Unmasked position [{i},{j}] was altered"

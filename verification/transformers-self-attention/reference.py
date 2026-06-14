@@ -90,6 +90,46 @@ def scaled_dot_product_attention(
     return {"scores": scores, "scaled": scaled, "weights": weights, "output": output}
 
 
+def causal_scaled_dot_product_attention(
+    Q: np.ndarray,
+    K: np.ndarray,
+    V: np.ndarray,
+    mask_value: float = -1e9,
+) -> dict:
+    """
+    Attention with a causal (look-ahead) mask.
+
+    Used in decoder self-attention to prevent position i from attending to
+    future positions j > i.  The upper triangle (k=1) of the score matrix
+    is set to mask_value before softmax so exp(mask_value) ≈ 0.
+
+    Args:
+        Q, K, V:     same as scaled_dot_product_attention
+        mask_value:  value written into upper triangle before softmax (-1e9 default)
+
+    Returns dict with keys:
+        scores  — raw dot products (unmasked)
+        scaled  — scores / sqrt(d_k) (unmasked)
+        masked  — scaled with upper triangle set to mask_value
+        weights — softmax(masked), upper triangle ≈ 0
+        output  — weights @ V
+    """
+    d_k = Q.shape[-1]
+    n = Q.shape[0]
+    scores  = Q @ K.T
+    scaled  = scores / np.sqrt(d_k)
+
+    # Causal mask: upper triangle (j > i) → -∞ approximation
+    causal = np.triu(np.ones((n, n), dtype=bool), k=1)
+    masked = scaled.copy()
+    masked[causal] = mask_value
+
+    weights = softmax(masked, axis=-1)
+    output  = weights @ V
+    return {"scores": scores, "scaled": scaled, "masked": masked,
+            "weights": weights, "output": output}
+
+
 def multi_head_attention(
     X: np.ndarray,
     W_Q: list,
