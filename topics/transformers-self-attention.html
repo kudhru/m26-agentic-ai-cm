@@ -297,6 +297,68 @@
       font-size: 15px; color: var(--base1); margin-left: 4px;
     }
 
+    /* ── real attention viz ── */
+    .layer-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+    .layer-tab {
+      font-size: 15px; font-weight: 600; padding: 5px 14px; border-radius: 6px;
+      cursor: pointer; border: 1px solid var(--base1);
+      background: var(--base3); color: var(--base01); transition: all 0.12s;
+      font-family: inherit;
+    }
+    .layer-tab.active { background: var(--cyan); color: #fff; border-color: var(--cyan); }
+    .layer-tab:hover:not(.active) { background: var(--base2); }
+    .real-sent-select {
+      font-size: 17px; padding: 7px 12px; border: 1px solid var(--base1);
+      border-radius: 6px; background: var(--base3); color: var(--base02);
+      font-family: inherit; max-width: 100%;
+    }
+    .sent-note {
+      font-size: 15px; color: var(--base01); background: var(--base2);
+      border-radius: 8px; padding: 10px 14px; margin-top: 10px; line-height: 1.65;
+    }
+    .sent-tokens {
+      display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px;
+    }
+    .sent-token {
+      font-family: "SF Mono","Fira Code",monospace; font-size: 13px;
+      background: var(--base3); border: 1px solid var(--base1);
+      border-radius: 4px; padding: 2px 6px; color: var(--base02);
+    }
+    .sent-token.cls-sep { color: var(--base1); }
+    .head-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    }
+    @media (max-width: 600px) { .head-grid { grid-template-columns: repeat(2, 1fr); } }
+    .head-card {
+      border: 1px solid var(--base1); border-radius: 8px; overflow: hidden;
+    }
+    .head-card-title {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--base01); padding: 7px 10px;
+      background: var(--base3); border-bottom: 1px solid var(--base1);
+    }
+    .head-card-body { padding: 8px 10px; overflow-x: auto; }
+    .mini-col-label {
+      font-size: 9px; font-family: "SF Mono","Fira Code",monospace;
+      color: var(--base01); writing-mode: vertical-rl;
+      transform: rotate(180deg); text-align: left;
+      white-space: nowrap; overflow: hidden;
+      display: inline-block; vertical-align: bottom;
+    }
+    .mini-row-label {
+      font-size: 9px; font-family: "SF Mono","Fira Code",monospace;
+      color: var(--base01); text-align: right; white-space: nowrap;
+      overflow: hidden; display: inline-block; padding-right: 4px; flex-shrink: 0;
+    }
+    .mini-cell {
+      display: inline-block; flex-shrink: 0; border: 1px solid transparent;
+      cursor: default;
+    }
+    .mini-cell:hover { outline: 2px solid var(--orange); z-index: 1; }
+    .real-att-loading {
+      padding: 28px 0; text-align: center; color: var(--base1); font-size: 17px;
+    }
+
     /* ── references ── */
     .references {
       margin-top: 56px; padding-top: 32px;
@@ -761,7 +823,51 @@
         </div><!-- end .walkthrough -->
 
       </div><!-- end .viz-body -->
-    </div><!-- end .viz-block -->
+    </div><!-- end .viz-block (toy walkthrough) -->
+
+    <!-- REAL ATTENTION VISUALIZATION -->
+    <div class="viz-block" style="margin-top:24px;">
+      <div class="viz-header">
+        <span class="viz-title">Real Attention — DistilBERT</span>
+        <span style="font-size:11px;color:var(--base01);letter-spacing:0.06em;text-transform:uppercase;">trained · 6 layers · 12 heads</span>
+      </div>
+      <div class="viz-body">
+
+        <p class="viz-desc">
+          The toy example above uses <em>random</em> weights to show the mathematics.
+          The patterns below come from DistilBERT<sup><a href="#ref8">[8]</a></sup> — a model
+          trained on 16 GB of text. Its weights were learned to be useful, so the attention
+          patterns reflect real linguistic structure. Select a sentence, pick a layer, and
+          scan the 12 heads to see what each one has specialised in.
+        </p>
+
+        <div class="note">
+          Loaded lazily from <code>real_attention.json</code> (extracted by
+          <code>verification/transformers-self-attention/extract_real_attention.py</code>).
+          If you opened this page directly from the filesystem, use a local server:
+          <code>python -m http.server</code> from the project root.
+        </div>
+
+        <!-- Sentence selector -->
+        <div class="viz-controls">
+          <div class="control-row">
+            <span class="control-label">Sentence</span>
+            <select class="real-sent-select" id="sentSelect" onchange="onSentChange()">
+              <option>Loading…</option>
+            </select>
+          </div>
+          <div class="sent-note" id="sentNote" style="display:none;"></div>
+        </div>
+
+        <!-- Layer tabs -->
+        <div class="layer-tabs" id="layerTabs"></div>
+
+        <!-- Loading / head grid -->
+        <div class="real-att-loading" id="realAttLoading">Loading DistilBERT attention data…</div>
+        <div class="head-grid" id="headGrid" style="display:none;"></div>
+
+      </div>
+    </div><!-- end .viz-block (real attention) -->
 
   </div>
 
@@ -930,6 +1036,13 @@
         <span>Brown, T. et al. (2020). "Language Models are Few-Shot Learners."
         <em>Advances in Neural Information Processing Systems</em>, 33.
         <a href="https://arxiv.org/abs/2005.14165" target="_blank">arXiv:2005.14165</a></span>
+      </li>
+      <li id="ref8">
+        <span class="ref-num">[8]</span>
+        <span>Sanh, V., Debut, L., Chaumond, J., &amp; Wolf, T. (2019). "DistilBERT,
+        a distilled version of BERT: smaller, faster, cheaper and lighter."
+        <em>NeurIPS EMC² Workshop 2019</em>.
+        <a href="https://arxiv.org/abs/1910.01108" target="_blank">arXiv:1910.01108</a></span>
       </li>
     </ol>
   </div>
@@ -1208,7 +1321,7 @@ function selectHead(idx) {
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   INIT
+   INIT — toy walkthrough
 ══════════════════════════════════════════════════════════════════ */
 (function init() {
   const errors = verify();
@@ -1216,6 +1329,141 @@ function selectHead(idx) {
   renderStaticSteps();
   renderDynamicSteps();
 })();
+
+/* ══════════════════════════════════════════════════════════════════
+   REAL ATTENTION — DistilBERT
+   Fetched lazily from real_attention.json on page load.
+══════════════════════════════════════════════════════════════════ */
+let REAL_ATT          = null;
+let realCurrentSent   = 0;
+let realCurrentLayer  = 0;
+
+(async function loadRealAttention() {
+  const loading = document.getElementById('realAttLoading');
+  try {
+    // Path relative to topics/transformers-self-attention.html
+    const resp = await fetch('../verification/transformers-self-attention/real_attention.json');
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    REAL_ATT = await resp.json();
+    loading.style.display = 'none';
+    buildSentSelector();
+    buildLayerTabs();
+    renderHeadGrid();
+    document.getElementById('headGrid').style.display = 'grid';
+  } catch (e) {
+    loading.textContent =
+      'Could not load real_attention.json. If viewing locally, serve with: python -m http.server';
+    console.warn('Real attention load failed:', e);
+  }
+})();
+
+function buildSentSelector() {
+  const sel = document.getElementById('sentSelect');
+  sel.innerHTML = '';
+  REAL_ATT.sentences.forEach((s, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = `"${s.text}"`;
+    sel.appendChild(opt);
+  });
+  renderSentNote();
+}
+
+function renderSentNote() {
+  const s   = REAL_ATT.sentences[realCurrentSent];
+  const el  = document.getElementById('sentNote');
+  const tok = s.tokens.map(t => {
+    const isMeta = t === '[CLS]' || t === '[SEP]';
+    return `<span class="sent-token${isMeta ? ' cls-sep' : ''}">${t}</span>`;
+  }).join('');
+  el.style.display = 'block';
+  el.innerHTML =
+    `<div class="sent-tokens">${tok}</div>` +
+    `<strong>What to look for:</strong> ${s.note}`;
+}
+
+function buildLayerTabs() {
+  const n   = REAL_ATT.metadata.n_layers;
+  const div = document.getElementById('layerTabs');
+  div.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const btn = document.createElement('button');
+    btn.className  = 'layer-tab' + (i === 0 ? ' active' : '');
+    btn.textContent = `Layer ${i}`;
+    btn.onclick    = () => selectRealLayer(i);
+    div.appendChild(btn);
+  }
+}
+
+function selectRealLayer(idx) {
+  realCurrentLayer = idx;
+  document.querySelectorAll('.layer-tab').forEach((t, i) =>
+    t.classList.toggle('active', i === idx));
+  renderHeadGrid();
+}
+
+function onSentChange() {
+  realCurrentSent = parseInt(document.getElementById('sentSelect').value);
+  renderSentNote();
+  renderHeadGrid();
+}
+
+function renderHeadGrid() {
+  if (!REAL_ATT) return;
+  const sentence  = REAL_ATT.sentences[realCurrentSent];
+  const tokens    = sentence.tokens;
+  const layerData = sentence.attention[realCurrentLayer]; // [head][i][j]
+  const grid      = document.getElementById('headGrid');
+  grid.innerHTML  = '';
+
+  layerData.forEach((weights, h) => {
+    const card = document.createElement('div');
+    card.className = 'head-card';
+
+    const title = document.createElement('div');
+    title.className   = 'head-card-title';
+    title.textContent = `Head ${h}`;
+    card.appendChild(title);
+
+    const body = document.createElement('div');
+    body.className = 'head-card-body';
+    body.innerHTML  = miniHeatmapHTML(weights, tokens);
+    card.appendChild(body);
+
+    grid.appendChild(card);
+  });
+}
+
+function miniHeatmapHTML(weights, tokens) {
+  const n      = tokens.length;
+  const cellPx = Math.max(9, Math.min(16, Math.floor(130 / n)));
+  const lblW   = 32;
+
+  // Abbreviated token labels (max 5 chars, strip ## prefix)
+  const abbrev = tokens.map(t => t.replace(/^##/, '').slice(0, 5));
+
+  // Column labels (vertical)
+  const colLblHtml = abbrev.map(a =>
+    `<div class="mini-col-label" style="width:${cellPx}px;height:28px;">${a}</div>`
+  ).join('');
+
+  // Rows
+  const rowsHtml = weights.map((row, i) => {
+    const cells = row.map((w, j) => {
+      const bg  = weightToColor(Math.min(1, Math.max(0, w)));
+      const tip = `${tokens[i]} → ${tokens[j]}: ${w.toFixed(4)}`;
+      return `<div class="mini-cell"
+        style="width:${cellPx}px;height:${cellPx}px;background:${bg}"
+        title="${tip}"></div>`;
+    }).join('');
+    return `<div style="display:flex;align-items:center;">
+      <div class="mini-row-label" style="width:${lblW}px;">${abbrev[i]}</div>
+      ${cells}
+    </div>`;
+  }).join('');
+
+  return `<div style="display:flex;margin-left:${lblW}px;margin-bottom:2px;">${colLblHtml}</div>${rowsHtml}`;
+}
 </script>
 
 </body>
