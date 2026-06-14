@@ -200,3 +200,59 @@ real, the semantics is not yet." This prevents students from over-interpreting t
 - No tabs for layer switching — layers are always stacked.
 - No content in the Applied layer that is also in the Formal layer — they are distinct.
 - No copy-paste of equations without checking they match the cited source exactly.
+
+---
+
+## 9. Browser Smoke Tests
+
+Every topic page with interactive content must have a Playwright test file at
+`verification/page_tests/test_<slug>.py`. Run them with:
+
+```bash
+bash verification/run_page_tests.sh
+```
+
+**First-time setup** (one-off per machine):
+
+```bash
+verification/.venv/bin/pip install playwright
+verification/.venv/bin/playwright install chromium
+```
+
+All tests load pages via `file://` — no local server required at any point.
+
+**Fetched data (e.g. `real_attention.json`)** needs two test classes:
+
+- `TestReal*Fallback` — no stub; asserts the *error state* is correct (error message
+  visible, selector disabled, selector text is not stuck at "Loading…")
+- `TestReal*Loaded` — uses `page.add_init_script()` to shadow `window.fetch` before
+  the page script runs, returning the file content from disk immediately; asserts the
+  full UI loads (grid renders, controls are populated, interactions work)
+
+`page.route()` cannot be used here — Chromium's `file://` protocol bypasses the
+network stack, so routes never fire. `add_init_script()` is the correct tool.
+
+**GitHub Pages note:** `fetch()` works fine on GitHub Pages because all repo files
+are served over HTTPS. The relative URL `'../verification/.../real_attention.json'`
+resolves correctly as long as the JSON file is committed to the repo.
+
+**Required test coverage for every interactive page:**
+
+| Category | What to assert |
+|---|---|
+| Page load | No JS console errors; math badge shows `badge-pass` |
+| Step content | Every walkthrough step panel is non-empty after load |
+| Knob/slider | Moving the control changes downstream step HTML |
+| Toggle/checkbox | Enabling and disabling restores original content |
+| Annotation labels | CSS class on annotation span matches the expected semantic (sharp/flat/default) |
+| Font sizes | `.step-desc` computed font size is 17px |
+| Section presence | All major DOM containers exist (no missing `id="..."`) |
+
+**Naming the test class:** use `TestPageLoad`, `TestWalkthrough*`, `TestScaling*`,
+`TestHeadTabs`, `TestCausalMask*`, `TestFontSizes`, `TestRealAttentionSection`
+(or equivalent for the page's controls). This makes failures easy to locate.
+
+**State hygiene:** tests share one browser page (`scope="module"`). Each test that
+changes a control must reset it before returning — use `fill("default")` /
+`dispatch_event("input")`, `uncheck()`, or `click()` on the original tab as the
+last line of the test body.

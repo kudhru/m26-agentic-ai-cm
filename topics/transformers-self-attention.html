@@ -1353,6 +1353,9 @@ let realCurrentLayer  = 0;
   } catch (e) {
     loading.textContent =
       'Could not load real_attention.json. If viewing locally, serve with: python -m http.server';
+    const sel = document.getElementById('sentSelect');
+    sel.innerHTML = '<option disabled selected>Unavailable — serve with: python -m http.server</option>';
+    sel.disabled = true;
     console.warn('Real attention load failed:', e);
   }
 })();

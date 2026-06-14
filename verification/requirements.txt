@@ -6,3 +6,7 @@ pytest>=8.0
 # Install with: pip install torch transformers
 torch>=2.0
 transformers>=4.30
+
+# Required for browser-level smoke tests (verification/page_tests/)
+# Install with: pip install playwright && playwright install chromium
+playwright>=1.40
