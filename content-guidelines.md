@@ -156,7 +156,40 @@ Never use inline `font-size` overrides inside viz content — let elements inher
 
 ---
 
-## 7. What Not To Do
+## 7. Interactive Visualizations and Knobs
+
+Every interactive visualization should have at least one knob (slider, toggle, or selector)
+that teaches something a static diagram cannot. The lesson can be any of:
+
+- A failure mode (e.g., attention collapse when scaling is removed, reward over-optimization)
+- A trade-off (e.g., rank vs. parameter count in LoRA)
+- A parameter sensitivity (e.g., how temperature shifts the sampling distribution)
+- An emergent property (e.g., how head specialization depends on the input)
+- A conceptual connection between two course topics
+
+The key requirement: moving the knob produces a clear, observable lesson. The type of lesson
+is determined by what is pedagogically most valuable for that specific topic.
+
+### Walkthrough mode
+Visualizations with multiple computation steps should display all steps simultaneously as a
+vertical stack (not hidden behind a toggle). Steps that are affected by a knob get a visual
+marker ("← changes with T") and a blue border. Steps that are unaffected get a "unaffected"
+tag. Every knob change must recompute and rerender all affected steps simultaneously — the
+student should see the entire chain update in real time.
+
+### Insight text
+Each affected step should include a short "insight box" (styled `.step-insight`) that
+explains what the current knob value implies for that step. This text should update live with
+the knob and use concrete numbers from the current computation (e.g., score range, entropy).
+
+### Framing for random weights
+When a visualization uses randomly initialized weights (not trained), include a `.note` block
+near the top of the visualization stating this explicitly. The framing: "The mathematics is
+real, the semantics is not yet." This prevents students from over-interpreting the patterns.
+
+---
+
+## 8. What Not To Do
 
 - No week numbers in filenames, headings, or navigation.
 - No AI filler phrases ("it's worth noting", "this is important", "let's explore").

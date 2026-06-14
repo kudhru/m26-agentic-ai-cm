@@ -209,6 +209,82 @@
       text-transform: uppercase; color: var(--blue); margin-top: 24px; margin-bottom: 8px;
     }
 
+    /* ── viz controls (scaling slider, head tabs) ── */
+    .viz-controls {
+      background: var(--base3); border: 1px solid var(--base1);
+      border-radius: 10px; padding: 18px 20px; margin: 20px 0;
+    }
+    .control-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .control-row + .control-row { margin-top: 12px; }
+    .control-label {
+      font-size: 17px; font-weight: 600; color: var(--base02); min-width: 160px;
+    }
+    .slider-group { display: flex; align-items: center; gap: 10px; flex: 1; flex-wrap: wrap; }
+    .slider-bound {
+      font-size: 15px; color: var(--base1);
+      font-family: "SF Mono","Fira Code",monospace;
+    }
+    .slider-group input[type=range] {
+      flex: 1; min-width: 120px; -webkit-appearance: none;
+      height: 6px; border-radius: 3px; background: var(--base2);
+      outline: none; cursor: pointer;
+    }
+    .slider-group input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%;
+      background: var(--blue); border: 2px solid white;
+      box-shadow: 0 1px 4px rgba(0,0,0,.2); cursor: pointer;
+    }
+    .slider-val {
+      font-family: "SF Mono","Fira Code",monospace; font-size: 17px;
+      font-weight: 700; color: var(--blue); min-width: 48px;
+    }
+    .slider-annotation { font-size: 15px; min-width: 100px; }
+    .annot-default { color: var(--green); }
+    .annot-sharp   { color: var(--orange); }
+    .annot-flat    { color: var(--base1); }
+    .reset-btn {
+      font-size: 15px; padding: 5px 14px; border: 1px solid var(--blue);
+      background: none; color: var(--blue); border-radius: 6px;
+      cursor: pointer; font-family: inherit;
+    }
+    .reset-btn:hover { background: var(--base2); }
+
+    /* ── walkthrough step panels ── */
+    .walkthrough { display: flex; flex-direction: column; gap: 14px; margin-top: 4px; }
+    .step-panel {
+      border: 1px solid var(--base1); border-radius: 10px; overflow: hidden;
+    }
+    .step-panel.is-affected { border-color: var(--blue); }
+    .step-header {
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+      padding: 11px 18px; background: var(--base3); border-bottom: 1px solid var(--base1);
+    }
+    .step-panel.is-affected .step-header { border-bottom-color: #c4dff3; }
+    .step-num {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--base1); min-width: 56px;
+    }
+    .step-title { font-size: 17px; font-weight: 600; color: var(--base02); flex: 1; }
+    .step-tag {
+      font-size: 13px; font-weight: 600; padding: 3px 10px;
+      border-radius: 100px; white-space: nowrap;
+    }
+    .tag-static  { background: var(--base2); color: var(--base1); border: 1px solid var(--base1); }
+    .tag-dynamic { background: #ddeeff; color: var(--blue); border: 1px solid #a8ccee; }
+    .step-body { padding: 18px 20px; }
+    .step-desc { font-size: 17px; color: var(--base01); margin-bottom: 14px; line-height: 1.75; }
+    .step-desc:last-child { margin-bottom: 0; }
+    .step-insight {
+      font-size: 17px; color: var(--base01); background: var(--base2);
+      border-radius: 8px; padding: 12px 16px; margin-top: 14px; line-height: 1.7;
+    }
+    .step-sublabel {
+      font-size: 13px; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--blue);
+      margin: 16px 0 4px;
+    }
+    .step-sublabel:first-child { margin-top: 0; }
+
     /* ── references ── */
     .references {
       margin-top: 56px; padding-top: 32px;
@@ -506,50 +582,166 @@
     <!-- VISUALIZATION -->
     <div class="viz-block">
       <div class="viz-header">
-        <span class="viz-title">Interactive — Self-Attention Weights</span>
+        <span class="viz-title">Interactive Walkthrough — Self-Attention</span>
         <span class="math-badge" id="mathBadge">checking…</span>
       </div>
       <div class="viz-body">
+
         <p class="viz-desc">
-          A toy 2-head self-attention on the sequence <strong>"The cat sat"</strong>.
-          Dimensions: \(d_{\text{model}} = 8\), \(h = 2\) heads, \(d_k = d_v = 4\) per head.
-          All weights are fixed (NumPy seed 42). The heatmap shows
-          \(\text{softmax}(\mathbf{Q}\mathbf{K}^\top / \sqrt{d_k})\) — how much each
-          <em>row token</em> (query) attends to each <em>column token</em> (key).
-          The JS re-computes these values from scratch and verifies them against the
-          Python-generated ground truth within tolerance \(10^{-6}\).
+          Step-by-step walkthrough of scaled dot-product attention on
+          <strong>"The&nbsp;cat&nbsp;sat"</strong>
+          (d<sub>model</sub>&nbsp;=&nbsp;8, d<sub>k</sub>&nbsp;=&nbsp;d<sub>v</sub>&nbsp;=&nbsp;4,
+          h&nbsp;=&nbsp;2). Move the scaling slider to see how T reshapes every downstream step
+          simultaneously. JS recomputes from scratch; badge verifies against Python ground truth
+          at T&nbsp;=&nbsp;√d<sub>k</sub>.
         </p>
 
-        <div class="heatmap-section">
-          <div class="head-tabs">
-            <button class="head-tab active" onclick="selectHead(0)">Head 0</button>
-            <button class="head-tab" onclick="selectHead(1)">Head 1</button>
-          </div>
+        <div class="note">
+          The weight matrices W<sup>Q</sup>, W<sup>K</sup>, W<sup>V</sup> here are randomly
+          initialized (NumPy seed 42), not trained. In a real model they would be learned to
+          capture linguistic structure. Here the patterns reflect random projections —
+          the <em>mathematics</em> is real, the <em>semantics</em> is not yet.
+        </div>
 
-          <div class="heatmap-wrap">
-            <div class="heatmap-container">
-              <div class="hm-col-labels" id="colLabels"></div>
-              <div id="heatmapGrid"></div>
-              <div class="hm-axis-label">Key (attended-to token)</div>
-              <div class="hm-legend">
-                <span>0.0</span>
-                <div class="hm-legend-bar"></div>
-                <span>1.0</span>
-                <span style="margin-left:8px;font-style:italic;">attention weight</span>
-              </div>
+        <!-- Controls -->
+        <div class="viz-controls">
+          <div class="control-row">
+            <span class="control-label">Scaling factor T</span>
+            <div class="slider-group">
+              <span class="slider-bound">0.25</span>
+              <input type="range" id="scalingSlider" min="0.25" max="8" step="0.05" value="2"
+                     oninput="onScalingChange()">
+              <span class="slider-bound">8.0</span>
+              <span class="slider-val" id="scalingVal">2.00</span>
+              <span class="slider-annotation annot-default" id="scalingAnnotation">= √d<sub>k</sub> ✓</span>
+              <button class="reset-btn" onclick="resetScaling()">Reset</button>
+            </div>
+          </div>
+          <div class="control-row" style="margin-top:12px;">
+            <span class="control-label">Attention head</span>
+            <div class="head-tabs">
+              <button class="head-tab active" onclick="selectHead(0)">Head 0</button>
+              <button class="head-tab" onclick="selectHead(1)">Head 1</button>
             </div>
           </div>
         </div>
 
-        <button class="steps-toggle" onclick="toggleSteps()">Show computation steps ▾</button>
-        <div class="steps-panel" id="stepsPanel">
-          <p style="color:var(--base01);margin-bottom:12px;">
-            All matrices for the currently selected head. Rows = tokens ["The", "cat", "sat"].
-          </p>
-          <div id="stepsContent"></div>
-        </div>
-      </div>
-    </div>
+        <!-- Walkthrough: all 6 steps always visible -->
+        <div class="walkthrough">
+
+          <!-- Step 1 -->
+          <div class="step-panel">
+            <div class="step-header">
+              <span class="step-num">Step 1</span>
+              <span class="step-title">Input embeddings X</span>
+              <span class="step-tag tag-static">unaffected by T</span>
+            </div>
+            <div class="step-body">
+              <p class="step-desc">
+                Each of the 3 tokens maps to an 8-dimensional embedding vector.
+                These are the raw inputs to the self-attention mechanism
+                (d<sub>model</sub>&nbsp;=&nbsp;8).
+              </p>
+              <div id="step1Content"></div>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="step-panel">
+            <div class="step-header">
+              <span class="step-num">Step 2</span>
+              <span class="step-title">Q, K, V projections</span>
+              <span class="step-tag tag-static">unaffected by T</span>
+            </div>
+            <div class="step-body">
+              <p class="step-desc">
+                Each embedding is linearly projected into three 4-dimensional spaces
+                (d<sub>k</sub>&nbsp;=&nbsp;d<sub>v</sub>&nbsp;=&nbsp;4).
+                Q&nbsp;=&nbsp;X·W<sup>Q</sup> ("what am I looking for?"),
+                K&nbsp;=&nbsp;X·W<sup>K</sup> ("what do I offer?"),
+                V&nbsp;=&nbsp;X·W<sup>V</sup> ("what content do I share?").
+              </p>
+              <div id="step2Content"></div>
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="step-panel">
+            <div class="step-header">
+              <span class="step-num">Step 3</span>
+              <span class="step-title">Raw scores QK<sup>T</sup></span>
+              <span class="step-tag tag-static">unaffected by T</span>
+            </div>
+            <div class="step-body">
+              <p class="step-desc">
+                Entry (i,&nbsp;j) is the dot product of query&nbsp;i with key&nbsp;j — how much
+                token&nbsp;i's question matches token&nbsp;j's content.
+                Range for this head: <strong><span id="step3Range"></span></strong>.
+                Raw values can be large in magnitude; that is exactly why we need the next step.
+              </p>
+              <div id="step3Content"></div>
+            </div>
+          </div>
+
+          <!-- Step 4 — affected by T -->
+          <div class="step-panel is-affected">
+            <div class="step-header">
+              <span class="step-num">Step 4</span>
+              <span class="step-title">Scaled scores QK<sup>T</sup> / T</span>
+              <span class="step-tag tag-dynamic">← changes with T</span>
+            </div>
+            <div class="step-body">
+              <p class="step-desc">
+                Dividing by T compresses the score range. Too small a T leaves extreme
+                values that push softmax toward one-hot attention; too large a T collapses
+                everything toward zero and makes softmax uniform. The default
+                T&nbsp;=&nbsp;√d<sub>k</sub>&nbsp;=&nbsp;2 keeps the pre-softmax variance
+                stable.<sup><a href="#ref1">[1]</a></sup>
+              </p>
+              <div id="step4Content"></div>
+              <div class="step-insight" id="step4Insight"></div>
+            </div>
+          </div>
+
+          <!-- Step 5 — affected by T -->
+          <div class="step-panel is-affected">
+            <div class="step-header">
+              <span class="step-num">Step 5</span>
+              <span class="step-title">Attention weights softmax(QK<sup>T</sup>&nbsp;/&nbsp;T)</span>
+              <span class="step-tag tag-dynamic">← changes with T</span>
+            </div>
+            <div class="step-body">
+              <p class="step-desc">
+                Row-wise softmax converts scaled scores to a probability distribution.
+                Each row sums to 1. Darker cells = higher weight.
+                Row&nbsp;i shows how much token&nbsp;i attends to each other token.
+              </p>
+              <div id="step5Content"></div>
+              <div class="step-insight" id="step5Insight"></div>
+            </div>
+          </div>
+
+          <!-- Step 6 — affected by T -->
+          <div class="step-panel is-affected">
+            <div class="step-header">
+              <span class="step-num">Step 6</span>
+              <span class="step-title">Output weights · V</span>
+              <span class="step-tag tag-dynamic">← changes with T</span>
+            </div>
+            <div class="step-body">
+              <p class="step-desc">
+                Each token's output is a weighted average of all value vectors, using the
+                weights from step&nbsp;5. This context-aware representation replaces the
+                original embedding and flows to the next sub-layer.
+              </p>
+              <div id="step6Content"></div>
+            </div>
+          </div>
+
+        </div><!-- end .walkthrough -->
+
+      </div><!-- end .viz-body -->
+    </div><!-- end .viz-block -->
 
   </div>
 
@@ -747,19 +939,16 @@ function matmul(A, B) {
   return C;
 }
 
-function transpose(A) {
-  return A[0].map((_, j) => A.map(row => row[j]));
-}
+function transpose(A) { return A[0].map((_, j) => A.map(row => row[j])); }
 
 function softmaxRow(row) {
-  const max = Math.max(...row);
+  const max  = Math.max(...row);
   const exps = row.map(v => Math.exp(v - max));
   const sum  = exps.reduce((a, b) => a + b, 0);
   return exps.map(v => v / sum);
 }
 
 function rowwiseSoftmax(M) { return M.map(softmaxRow); }
-
 function scaleMatrix(M, s) { return M.map(row => row.map(v => v * s)); }
 
 function matClose(A, B, tol) {
@@ -770,167 +959,217 @@ function matClose(A, B, tol) {
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   ATTENTION COMPUTATION (mirrors reference.py exactly)
+   ENTROPY (Shannon, bits) — used in step 5 insight
 ══════════════════════════════════════════════════════════════════ */
-function computeHead(X, WQ, WK, WV) {
-  const Q      = matmul(X, WQ);
-  const K      = matmul(X, WK);
-  const V      = matmul(X, WV);
-  const dK     = Q[0].length;
-  const scores = matmul(Q, transpose(K));
-  const scaled = scaleMatrix(scores, 1 / Math.sqrt(dK));
+function rowEntropy(row) {
+  let H = 0;
+  for (const w of row) if (w > 1e-12) H -= w * Math.log2(w);
+  return H;
+}
+function avgEntropy(weights) {
+  return weights.reduce((s, r) => s + rowEntropy(r), 0) / weights.length;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════════════════ */
+let currentHead = 0;
+let scalingT    = 2.0;
+const TOKENS    = GT.metadata.tokens;   // ["The", "cat", "sat"]
+const D_K       = GT.metadata.d_k;      // 4
+const SQRT_DK   = Math.sqrt(D_K);       // 2.0
+let _cache      = { scores: null, V: null };
+
+/* ══════════════════════════════════════════════════════════════════
+   VERIFICATION — runs at page load with standard T = √dk
+══════════════════════════════════════════════════════════════════ */
+function computeHeadAtT(X, WQ, WK, WV, T) {
+  const Q       = matmul(X, WQ);
+  const K       = matmul(X, WK);
+  const V       = matmul(X, WV);
+  const scores  = matmul(Q, transpose(K));
+  const scaled  = scaleMatrix(scores, 1 / T);
   const weights = rowwiseSoftmax(scaled);
   const output  = matmul(weights, V);
   return { Q, K, V, scores, scaled, weights, output };
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   VERIFICATION — runs on page load, results shown in badge
-══════════════════════════════════════════════════════════════════ */
 function verify() {
   const tol    = GT.metadata.tolerance;
   const X      = GT.inputs.embeddings;
   const errors = [];
-
   for (let h = 0; h < GT.metadata.h; h++) {
-    const computed = computeHead(X, GT.inputs.W_Q[h], GT.inputs.W_K[h], GT.inputs.W_V[h]);
-    const gt       = GT.heads[h];
-
-    if (!matClose(computed.weights, gt.weights, tol))
-      errors.push(`Head ${h}: attention weights deviate from ground truth by more than ${tol}`);
-
-    for (let i = 0; i < computed.weights.length; i++) {
-      const rowSum = computed.weights[i].reduce((a, b) => a + b, 0);
-      if (Math.abs(rowSum - 1.0) > tol)
-        errors.push(`Head ${h} row ${i}: weights sum to ${rowSum.toFixed(8)}, expected 1.0`);
+    const c  = computeHeadAtT(X, GT.inputs.W_Q[h], GT.inputs.W_K[h], GT.inputs.W_V[h], SQRT_DK);
+    const gt = GT.heads[h];
+    if (!matClose(c.weights, gt.weights, tol)) errors.push(`Head ${h}: weights mismatch`);
+    if (!matClose(c.Q,       gt.Q,       tol)) errors.push(`Head ${h}: Q mismatch`);
+    if (!matClose(c.scaled,  gt.scaled,  tol)) errors.push(`Head ${h}: scaled scores mismatch`);
+    for (let i = 0; i < c.weights.length; i++) {
+      const s = c.weights[i].reduce((a,b)=>a+b, 0);
+      if (Math.abs(s - 1.0) > tol) errors.push(`Head ${h} row ${i} sum=${s}`);
     }
-
-    for (const row of computed.weights)
-      for (const w of row)
-        if (w < -tol)
-          errors.push(`Head ${h}: negative attention weight ${w}`);
-
-    if (!matClose(computed.Q, gt.Q, tol))
-      errors.push(`Head ${h}: Q matrix mismatch`);
-    if (!matClose(computed.scaled, gt.scaled, tol))
-      errors.push(`Head ${h}: scaled scores mismatch`);
   }
   return errors;
 }
 
+function setBadge(pass, msg) {
+  const badge   = document.getElementById('mathBadge');
+  badge.textContent = pass ? '✓ Math verified' : '⚠ Math check failed';
+  badge.className   = 'math-badge ' + (pass ? 'badge-pass' : 'badge-fail');
+  if (!pass && msg) console.error('Math check failed:', msg);
+}
+
 /* ══════════════════════════════════════════════════════════════════
-   HEATMAP RENDERING
+   DISPLAY HELPERS
 ══════════════════════════════════════════════════════════════════ */
-let currentHead = 0;
+function matTable(M, rowLabels, colLabels) {
+  const th   = `<tr><th></th>${colLabels.map(c=>`<th>${c}</th>`).join('')}</tr>`;
+  const rows = M.map((row, i) =>
+    `<tr><th>${rowLabels[i]}</th>${row.map(v=>`<td>${v.toFixed(3)}</td>`).join('')}</tr>`
+  ).join('');
+  return `<div class="matrix-wrap"><table class="matrix-table">
+    <thead>${th}</thead><tbody>${rows}</tbody></table></div>`;
+}
 
 function weightToColor(w) {
-  // Interpolate: 0 → #f5f0e8 (warm off-white), 1 → #268bd2 (Solarized blue)
   const r = Math.round(245 + (38  - 245) * w);
   const g = Math.round(240 + (139 - 240) * w);
   const b = Math.round(232 + (210 - 232) * w);
   return `rgb(${r},${g},${b})`;
 }
+function contrastColor(w) { return w > 0.55 ? '#fdf6e3' : '#073642'; }
 
-function contrastColor(w) {
-  // Dark text for light cells, white for dark cells
-  return w > 0.55 ? '#fdf6e3' : '#073642';
-}
-
-function renderHeatmap(headIdx) {
-  const tokens  = GT.metadata.tokens;
-  const weights = GT.heads[headIdx].weights;
-
-  // Column labels
-  const colLabels = document.getElementById('colLabels');
-  colLabels.innerHTML = tokens.map(t => `<div class="hm-col-label">${t}</div>`).join('');
-
-  // Grid
-  const grid = document.getElementById('heatmapGrid');
-  grid.innerHTML = '';
-
-  weights.forEach((row, i) => {
-    const rowEl = document.createElement('div');
-    rowEl.className = 'hm-row';
-    rowEl.innerHTML = `<div class="hm-row-label">${tokens[i]}</div>`;
-    row.forEach((w, j) => {
-      const cell = document.createElement('div');
-      cell.className = 'hm-cell';
-      cell.style.background = weightToColor(w);
-      cell.style.color = contrastColor(w);
-      cell.textContent = w.toFixed(3);
-      cell.title = `${tokens[i]} → ${tokens[j]}: ${w.toFixed(6)}`;
-      rowEl.appendChild(cell);
-    });
-    grid.appendChild(rowEl);
-  });
-
-  // Row-axis label
-  const existing = grid.parentElement.querySelector('.hm-row-axis');
-  if (!existing) {
-    const axisLabel = document.createElement('div');
-    axisLabel.className = 'hm-axis-label hm-row-axis';
-    axisLabel.style.marginTop = '8px';
-    axisLabel.textContent = 'Query (attending token)';
-    grid.parentElement.appendChild(axisLabel);
-  }
-}
-
-function renderSteps(headIdx) {
-  const h   = GT.heads[headIdx];
-  const tok = GT.metadata.tokens;
-
-  function matTable(M, rowLabels, colLabels) {
-    const header = `<tr><th></th>${colLabels.map(c => `<th>${c}</th>`).join('')}</tr>`;
-    const body   = M.map((row, i) =>
-      `<tr><th>${rowLabels[i]}</th>${row.map(v =>
-        `<td>${v.toFixed(4)}</td>`).join('')}</tr>`
+function heatmapHTML(weights, tokens) {
+  const cols = tokens.map(t => `<div class="hm-col-label">${t}</div>`).join('');
+  const rows = weights.map((row, i) => {
+    const cells = row.map((w, j) =>
+      `<div class="hm-cell" style="background:${weightToColor(w)};color:${contrastColor(w)}"
+       title="${tokens[i]} → ${tokens[j]}: ${w.toFixed(6)}">${w.toFixed(3)}</div>`
     ).join('');
-    return `<div class="matrix-wrap"><table class="matrix-table"><thead>${header}</thead><tbody>${body}</tbody></table></div>`;
+    return `<div class="hm-row"><div class="hm-row-label">${tokens[i]}</div>${cells}</div>`;
+  }).join('');
+  return `<div class="hm-col-labels">${cols}</div>${rows}
+    <div class="hm-axis-label">Key (attended-to token)</div>
+    <div class="hm-legend"><span>0.0</span><div class="hm-legend-bar"></div>
+    <span>1.0</span><span style="margin-left:8px;font-style:italic;">attention weight</span></div>`;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   INSIGHT TEXT — updates dynamically with T
+══════════════════════════════════════════════════════════════════ */
+function step4InsightText(T, scMin, scMax) {
+  const d = T.toFixed(2);
+  if (T < 0.6)
+    return `<strong>T&nbsp;=&nbsp;${d} — very sharp.</strong> Scaled range: ${scMin} to ${scMax}. The largest score dominates exp(·) and softmax is nearly one-hot. Gradients through softmax are tiny — this is the saturation problem √d_k was designed to avoid.`;
+  if (T < 1.5)
+    return `<strong>T&nbsp;=&nbsp;${d} — below √d_k.</strong> Scaled range: ${scMin} to ${scMax}. Attention is fairly concentrated; a few tokens receive most weight.`;
+  if (T <= 2.5)
+    return `<strong>T&nbsp;=&nbsp;${d} ≈ √d_k&nbsp;=&nbsp;${SQRT_DK.toFixed(2)}.</strong> Standard scaling (Vaswani et al., 2017). Range: ${scMin} to ${scMax}. Softmax receives well-calibrated inputs; gradients flow cleanly.`;
+  if (T <= 5.5)
+    return `<strong>T&nbsp;=&nbsp;${d} — above √d_k.</strong> Range: ${scMin} to ${scMax}. Values compressed toward 0; softmax approaches uniform — the model can no longer discriminate between positions.`;
+  return `<strong>T&nbsp;=&nbsp;${d} — very large.</strong> Near-zero range: ${scMin} to ${scMax}. Softmax ≈ 1/${TOKENS.length}&nbsp;=&nbsp;${(1/TOKENS.length).toFixed(3)} everywhere — completely uniform attention regardless of content.`;
+}
+
+function step5InsightText(weights) {
+  const H    = avgEntropy(weights);
+  const maxH = Math.log2(TOKENS.length);
+  const pct  = (H / maxH * 100).toFixed(0);
+  let desc;
+  if (H < 0.2 * maxH)       desc = 'Highly concentrated — each query focuses on roughly one key.';
+  else if (H < 0.5 * maxH)  desc = 'Moderately focused — queries spread attention across a few tokens.';
+  else if (H < 0.8 * maxH)  desc = 'Fairly spread — attention distributed across most tokens.';
+  else                        desc = `Nearly uniform — each token receives roughly 1/${TOKENS.length} weight.`;
+  return `<strong>Average entropy:&nbsp;${H.toFixed(3)}&nbsp;bits</strong> (${pct}% of max&nbsp;${maxH.toFixed(3)}&nbsp;bits for ${TOKENS.length}&nbsp;tokens). ${desc}`;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   RENDERING
+══════════════════════════════════════════════════════════════════ */
+function renderStaticSteps() {
+  const X  = GT.inputs.embeddings;
+  const WQ = GT.inputs.W_Q[currentHead];
+  const WK = GT.inputs.W_K[currentHead];
+  const WV = GT.inputs.W_V[currentHead];
+
+  const Q      = matmul(X, WQ);
+  const K      = matmul(X, WK);
+  const V      = matmul(X, WV);
+  const scores = matmul(Q, transpose(K));
+  _cache = { scores, V };
+
+  const d8 = ['d₀','d₁','d₂','d₃','d₄','d₅','d₆','d₇'];
+  const d4 = ['d₀','d₁','d₂','d₃'];
+
+  document.getElementById('step1Content').innerHTML = matTable(X, TOKENS, d8);
+
+  document.getElementById('step2Content').innerHTML =
+    '<p class="step-sublabel">Q — queries</p>' + matTable(Q, TOKENS, d4) +
+    '<p class="step-sublabel">K — keys</p>'    + matTable(K, TOKENS, d4) +
+    '<p class="step-sublabel">V — values</p>'  + matTable(V, TOKENS, d4);
+
+  const flat = scores.flat();
+  const sMin = Math.min(...flat).toFixed(2);
+  const sMax = Math.max(...flat).toFixed(2);
+  document.getElementById('step3Range').textContent = `${sMin} to ${sMax}`;
+  document.getElementById('step3Content').innerHTML = matTable(scores, TOKENS, TOKENS);
+}
+
+function renderDynamicSteps() {
+  const { scores, V } = _cache;
+  const scaled  = scaleMatrix(scores, 1 / scalingT);
+  const weights = rowwiseSoftmax(scaled);
+  const output  = matmul(weights, V);
+  const d4      = ['d₀','d₁','d₂','d₃'];
+
+  const sf    = scaled.flat();
+  const scMin = Math.min(...sf).toFixed(2);
+  const scMax = Math.max(...sf).toFixed(2);
+
+  document.getElementById('step4Content').innerHTML = matTable(scaled,  TOKENS, TOKENS);
+  document.getElementById('step4Insight').innerHTML = step4InsightText(scalingT, scMin, scMax);
+  document.getElementById('step5Content').innerHTML = heatmapHTML(weights, TOKENS);
+  document.getElementById('step5Insight').innerHTML = step5InsightText(weights);
+  document.getElementById('step6Content').innerHTML = matTable(output,  TOKENS, d4);
+
+  // Live structural check after every recompute
+  for (let i = 0; i < weights.length; i++) {
+    const s = weights[i].reduce((a,b)=>a+b, 0);
+    if (Math.abs(s - 1.0) > 0.001) { setBadge(false, `Row ${i} sum=${s}`); return; }
+    if (weights[i].some(w => w < -0.001)) { setBadge(false, `Negative weight row ${i}`); return; }
   }
+}
 
-  const dimLabels = ['d₀','d₁','d₂','d₃'];
+/* ══════════════════════════════════════════════════════════════════
+   CONTROLS
+══════════════════════════════════════════════════════════════════ */
+function onScalingChange() {
+  scalingT = parseFloat(document.getElementById('scalingSlider').value);
+  document.getElementById('scalingVal').textContent = scalingT.toFixed(2);
+  const annot = document.getElementById('scalingAnnotation');
+  if (Math.abs(scalingT - SQRT_DK) < 0.08) {
+    annot.innerHTML = `= √d<sub>k</sub> ✓`;
+    annot.className = 'slider-annotation annot-default';
+  } else if (scalingT < SQRT_DK) {
+    annot.textContent = '< √dk · sharper';
+    annot.className   = 'slider-annotation annot-sharp';
+  } else {
+    annot.textContent = '> √dk · flatter';
+    annot.className   = 'slider-annotation annot-flat';
+  }
+  renderDynamicSteps();
+}
 
-  document.getElementById('stepsContent').innerHTML = `
-    <div class="step-label">Q = X · W<sup>Q</sup></div>
-    ${matTable(h.Q, tok, dimLabels)}
-
-    <div class="step-label">K = X · W<sup>K</sup></div>
-    ${matTable(h.K, tok, dimLabels)}
-
-    <div class="step-label">V = X · W<sup>V</sup></div>
-    ${matTable(h.V, tok, dimLabels)}
-
-    <div class="step-label">Raw scores = Q · Kᵀ</div>
-    ${matTable(h.scores, tok, tok)}
-
-    <div class="step-label">Scaled scores = Q · Kᵀ / √d<sub>k</sub> &nbsp;(d<sub>k</sub> = ${GT.metadata.d_k})</div>
-    ${matTable(h.scaled, tok, tok)}
-
-    <div class="step-label">Attention weights = softmax(scaled scores, axis=−1)</div>
-    ${matTable(h.weights, tok, tok)}
-
-    <div class="step-label">Head output = weights · V</div>
-    ${matTable(h.output, tok, dimLabels)}
-  `;
+function resetScaling() {
+  scalingT = SQRT_DK;
+  document.getElementById('scalingSlider').value = SQRT_DK;
+  onScalingChange();
 }
 
 function selectHead(idx) {
   currentHead = idx;
-  document.querySelectorAll('.head-tab').forEach((t, i) => {
-    t.classList.toggle('active', i === idx);
-  });
-  renderHeatmap(idx);
-  if (document.getElementById('stepsPanel').classList.contains('open')) {
-    renderSteps(idx);
-  }
-}
-
-function toggleSteps() {
-  const panel  = document.getElementById('stepsPanel');
-  const btn    = document.querySelector('.steps-toggle');
-  const isOpen = panel.classList.toggle('open');
-  btn.textContent = isOpen ? 'Hide computation steps ▴' : 'Show computation steps ▾';
-  if (isOpen) renderSteps(currentHead);
+  document.querySelectorAll('.head-tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+  renderStaticSteps();
+  renderDynamicSteps();
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -938,16 +1177,9 @@ function toggleSteps() {
 ══════════════════════════════════════════════════════════════════ */
 (function init() {
   const errors = verify();
-  const badge  = document.getElementById('mathBadge');
-  if (errors.length === 0) {
-    badge.textContent = '✓ Math verified';
-    badge.className   = 'math-badge badge-pass';
-  } else {
-    badge.textContent = '⚠ Math check failed';
-    badge.className   = 'math-badge badge-fail';
-    console.error('Visualization math verification failed:', errors);
-  }
-  renderHeatmap(0);
+  setBadge(errors.length === 0, errors[0]);
+  renderStaticSteps();
+  renderDynamicSteps();
 })();
 </script>
 
