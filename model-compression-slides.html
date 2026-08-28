@@ -120,10 +120,11 @@ tr.hl td{background:var(--base2);color:var(--base03)}
 /* ---------- print / PDF export: one slide per page, native vector output ---------- */
 @media print{
   @page{size:1920px 1080px;margin:0}
+  :root{--u:22px}
   html,body{height:auto;overflow:visible}
-  #deck{position:static;height:auto}
+  #deck{position:static;height:auto;width:1920px}
   .slide{position:static !important;display:flex !important;width:1920px;height:1080px;
-    animation:none !important;break-after:page;page-break-after:always}
+    padding:54px 115.2px 64.8px;animation:none !important;break-after:page;page-break-after:always}
   .slide:last-of-type{break-after:auto;page-break-after:auto}
   .slide .body{overflow:visible}
   .cols{grid-template-columns:1fr 1fr !important}
