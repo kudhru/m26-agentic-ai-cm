@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transformers — Dhruv Kumar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<style>
+/* ===== Solarized Light — fixed palette ===== */
+:root{
+  --base3:#fdf6e3; --base2:#eee8d5; --base1:#93a1a1; --base0:#839496;
+  --base00:#657b83; --base01:#586e75; --base02:#073642; --base03:#002b36;
+  --yellow:#b58900; --orange:#cb4b16; --red:#dc322f; --magenta:#d33682;
+  --violet:#6c71c4; --blue:#268bd2; --cyan:#2aa198; --green:#859900;
+  --rule:rgba(147,161,161,.42);
+  --serif:"IBM Plex Serif",Georgia,serif;
+  --sans:"IBM Plex Sans Condensed","IBM Plex Sans",Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --u:clamp(13px,1.42vw,22px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--base3)}
+body{font-family:var(--serif);color:var(--base01);font-size:var(--u);line-height:1.5;
+  -webkit-font-smoothing:antialiased}
+
+/* ---------- deck ---------- */
+#deck{position:relative;height:100vh;width:100vw}
+.slide{position:absolute;inset:0;display:none;flex-direction:column;
+  padding:5vh 6vw 6vh;overflow:hidden}
+.slide.on{display:flex}
+@media (prefers-reduced-motion:no-preference){
+  .slide.on{animation:fade .3s ease both}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+}
+
+/* ---------- typography ---------- */
+h1{font-family:var(--sans);font-weight:700;font-size:3.4em;line-height:.98;letter-spacing:-.02em;
+  color:var(--base03);margin:0 0 .2em}
+h2{font-family:var(--sans);font-weight:700;font-size:1.85em;line-height:1.06;letter-spacing:-.015em;
+  color:var(--base03);margin:0 0 .8em;flex:0 0 auto}
+h2 .accent{color:var(--blue)}
+.body{flex:1;min-height:0;overflow:auto;padding-right:.4em}
+p{margin:0 0 .8em}
+strong{color:var(--base03);font-weight:600}
+.big{font-size:1.2em;line-height:1.4}
+ul,ol{margin:0 0 .9em;padding-left:1.4em}
+ol{list-style-position:outside}
+li{margin:.42em 0}
+ul li::marker{color:var(--blue)}
+ol li::marker{color:var(--orange);font-family:var(--mono);font-size:.85em}
+code{font-family:var(--mono);font-size:.86em;background:var(--base2);padding:.06em .32em;border-radius:3px;color:var(--base02)}
+a{color:var(--blue);text-decoration:none;border-bottom:1px solid rgba(38,139,210,.4)}
+em.t{font-style:normal;font-weight:600;color:var(--violet)}
+
+/* ---------- layout helpers ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:2.4em;align-items:start}
+.cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5em}
+.stack{display:flex;flex-direction:column;gap:.8em}
+
+/* ---------- cards & tiles ---------- */
+.card{background:var(--base2);border-left:3px solid var(--c,var(--base1));
+  padding:.85em 1em;border-radius:0 4px 4px 0}
+.card .lab{font-family:var(--sans);font-size:.6em;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--c,var(--base00));display:block;margin-bottom:.35em}
+.card p:last-child,.card ul:last-child{margin-bottom:0}
+.key{--c:var(--magenta)} .int{--c:var(--cyan)} .warn{--c:var(--red)}
+.math{--c:var(--violet)} .ex{--c:var(--green)} .note{--c:var(--yellow)} .q{--c:var(--blue)}
+
+.tile{border:1px solid var(--rule);border-radius:5px;padding:.9em 1em;background:var(--base3)}
+.tile h4{font-family:var(--sans);font-size:.78em;font-weight:600;color:var(--base03);
+  margin:0 0 .3em;letter-spacing:.02em}
+.tile p{font-size:.86em;margin:0;color:var(--base00)}
+
+/* ---------- tables ---------- */
+table{border-collapse:collapse;width:100%;font-family:var(--sans);font-size:.82em}
+th{text-align:left;font-size:.72em;letter-spacing:.1em;text-transform:uppercase;color:var(--base00);
+  border-bottom:1.5px solid var(--base02);padding:.4em .6em;font-weight:600}
+td{padding:.42em .6em;border-bottom:1px solid var(--rule);vertical-align:top}
+tr.hl td{background:var(--base2);color:var(--base03)}
+
+/* ---------- math ---------- */
+.katex{color:var(--base02)}
+.katex-display{margin:.7em 0!important;overflow-x:auto;overflow-y:hidden}
+.eq{background:var(--base2);border-radius:5px;padding:.35em 1em;margin:.7em 0}
+.eq.hero{border:1px solid var(--rule);background:var(--base3)}
+
+/* ---------- stacked-layers tower visual ---------- */
+.tower{display:flex;flex-direction:column;align-items:center;gap:.5em;max-width:28em;margin:0 auto}
+.tbox{border:1px solid var(--rule);border-radius:6px;background:var(--base2);padding:.65em 1.4em;
+  text-align:center;font-family:var(--sans);font-size:.82em;color:var(--base01);width:100%}
+.tblock{width:100%;border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+.tblock .trow{padding:.55em 1.4em;font-family:var(--sans);font-size:.86em;
+  border-left:4px solid var(--c,var(--base1));color:var(--base01)}
+.tblock .trow.mlp{--c:var(--violet);background:rgba(108,113,196,.08)}
+.tblock .trow.attn{--c:var(--blue);background:rgba(38,139,210,.08);border-top:1px solid var(--rule)}
+.tblock .trow b{color:var(--base03)}
+.tarrow{color:var(--base1);font-size:1.1em;line-height:1}
+.tgap{display:flex;flex-direction:column;align-items:center;color:var(--base00);
+  font-family:var(--sans);font-size:.72em;letter-spacing:.06em;gap:.15em}
+
+/* ---------- causal-mask grid visual ---------- */
+.mask{display:inline-grid;gap:4px;font-family:var(--mono);font-size:.6em}
+.mask .c2{width:2.3em;height:1.9em;display:flex;align-items:center;justify-content:center;
+  border-radius:3px;background:var(--base2);color:var(--base1)}
+.mask .c2.on{background:var(--blue);color:var(--base3)}
+.mask .c2.hd{background:none;color:var(--base00);font-weight:600}
+@media (prefers-reduced-motion:no-preference){
+  .slide.on .mask .c2.on{animation:cell .4s cubic-bezier(.2,.8,.3,1) both;animation-delay:var(--d,0s)}
+  @keyframes cell{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:none}}
+}
+
+/* ---------- chrome: bare page counter only ---------- */
+#foot{position:fixed;right:6vw;bottom:2vh;font-family:var(--mono);font-size:.62em;
+  color:var(--base1);z-index:10}
+
+/* ---------- title slide ---------- */
+.slide.title{justify-content:center}
+.titlemeta{margin-top:1.3em}
+.titlemeta .author{display:block;font-family:var(--sans);font-weight:600;font-size:1.4em;color:var(--base02)}
+.titlemeta .affil{display:block;font-family:var(--sans);font-size:1.05em;color:var(--base00);margin-top:.25em}
+
+/* ---------- overview mode ---------- */
+#ov{position:fixed;inset:0;background:rgba(253,246,227,.97);z-index:30;display:none;
+  overflow:auto;padding:3vh 4vw}
+#ov.on{display:block}
+#ov h3{font-family:var(--sans);font-size:1em;color:var(--base03);margin:0 0 1em;letter-spacing:.02em}
+.ovgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.6em}
+.ovcard{border:1px solid var(--rule);border-radius:4px;padding:.6em .7em;cursor:pointer;
+  background:var(--base3);font-family:var(--sans);font-size:.72em;line-height:1.3}
+.ovcard:hover{border-color:var(--blue);background:var(--base2)}
+.ovcard .n2{font-family:var(--mono);font-size:.85em;color:var(--orange);display:block}
+
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+@media (max-width:760px){
+  .cols,.cols3{grid-template-columns:1fr;gap:1em}
+  .slide{padding:3vh 5vw 6vh}
+  h1{font-size:2.4em}
+}
+
+/* ---------- print / PDF export: one slide per page, native vector output ---------- */
+@media print{
+  @page{size:1920px 1080px;margin:0}
+  html,body{height:auto;overflow:visible}
+  #deck{position:static;height:auto}
+  .slide{position:static !important;display:flex !important;width:1920px;height:1080px;
+    animation:none !important;break-after:page;page-break-after:always}
+  .slide:last-of-type{break-after:auto;page-break-after:auto}
+  .slide .body{overflow:visible}
+  .cols{grid-template-columns:1fr 1fr !important}
+  .cols3{grid-template-columns:repeat(3,1fr) !important}
+  #foot,#ov{display:none !important}
+}
+</style>
+</head>
+<body>
+
+<div id="deck">
+
+<!-- ============ TITLE ============ -->
+<section class="slide title">
+  <h1>Transformers</h1>
+  <div class="titlemeta"><span class="author">Dhruv Kumar</span><span class="affil">BITS Pilani</span></div>
+</section>
+
+<!-- ============ INTRODUCTION ============ -->
+<section class="slide">
+  <h2>What is a Transformer?</h2>
+  <div class="body">
+    <p>This lecture focuses on <strong>decoder-only Transformers</strong> — the architecture behind
+    GPT, LLaMA, Claude, and almost every modern language model.</p>
+    <div class="card key"><span class="lab">One-sentence definition</span>
+      <p class="big">A decoder-only Transformer is a stack of blocks in which <strong>attention moves
+      information between token positions</strong> and <strong>MLPs process information within a
+      position</strong>, all writing additively into a shared residual stream, with a
+      <strong>causal mask</strong> that forbids reading the future.</p></div>
+  </div>
+</section>
+
+<!-- ============ LM OBJECTIVE ============ -->
+<section class="slide">
+  <h2>The training objective</h2>
+  <div class="body">
+    <p>We want to predict the probability of the next token given all previous tokens.</p>
+    <div class="eq hero">$$P_\theta(x_1,\dots,x_n)=\prod_{t=1}^{n}P_\theta(x_t\mid x_{&lt;t})$$</div>
+    <div class="eq">$$\mathcal{L}=-\frac1n\sum_{t=1}^{n}\log\operatorname{softmax}(z_t)_{x_t}$$</div>
+    <div class="eq">$$\operatorname{softmax}(z)_i=\frac{e^{z_i}}{\sum_{j=1}^{|V|}e^{z_j}}$$</div>
+    <ul>
+      <li>$x_1,\dots,x_n$ — the sequence of $n$ tokens; $x_t$ — the token at position $t$;
+      $x_{&lt;t}$ — every token before position $t$.</li>
+      <li>$z_t$ — the model's output scores (logits) at position $t$, one number per vocabulary
+      token, shape $|V|$.</li>
+      <li>$\operatorname{softmax}(z_t)$ — turns the $|V|$ logits into a probability distribution
+      over the vocabulary: exponentiate each score, then divide by the sum over all $|V|$ scores,
+      so every entry is non-negative and all entries sum to 1.</li>
+      <li>$\operatorname{softmax}(z_t)_{x_t}$ — the probability the model assigned to the actual
+      next token; $\mathcal L$ is the average negative log of that probability over the sequence.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ TOKENS -> EMBEDDINGS ============ -->
+<section class="slide">
+  <h2>Tokens → embeddings</h2>
+  <div class="body">
+    <p>Text is first split into tokens. <em>(Self-study: byte-pair encoding is the standard scheme
+    used to do this split.)</em></p>
+    <div class="eq hero">$$W_E\in\mathbb{R}^{|V|\times d},\qquad X=\text{lookup}(W_E)\in\mathbb{R}^{n\times d}$$</div>
+    <p>Each token id selects one row of the learned embedding matrix $W_E$. Stacking a sequence's
+    rows gives $X$.</p>
+    <ul>
+      <li>$|V|$ — vocabulary size (number of distinct tokens)</li>
+      <li>$d$ — embedding dimension (width of each token's vector)</li>
+      <li>$n$ — sequence length (number of tokens)</li>
+    </ul>
+    <div class="card int"><span class="lab">How is W_E obtained?</span>
+      <p>$W_E$ is <strong>not</strong> trained separately. It starts as random numbers and is
+      learned end-to-end, jointly with every other weight in the network, by backpropagating the
+      same next-token loss from the previous slide.</p></div>
+  </div>
+</section>
+
+<!-- ============ RESIDUAL STREAM ============ -->
+<section class="slide">
+  <h2>The <span class="accent">residual stream</span></h2>
+  <div class="body">
+    <p><strong>Single token (vector form)</strong> — $x\in\mathbb{R}^d$ is one token's
+    representation:</p>
+    <div class="eq">$$x \leftarrow x + \operatorname{Attn}(\operatorname{norm}(x)),\qquad
+      x \leftarrow x + \operatorname{MLP}(\operatorname{norm}(x))$$</div>
+    <p><strong>Whole sequence (matrix form)</strong> — $X\in\mathbb{R}^{n\times d}$ updates every
+    token at once:</p>
+    <div class="eq hero">$$X \leftarrow X + \operatorname{Attn}(\operatorname{norm}(X)),\qquad
+      X \leftarrow X + \operatorname{MLP}(\operatorname{norm}(X))$$</div>
+    <p>Every sub-layer reads a normalized copy of the stream and <strong>adds</strong> its result
+    back in. The final representation is the embedding <em>plus</em> the sum of every sub-layer's
+    contribution.</p>
+    <div class="card int"><span class="lab">Division of labour</span>
+      <p class="big"><strong>Attention moves information <em>between</em> lanes (token
+      positions).<br>MLPs process information <em>within</em> a lane.</strong></p></div>
+  </div>
+</section>
+
+<!-- ============ POSITION ============ -->
+<section class="slide">
+  <h2>Positional information</h2>
+  <div class="body">
+    <p>Self-attention treats the input as a set of tokens — by itself, it cannot tell that token 3
+    comes after token 2. Position has to be injected explicitly.</p>
+    <div class="eq hero">$$X \leftarrow X + P,\qquad P\in\mathbb{R}^{n\times d}$$</div>
+    <p>The simplest scheme: a positional encoding matrix $P$ has one row per position, and row $t$
+    is added directly to token $t$'s embedding — same shape as $X$, so it adds in cleanly.</p>
+    <div class="card note"><span class="lab">Self-study</span>
+      <p><strong>RoPE</strong> (rotary position embeddings) is the scheme used by most modern
+      models (LLaMA, Mistral, and others).</p></div>
+  </div>
+</section>
+
+<!-- ============ QUERY, KEY, VALUE ============ -->
+<section class="slide">
+  <h2>Query, Key, Value</h2>
+  <div class="body">
+    <div class="eq hero">$$Q=XW_Q,\qquad K=XW_K,\qquad V=XW_V$$</div>
+    <p>$X\in\mathbb{R}^{n\times d}$ — input token sequence matrix. $W_Q,W_K\in\mathbb{R}^{d\times
+    d_k}$ and $W_V\in\mathbb{R}^{d\times d_v}$ — learned projection matrices, giving
+    $Q,K\in\mathbb{R}^{n\times d_k}$ and $V\in\mathbb{R}^{n\times d_v}$.</p>
+    <div class="cols3" style="margin-top:.6em">
+      <div class="tile" style="border-left:3px solid var(--blue)"><h4>Query</h4>
+        <p>What this token is <strong>looking for</strong>.</p></div>
+      <div class="tile" style="border-left:3px solid var(--cyan)"><h4>Key</h4>
+        <p>What this token <strong>advertises</strong> about itself.</p></div>
+      <div class="tile" style="border-left:3px solid var(--green)"><h4>Value</h4>
+        <p>What this token <strong>hands over</strong> if it is attended to.</p></div>
+    </div>
+    <p style="margin-top:.7em">The similarity between a query and a key is simply a
+    <strong>dot product</strong>.</p>
+  </div>
+</section>
+
+<!-- ============ ATTENTION EQUATIONS ============ -->
+<section class="slide">
+  <h2>Scaled dot-product attention</h2>
+  <div class="body">
+    <div class="eq hero">$$\operatorname{Attention}(Q,K,V)=\operatorname{softmax}\!\left(\frac{QK^{\top}}{\sqrt{d_k}}\right)V$$</div>
+    <ol>
+      <li><strong>Scores</strong> $S=QK^\top/\sqrt{d_k}$, shape $n\times n$ — how much each
+      token's query matches every token's key.</li>
+      <li><strong>Weights</strong> $A=\operatorname{softmax}(S)$, shape $n\times n$ — each row
+      turned into a probability distribution; every row sums to 1.</li>
+      <li><strong>Output</strong> $O=AV$, shape $n\times d_v$ — each token's output is a weighted
+      average of all value vectors.</li>
+    </ol>
+    <div class="card note"><span class="lab">Why divide by √d_k</span>
+      <p>Purely for better training: it keeps the scores in a healthy range so the softmax that
+      follows does not saturate.</p></div>
+  </div>
+</section>
+
+<!-- ============ CAUSAL MASK ============ -->
+<section class="slide">
+  <h2>The causal mask</h2>
+  <div class="body">
+    <div class="eq">$$M_{ij}=\begin{cases}0 & j\le i\\ -\infty & j&gt;i\end{cases}\qquad M\in\mathbb{R}^{n\times n}$$</div>
+    <div class="eq hero">$$A=\operatorname{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}+M\right)$$</div>
+    <p>Position $i$ may only look at positions $j\le i$ — itself and the past. Adding $-\infty$
+    before the softmax drives those entries to exactly zero once the row is renormalized, so a
+    prediction at position $t$ never sees position $t+1$ onward.</p>
+  </div>
+</section>
+
+<!-- ============ LOWER TRIANGULAR VISUAL ============ -->
+<section class="slide">
+  <h2>What the mask looks like</h2>
+  <div class="body">
+    <div id="maskvis" class="mask"></div>
+    <p style="margin-top:1em">Rows = queries, columns = keys. Shaded cells are allowed ($j\le i$);
+    dashed cells are blocked ($j&gt;i$).</p>
+  </div>
+</section>
+
+<!-- ============ WORKED EXAMPLE 1 ============ -->
+<section class="slide">
+  <h2>Worked example — from X to Q, K, V</h2>
+  <div class="body">
+    <p>3 tokens ($n=3$), embedding width $d=3$. <strong>Single head</strong>, so $d_k=d_v=d=3$ —
+    as in a real model, this keeps the attention output the same shape as $X$.</p>
+    <div class="eq">$$X=\begin{bmatrix}X_{11}&X_{12}&X_{13}\\X_{21}&X_{22}&X_{23}\\
+      X_{31}&X_{32}&X_{33}\end{bmatrix}=\begin{bmatrix}1&0&1\\0&1&1\\1&1&0\end{bmatrix}$$</div>
+    <div class="eq hero" style="font-size:.9em">$$W_Q=\begin{bmatrix}1&0&0\\0&1&0\\1&1&1\end{bmatrix}\quad
+      W_K=\begin{bmatrix}1&1&0\\1&0&1\\0&1&1\end{bmatrix}\quad
+      W_V=\begin{bmatrix}1&0&0\\0&1&0\\1&-1&1\end{bmatrix}$$</div>
+    <p style="font-size:.85em">One entry, worked out — $Q_{11}$ is row 1 of $X$ dotted with column
+    1 of $W_Q$: $Q_{11}=X_{11}W^Q_{11}+X_{12}W^Q_{21}+X_{13}W^Q_{31}=1{\cdot}1+0{\cdot}0+1{\cdot}1=2$</p>
+    <p style="margin-top:.7em">Every other entry of $Q=XW_Q$, $K=XW_K$, $V=XW_V$ follows the same
+    row-times-column pattern:</p>
+    <div class="eq hero" style="font-size:.9em">$$Q=\begin{bmatrix}2&1&1\\1&2&1\\1&1&0\end{bmatrix}\qquad
+      K=\begin{bmatrix}1&2&1\\1&1&2\\2&1&1\end{bmatrix}\qquad
+      V=\begin{bmatrix}2&-1&1\\1&0&1\\1&1&0\end{bmatrix}$$</div>
+  </div>
+</section>
+
+<!-- ============ WORKED EXAMPLE 2 ============ -->
+<section class="slide">
+  <h2>Worked example — scores to output</h2>
+  <div class="body">
+    <p><strong>Scores</strong> $QK^\top$, then scaled by $1/\sqrt{d_k}=1/\sqrt3\approx0.5774$:</p>
+    <div class="eq" style="font-size:.88em">$$QK^\top=\begin{bmatrix}5&5&6\\6&5&5\\3&2&3\end{bmatrix}
+      \qquad \frac{QK^\top}{\sqrt{d_k}}=\begin{bmatrix}2.89&2.89&3.46\\3.46&2.89&2.89\\1.73&1.15&1.73\end{bmatrix}$$</div>
+    <p><strong>Causal mask</strong> applied ($j&gt;i$ blocked), then row-wise softmax:</p>
+    <div class="eq" style="font-size:.88em">$$A=\operatorname{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}+M\right)
+      =\begin{bmatrix}1.000&0&0\\0.640&0.360&0\\0.390&0.219&0.390\end{bmatrix}$$</div>
+    <p><strong>Output</strong> $O=AV$ — row 3's output is a weighted blend of $v_1,v_2,v_3$ using
+    weights $0.39,\,0.22,\,0.39$:</p>
+    <div class="eq hero">$$O=AV=\begin{bmatrix}2.000&-1.000&1.000\\1.640&-0.640&1.000\\1.390&0.000&0.610\end{bmatrix}$$</div>
+    <p style="margin-top:.6em"><strong>$O$ has shape $3\times3$ — exactly $X$'s shape.</strong>
+    Because this is a single head with $d_v=d$, $O$ can be added straight into the residual
+    stream: no output projection needed.</p>
+  </div>
+</section>
+
+<!-- ============ MULTI-HEAD ATTENTION ============ -->
+<section class="slide">
+  <h2>Multi-head attention</h2>
+  <div class="body">
+    <p>A single attention head must compromise across every reason a token might attend elsewhere.
+    Running $h$ heads in parallel lets each one learn a <strong>different kind of
+    relationship</strong>, each with its own probability budget.</p>
+    <div class="eq">$$\text{head}_i=\operatorname{Attention}\big(XW_Q^{(i)},\,XW_K^{(i)},\,XW_V^{(i)}\big)$$</div>
+    <div class="eq hero">$$\operatorname{MHA}(X)=\operatorname{Concat}(\text{head}_1,\dots,\text{head}_h)\,W_O$$</div>
+    <p>Models pick $h$ and $d_v$ so that $h\times d_v=d$, keeping the concatenated heads at width
+    $d$ — matching the residual stream <strong>before</strong> $W_O\in\mathbb{R}^{d\times d}$ is
+    even applied. Each head only sees its own $d_v$-wide slice, so $W_O$'s job is to
+    <strong>mix information across heads</strong>.</p>
+    <ol>
+      <li>$X$: shape $n\times d$, split into $h$ heads of width $d_k=d_v=d/h$.</li>
+      <li>Each head runs attention independently → output $n\times d_v$ per head.</li>
+      <li>Concatenate all $h$ outputs → already back to $n\times d$.</li>
+      <li>Multiply by $W_O$ to mix across heads before writing into the residual stream.</li>
+    </ol>
+    <div class="card note"><span class="lab">Why the earlier worked example skipped W_O</span>
+      <p>Single head ($h=1$), $d_v=d$: concatenation is a no-op, so $W_O$ would just repeat what
+      $W_V$ already does.</p></div>
+  </div>
+</section>
+
+<!-- ============ NORMALIZATION ============ -->
+<section class="slide">
+  <h2>Normalization</h2>
+  <div class="body">
+    <div class="eq hero">$$\operatorname{LN}(x)=\gamma\odot\frac{x-\mu}{\sqrt{\sigma^2+\epsilon}}+\beta$$</div>
+    <p>$x\in\mathbb{R}^d$ — one token's vector; $\mu,\sigma^2$ — mean and variance computed across
+    the $d$ features of that <strong>one token</strong> (not across the batch); $\gamma,\beta\in
+    \mathbb{R}^d$ — learned scale and shift.</p>
+    <p>Normalizing each token's vector before it enters attention or the MLP keeps activations in
+    a stable range, which keeps training stable — especially in deep stacks.</p>
+    <div class="card note"><span class="lab">Two variants, same idea</span>
+      <p><strong>LayerNorm</strong> (above) and <strong>RMSNorm</strong> are essentially the same
+      operation; RMSNorm simply skips mean-centering:
+      $\operatorname{RMSNorm}(x)=\gamma\odot x/\sqrt{\tfrac1d\sum_i x_i^2+\epsilon}$.</p></div>
+  </div>
+</section>
+
+<!-- ============ FEED-FORWARD NETWORK ============ -->
+<section class="slide">
+  <h2>The feed-forward network (MLP)</h2>
+  <div class="body">
+    <div class="eq hero">$$\operatorname{FFN}(x)=W_2\,\phi(W_1x+b_1)+b_2$$</div>
+    <p>$x\in\mathbb{R}^d$; $W_1\in\mathbb{R}^{d_{ff}\times d}$, $b_1\in\mathbb{R}^{d_{ff}}$;
+    $\phi$ — a nonlinearity, applied elementwise; $W_2\in\mathbb{R}^{d\times d_{ff}}$,
+    $b_2\in\mathbb{R}^d$; typically $d_{ff}=4d$.</p>
+    <div class="cols" style="gap:1.6em;align-items:center">
+      <div>
+        <div class="eq" style="margin-top:0">$$\phi(z)=\operatorname{GELU}(z)=z\,\Phi(z)$$</div>
+        <p>The most widely used choice is <strong>GELU</strong>, where $\Phi(z)$ is the standard
+        normal cumulative distribution function — unlike ReLU, it does not sharply zero out
+        negative inputs, only smoothly damps them.</p>
+      </div>
+      <svg viewBox="0 0 320 180" style="width:100%;max-width:300px;justify-self:center"
+           role="img" aria-label="Graph of the GELU activation function: near zero for negative z, a small dip below zero just left of the origin, then approaching the line y=z for large positive z">
+        <line x1="30" y1="147.1" x2="310" y2="147.1" style="stroke:var(--rule)" stroke-width="1"/>
+        <line x1="170" y1="10" x2="170" y2="170" style="stroke:var(--rule)" stroke-width="1"/>
+        <path d="M 30,147.3 L 34.7,147.4 L 39.3,147.5 L 44,147.6 L 48.7,147.7 L 53.3,147.9
+          L 58,148 L 62.7,148.3 L 67.3,148.5 L 72,148.9 L 76.7,149.2 L 81.3,149.6 L 86,150.1
+          L 90.7,150.6 L 95.3,151.2 L 100,151.7 L 104.7,152.3 L 109.3,152.9 L 114,153.5
+          L 118.7,154 L 123.3,154.4 L 128,154.7 L 132.7,154.9 L 137.3,154.9 L 142,154.7
+          L 146.7,154.2 L 151.3,153.4 L 156,152.4 L 160.7,151 L 165.3,149.2 L 170,147.1
+          L 174.7,144.7 L 179.3,141.8 L 184,138.7 L 188.7,135.2 L 193.3,131.3 L 198,127.2
+          L 202.7,122.9 L 207.3,118.3 L 212,113.6 L 216.7,108.7 L 221.3,103.7 L 226,98.6
+          L 230.7,93.5 L 235.3,88.3 L 240,83.2 L 244.7,78 L 249.3,72.9 L 254,67.8 L 258.7,62.8
+          L 263.3,57.8 L 268,52.9 L 272.7,48 L 277.3,43.1 L 282,38.3 L 286.7,33.6 L 291.3,28.8
+          L 296,24.1 L 300.7,19.5 L 305.3,14.8 L 310,10.2"
+          fill="none" style="stroke:var(--blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="296" y="163" font-size="12" style="font-family:var(--sans);fill:var(--base00)">z</text>
+        <text x="176" y="20" font-size="12" style="font-family:var(--sans);fill:var(--base00)">GELU(z)</text>
+        <text x="157" y="161" font-size="10" style="font-family:var(--mono);fill:var(--base1)">0</text>
+      </svg>
+    </div>
+    <p>Applied identically and independently to <strong>every</strong> token position — unlike
+    attention, there is no mixing across positions here.</p>
+    <div class="card int"><span class="lab">High-level intuition</span>
+      <p>Attention decides <strong>what information to gather</strong>; the MLP is where the model
+      does nonlinear processing of that information, and appears to store much of what it
+      "knows".</p></div>
+  </div>
+</section>
+
+<!-- ============ COMPLETE DECODER BLOCK ============ -->
+<section class="slide">
+  <h2>The complete decoder block</h2>
+  <div class="body">
+    <div class="eq hero" style="padding:1.1em">$$\begin{aligned}
+      h &= x + \operatorname{MHA}\big(\operatorname{norm}(x),\ \text{causal mask}\big)\\[6pt]
+      y &= h + \operatorname{FFN}\big(\operatorname{norm}(h)\big)\end{aligned}$$</div>
+    <p>Stack this block $L$ times — that is the whole architecture.</p>
+    <table style="margin-top:.6em">
+      <thead><tr><th>#</th><th>Operation</th><th>Shape out</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Token ids</td><td><code>n</code></td></tr>
+        <tr><td>2</td><td>Embedding lookup $W_E$</td><td><code>n × d</code></td></tr>
+        <tr class="hl"><td>3</td><td><strong>× L:</strong> norm → causal MHA → residual add</td><td><code>n × d</code></td></tr>
+        <tr class="hl"><td>4</td><td><strong>× L:</strong> norm → FFN → residual add</td><td><code>n × d</code></td></tr>
+        <tr><td>5</td><td>Final norm, then unembed $W_U$</td><td><code>n × |V|</code></td></tr>
+        <tr><td>6</td><td>Cross-entropy loss vs. next token $x_{t+1}$</td><td>scalar</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:.6em;font-size:.86em;color:var(--base00)">Row $t$ of the logits is built
+    from $x_1,\dots,x_t$ (the causal mask lets it see up to and including $x_t$), so it predicts
+    the <em>next</em> token, $x_{t+1}$ — training compares row $t$ against $x_{t+1}$ for every $t$,
+    i.e. the target sequence is just the input shifted one position to the left.</p>
+    <p style="margin-top:.5em;font-size:.86em;color:var(--base00)">Inside step 3, tensors reshape
+    <code>n×d → h×n×d_k</code> so the $QK^\top$ matmul batches over all $h$ heads at once, then
+    merge back before $W_O$.</p>
+  </div>
+</section>
+
+<!-- ============ ONE BLOCK, VISUALLY ============ -->
+<section class="slide">
+  <h2>One block: attention + MLP</h2>
+  <div class="body">
+    <p>Every block does exactly two things to the residual stream, one after another.</p>
+    <div class="tower" style="margin-top:1.1em">
+      <div class="tbox">y — output of this block</div>
+      <div class="tarrow">▲</div>
+      <div class="tblock">
+        <div class="trow mlp"><b>+ MLP</b> — process within a token</div>
+        <div class="trow attn"><b>+ Attention</b> — move information between tokens</div>
+      </div>
+      <div class="tarrow">▲</div>
+      <div class="tbox">x — input to this block</div>
+    </div>
+    <p style="margin-top:1.1em">This is <strong>one decoder block</strong> — the unit that gets
+    stacked $L$ times to build the whole model.</p>
+  </div>
+</section>
+
+<!-- ============ STACK IT ×L ============ -->
+<section class="slide">
+  <h2>Stack it × L</h2>
+  <div class="body">
+    <div class="tower">
+      <div class="tbox">Final norm → Unembed → next-token probabilities</div>
+      <div class="tarrow">▲</div>
+      <div class="tgap"><span>⋮</span><span>× L total</span></div>
+      <div class="tarrow">▲</div>
+      <div class="tblock">
+        <div class="trow mlp"><b>+ MLP</b></div>
+        <div class="trow attn"><b>+ Attention</b></div>
+      </div>
+      <div class="tarrow">▲</div>
+      <div class="tblock">
+        <div class="trow mlp"><b>+ MLP</b></div>
+        <div class="trow attn"><b>+ Attention</b></div>
+      </div>
+      <div class="tarrow">▲</div>
+      <div class="tbox">Embed + position (tokens in)</div>
+    </div>
+    <p style="margin-top:1em">Same block, repeated $L$ times. Every block reads from and writes
+    back into the <strong>same residual stream</strong> — depth is just stacking this one unit
+    again and again.</p>
+  </div>
+</section>
+
+<!-- ============ UNEMBEDDING ============ -->
+<section class="slide">
+  <h2>Unembedding: logits → next token</h2>
+  <div class="body">
+    <p>After the last block, $H\in\mathbb{R}^{n\times d}$ is normalized, then projected out of the
+    residual stream and back into vocabulary space:</p>
+    <div class="eq hero">$$Z=\operatorname{norm}(H)\,W_U,\qquad W_U\in\mathbb{R}^{d\times|V|},\qquad Z\in\mathbb{R}^{n\times|V|}$$</div>
+    <p>$W_U$ is the mirror image of the embedding matrix $W_E$ from the "Tokens → embeddings"
+    slide — instead of looking up a row for a token id, it turns a $d$-dimensional vector back into
+    $|V|$ scores. Row $t$ of $Z$, written $z_t\in\mathbb{R}^{|V|}$, is built from $x_1,\dots,x_t$ —
+    so it holds one raw score per vocabulary token for predicting the <strong>next</strong> token,
+    $x_{t+1}$, not $x_t$ itself.</p>
+    <p>$\operatorname{softmax}(z_t)$ turns those scores into a probability distribution over the
+    vocabulary. How that distribution becomes an actual next token depends on what you're doing:</p>
+    <ul>
+      <li><strong>Training</strong> — compare $\operatorname{softmax}(z_t)$ to the true next token
+      $x_{t+1}$ with the cross-entropy loss; every position is scored at once.</li>
+      <li><strong>Generation</strong> — only the last position's $z_n$ is used: either take the
+      highest-probability token (<em>greedy</em>), or sample a token from
+      $\operatorname{softmax}(z_n)$ (<em>stochastic decoding</em>). The chosen token is appended to
+      the sequence, and the whole model runs again to produce the next one.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ READING LIST ============ -->
+<section class="slide">
+  <h2>Reading list</h2>
+  <div class="body">
+    <div class="cols">
+      <div class="stack">
+        <div class="card ex"><span class="lab">Start here</span>
+          <p><a href="https://arxiv.org/abs/1706.03762" target="_blank">Vaswani et al., "Attention
+          Is All You Need" (2017)</a><br>
+          <a href="https://nlp.seas.harvard.edu/annotated-transformer/" target="_blank">The
+          Annotated Transformer</a> — Harvard NLP<br>
+          <a href="https://jalammar.github.io/illustrated-transformer/" target="_blank">The
+          Illustrated Transformer</a> — Jay Alammar</p></div>
+        <div class="card"><span class="lab">Watch &amp; run</span>
+          <p><a href="https://www.youtube.com/watch?v=kCc8FmEb1nY" target="_blank">Karpathy,
+          "Let's build GPT: from scratch, in code, spelled out"</a><br>
+          <a href="https://github.com/karpathy/nanoGPT" target="_blank">nanoGPT</a> — Karpathy</p></div>
+      </div>
+      <div class="stack">
+        <div class="card"><span class="lab">Formal reference</span>
+          <p><a href="https://arxiv.org/abs/2207.09238" target="_blank">Phuong &amp; Hutter,
+          "Formal Algorithms for Transformers" (2022)</a></p></div>
+        <div class="card note"><span class="lab">Self-study: positional encoding</span>
+          <p><a href="https://arxiv.org/abs/2104.09864" target="_blank">Su et al., "RoFormer:
+          Enhanced Transformer with Rotary Position Embedding" (2021)</a></p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div><!-- /deck -->
+
+<div id="ov"><h3>All slides — click to jump · press O or Esc to close</h3><div class="ovgrid" id="ovgrid"></div></div>
+<div id="foot"><span id="num">1 / 1</span></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  if (window.renderMathInElement) {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: "$$", right: "$$", display: true},
+        {left: "\\[", right: "\\]", display: true},
+        {left: "$", right: "$", display: false},
+        {left: "\\(", right: "\\)", display: false}
+      ],
+      throwOnError: false
+    });
+  }
+});
+
+/* ---------- causal mask visual ---------- */
+(function () {
+  const host = document.getElementById("maskvis");
+  if (!host) return;
+  const N = 8;
+  host.style.gridTemplateColumns = "repeat(" + (N + 1) + ", auto)";
+  let d = 0;
+  const corner = document.createElement("div");
+  corner.className = "c2 hd"; corner.textContent = "q\\k"; host.appendChild(corner);
+  for (let j = 0; j < N; j++) {
+    const h = document.createElement("div"); h.className = "c2 hd"; h.textContent = j; host.appendChild(h);
+  }
+  for (let i = 0; i < N; i++) {
+    const rh = document.createElement("div"); rh.className = "c2 hd"; rh.textContent = i; host.appendChild(rh);
+    for (let j = 0; j < N; j++) {
+      const c = document.createElement("div");
+      if (j <= i) {
+        c.className = "c2 on";
+        const w = 1 / (i + 1);
+        c.style.background = "rgba(38,139,210," + (0.32 + w * 0.62).toFixed(3) + ")";
+        c.style.setProperty("--d", (d++ * 0.014).toFixed(3) + "s");
+        c.textContent = w.toFixed(2).slice(1);
+      } else {
+        c.className = "c2"; c.textContent = "–";
+      }
+      host.appendChild(c);
+    }
+  }
+})();
+
+/* ---------- deck navigation ---------- */
+(function () {
+  const slides = Array.from(document.querySelectorAll(".slide"));
+  const num = document.getElementById("num");
+  const ov = document.getElementById("ov");
+  const ovgrid = document.getElementById("ovgrid");
+  let i = 0;
+
+  slides.forEach(function (s, k) {
+    const card = document.createElement("div");
+    card.className = "ovcard";
+    const h = s.querySelector("h1, h2");
+    card.innerHTML = '<span class="n2">' + (k + 1) + '</span>' + (h ? h.textContent : "Slide");
+    card.addEventListener("click", function () { go(k); ov.classList.remove("on"); });
+    ovgrid.appendChild(card);
+  });
+
+  function go(k) {
+    i = Math.max(0, Math.min(slides.length - 1, k));
+    slides.forEach(s => s.classList.remove("on"));
+    slides[i].classList.add("on");
+    slides[i].querySelector(".body") && (slides[i].querySelector(".body").scrollTop = 0);
+    num.textContent = (i + 1) + " / " + slides.length;
+    history.replaceState(null, "", "#" + (i + 1));
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); go(i + 1); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); go(i - 1); }
+    else if (e.key === "Home") go(0);
+    else if (e.key === "End") go(slides.length - 1);
+    else if (e.key === "o" || e.key === "O") ov.classList.toggle("on");
+    else if (e.key === "Escape") ov.classList.remove("on");
+    else if (e.key === "f" || e.key === "F") {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+
+  let x0 = null;
+  document.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; }, {passive: true});
+  document.addEventListener("touchend", function (e) {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 55) go(dx < 0 ? i + 1 : i - 1);
+    x0 = null;
+  }, {passive: true});
+
+  const start = parseInt((location.hash || "#1").slice(1), 10);
+  go(isNaN(start) ? 0 : start - 1);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Model Quantization</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<style>
+/* ===== Solarized Light — fixed palette, do not change per-deck ===== */
+:root{
+  --base3:#fdf6e3; --base2:#eee8d5; --base1:#93a1a1; --base0:#839496;
+  --base00:#657b83; --base01:#586e75; --base02:#073642; --base03:#002b36;
+  --yellow:#b58900; --orange:#cb4b16; --red:#dc322f; --magenta:#d33682;
+  --violet:#6c71c4; --blue:#268bd2; --cyan:#2aa198; --green:#859900;
+  --rule:rgba(147,161,161,.42);
+  --serif:"IBM Plex Serif",Georgia,serif;
+  --sans:"IBM Plex Sans Condensed","IBM Plex Sans",Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --u:clamp(13px,1.42vw,22px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--base3)}
+body{font-family:var(--serif);color:var(--base01);font-size:var(--u);line-height:1.5;
+  -webkit-font-smoothing:antialiased}
+
+/* ---------- deck ---------- */
+#deck{position:relative;height:100vh;width:100vw}
+.slide{position:absolute;inset:0;display:none;flex-direction:column;
+  padding:5vh 6vw 6vh;overflow:hidden}
+.slide.on{display:flex}
+@media (prefers-reduced-motion:no-preference){
+  .slide.on{animation:fade .3s ease both}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+}
+
+/* ---------- typography ---------- */
+h1{font-family:var(--sans);font-weight:700;font-size:3.4em;line-height:.98;letter-spacing:-.02em;
+  color:var(--base03);margin:0 0 .2em}
+h2{font-family:var(--sans);font-weight:700;font-size:1.85em;line-height:1.06;letter-spacing:-.015em;
+  color:var(--base03);margin:0 0 .8em;flex:0 0 auto}
+h2 .accent{color:var(--blue)}
+.body{flex:1;min-height:0;overflow:auto;padding-right:.4em}
+p{margin:0 0 .8em}
+strong{color:var(--base03);font-weight:600}
+.big{font-size:1.2em;line-height:1.4}
+ul,ol{margin:0 0 .9em;padding-left:1.25em}
+li{margin:.42em 0}
+ul li::marker{color:var(--blue)}
+ol li::marker{color:var(--orange);font-family:var(--mono);font-size:.85em}
+code{font-family:var(--mono);font-size:.86em;background:var(--base2);padding:.06em .32em;border-radius:3px;color:var(--base02)}
+a{color:var(--blue);text-decoration:none;border-bottom:1px solid rgba(38,139,210,.4)}
+em.t{font-style:normal;font-weight:600;color:var(--violet)}
+
+/* ---------- layout helpers ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:2.4em;align-items:start}
+.cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5em}
+.stack{display:flex;flex-direction:column;gap:.8em}
+
+/* ---------- cards & tiles ---------- */
+.card{background:var(--base2);border-left:3px solid var(--c,var(--base1));
+  padding:.85em 1em;border-radius:0 4px 4px 0}
+.card .lab{font-family:var(--sans);font-size:.6em;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--c,var(--base00));display:block;margin-bottom:.35em}
+.card p:last-child,.card ul:last-child{margin-bottom:0}
+.key{--c:var(--magenta)} .int{--c:var(--cyan)} .warn{--c:var(--red)}
+.math{--c:var(--violet)} .ex{--c:var(--green)} .note{--c:var(--yellow)} .q{--c:var(--blue)}
+
+.tile{border:1px solid var(--rule);border-radius:5px;padding:.9em 1em;background:var(--base3)}
+.tile h4{font-family:var(--sans);font-size:.78em;font-weight:600;color:var(--base03);
+  margin:0 0 .3em;letter-spacing:.02em}
+.tile p{font-size:.86em;margin:0;color:var(--base00)}
+
+/* ---------- figures (article visuals) ---------- */
+.fig{display:flex;justify-content:center;align-items:center;margin:.5em 0}
+.fig img{max-width:100%;max-height:52vh;object-fit:contain}
+.fig.tight img{max-height:38vh}
+.fig.wide img{max-height:62vh}
+
+/* ---------- tables ---------- */
+table{border-collapse:collapse;width:100%;font-family:var(--sans);font-size:.82em}
+th{text-align:left;font-size:.72em;letter-spacing:.1em;text-transform:uppercase;color:var(--base00);
+  border-bottom:1.5px solid var(--base02);padding:.4em .6em;font-weight:600}
+td{padding:.42em .6em;border-bottom:1px solid var(--rule);vertical-align:top}
+tr.hl td{background:var(--base2);color:var(--base03)}
+
+/* ---------- math ---------- */
+.katex{color:var(--base02)}
+.katex-display{margin:.7em 0!important;overflow-x:auto;overflow-y:hidden}
+.eq{background:var(--base2);border-radius:5px;padding:.35em 1em;margin:.7em 0}
+.eq.hero{border:1px solid var(--rule);background:var(--base3)}
+
+/* ---------- chrome: bare page counter only ---------- */
+#foot{position:fixed;right:6vw;bottom:2vh;font-family:var(--mono);font-size:.62em;
+  color:var(--base1);z-index:10}
+
+/* ---------- title slide ---------- */
+.slide.title{justify-content:center}
+.titlemeta{margin-top:1.3em}
+.titlemeta .author{display:block;font-family:var(--sans);font-weight:600;font-size:1.4em;color:var(--base02)}
+.titlemeta .affil{display:block;font-family:var(--sans);font-size:1.05em;color:var(--base00);margin-top:.25em}
+
+/* ---------- overview mode ---------- */
+#ov{position:fixed;inset:0;background:rgba(253,246,227,.97);z-index:30;display:none;
+  overflow:auto;padding:3vh 4vw}
+#ov.on{display:block}
+#ov h3{font-family:var(--sans);font-size:1em;color:var(--base03);margin:0 0 1em;letter-spacing:.02em}
+.ovgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.6em}
+.ovcard{border:1px solid var(--rule);border-radius:4px;padding:.6em .7em;cursor:pointer;
+  background:var(--base3);font-family:var(--sans);font-size:.72em;line-height:1.3}
+.ovcard:hover{border-color:var(--blue);background:var(--base2)}
+.ovcard .n2{font-family:var(--mono);font-size:.85em;color:var(--orange);display:block}
+
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+@media (max-width:760px){
+  .cols,.cols3{grid-template-columns:1fr;gap:1em}
+  .slide{padding:3vh 5vw 6vh}
+  h1{font-size:2.4em}
+}
+
+/* ---------- print / PDF export: one slide per page, native vector output ---------- */
+@media print{
+  @page{size:1920px 1080px;margin:0}
+  html,body{height:auto;overflow:visible}
+  #deck{position:static;height:auto}
+  .slide{position:static !important;display:flex !important;width:1920px;height:1080px;
+    animation:none !important;break-after:page;page-break-after:always}
+  .slide:last-of-type{break-after:auto;page-break-after:auto}
+  .slide .body{overflow:visible}
+  .cols{grid-template-columns:1fr 1fr !important}
+  .cols3{grid-template-columns:repeat(3,1fr) !important}
+  #foot,#ov{display:none !important}
+}
+</style>
+</head>
+<body>
+
+<div id="deck">
+
+<!-- ============ TITLE — title + author (+ optional one-line affiliation). Nothing else. ============ -->
+<section class="slide title">
+  <h1>Model Quantization</h1>
+  <div class="titlemeta"><span class="author">Dhruv Kumar</span><span class="affil">BITS Pilani</span></div>
+</section>
+
+<!-- ============ WHY LLMS NEED SO MUCH MEMORY ============ -->
+<section class="slide">
+  <h2>Why LLMs need so much memory</h2>
+  <div class="body">
+    <p>Every layer of a neural network stores two kinds of numbers: <strong>weights</strong> (the
+    learned parameters, fixed after training) and <strong>activations</strong> (the values flowing
+    through the network on a given input, different every forward pass). Both are stored as
+    floating-point numbers, and both take memory:</p>
+    <div class="fig"><img src="images/img02.png" alt="weights and activations flowing through a network"></div>
+    <p>A model with billions of weights means billions of floating-point numbers resident in
+    memory at once — <strong>how many bits each number takes</strong> is therefore the single
+    biggest lever on how much memory the model needs.</p>
+  </div>
+</section>
+
+<!-- ============ FLOATING POINT REPRESENTATION ============ -->
+<section class="slide">
+  <h2>Floating point: sign, exponent, mantissa</h2>
+  <div class="body">
+    <p>A floating-point format splits its bits into three fields (the IEEE-754 standard):</p>
+    <div class="fig"><img src="images/img03.png" alt="FP16 bit layout: sign, exponent, mantissa"></div>
+    <div class="eq hero">$$\text{value} = (-1)^{S}\times 2^{\,E-\text{bias}}\times\Big(1+\sum_{k=1}^{m} F_k\, 2^{-k}\Big)$$</div>
+    <p>$S$ — the sign bit; $E$ — the exponent field read as an unsigned integer; $\text{bias}$ —
+    a fixed offset so the exponent can represent negative powers of 2, $\text{bias}=2^{e-1}-1$ for
+    $e$ exponent bits; $F_k$ — the $k$-th mantissa bit ($1$ or $0$), $m$ mantissa bits; the leading
+    $1+(\cdot)$ is an implicit bit — never stored, assumed for every normal (non-zero, non-subnormal)
+    number.</p>
+  </div>
+</section>
+
+<!-- ============ DECODING A FLOAT: WORKED EXAMPLE ============ -->
+<section class="slide">
+  <h2>Decoding a float: a worked example</h2>
+  <div class="body">
+    <p>Take the FP16 bit pattern below and recover the number it encodes, one field at a time:</p>
+    <div class="fig tight"><img src="images/img04.png" alt="FP16 decoding pi step by step"></div>
+    <table>
+      <thead><tr><th>step</th><th>computation</th><th>result</th></tr></thead>
+      <tbody>
+        <tr><td>sign</td><td>$S=0\Rightarrow(-1)^0$</td><td>$+1$</td></tr>
+        <tr><td>exponent</td><td>$E=10000_2=16$, bias $=2^4-1=15$</td><td>$16-15=1$</td></tr>
+        <tr><td>mantissa</td><td>bits $1001001000\Rightarrow 2^{-1}\!+\!2^{-4}\!+\!2^{-7}$</td><td>$0.5703125$</td></tr>
+        <tr><td>value</td><td>$(+1)\times 2^{1}\times(1+0.5703125)$</td><td>$3.140625$</td></tr>
+      </tbody>
+    </table>
+    <div class="card ex"><span class="lab">This is $\pi$, to the precision FP16 allows</span>
+      <p>The true value $\pi=3.14159265\ldots$ gets rounded to the nearest representable FP16
+      value, $3.140625$ — an error of about $0.00097$, purely from having only 10 mantissa bits to
+      work with.</p></div>
+  </div>
+</section>
+
+<!-- ============ HOW MIN/MAX ARE DERIVED ============ -->
+<section class="slide">
+  <h2>Where a format's min and max come from</h2>
+  <div class="body">
+    <p>The largest and smallest representable magnitudes follow directly from how many bits go to
+    the exponent and mantissa. The all-ones exponent is reserved for $\pm\infty$/NaN, so the
+    largest <em>usable</em> stored exponent is $2^{e}-2$; the smallest is $1$ (stored exponent $0$
+    is reserved for zero/subnormals):</p>
+    <div class="cols">
+      <div class="card int"><span class="lab">Max magnitude</span>
+      <div class="eq" style="font-size:.85em">$$(2-2^{-m})\times 2^{\,(2^{e}-2)-\text{bias}}$$</div>
+      <p>All mantissa bits set (closest to 2), largest usable exponent.</p></div>
+      <div class="card int"><span class="lab">Min normal magnitude</span>
+      <div class="eq" style="font-size:.85em">$$1.0\times 2^{\,1-\text{bias}}$$</div>
+      <p>All mantissa bits zero, smallest usable exponent.</p></div>
+    </div>
+    <table>
+      <thead><tr><th>format</th><th>sign+exp+mantissa</th><th>bias</th><th>max</th><th>min (normal)</th></tr></thead>
+      <tbody>
+        <tr><td>FP32</td><td>1 + 8 + 23</td><td>127</td><td>$3.4028\times10^{38}$</td><td>$1.1755\times10^{-38}$</td></tr>
+        <tr><td>FP16</td><td>1 + 5 + 10</td><td>15</td><td>$6.5504\times10^{4}$</td><td>$6.1035\times10^{-5}$</td></tr>
+        <tr><td>BF16</td><td>1 + 8 + 7</td><td>127</td><td>$3.3895\times10^{38}$</td><td>$1.1755\times10^{-38}$</td></tr>
+      </tbody>
+    </table>
+    <div class="card ex"><span class="lab">Range is exponent-dominated, not exponent-only</span>
+      <p><strong>Min</strong> normal has zero mantissa-dependence: it's always $1.0\times
+      2^{1-\text{bias}}$, mantissa forced to all-zero. <strong>Max</strong> does depend on the
+      mantissa a little, through the $(2-2^{-m})$ term above — that's exactly why the table shows
+      BF16's max ($3.3895\times10^{38}$) isn't bit-identical to FP32's ($3.4028\times10^{38}$)
+      despite sharing all 8 exponent bits. But $(2-2^{-m})$ only ever ranges between $1$ and $2$ —
+      at most a $2\times$ difference — dwarfed by the exponent's contribution: $2^{127}$ vs
+      $2^{15}$ is a factor of $2^{112}$. So the mantissa can nudge the max by less than 1 bit's
+      worth of magnitude, while the exponent moves it by 112 bits' worth — which is the precise
+      sense in which range is set by the exponent, and FP16's 3-bits-narrower exponent (not its
+      mantissa) is why its max is $65504$, not $10^{38}$.</p></div>
+  </div>
+</section>
+
+<!-- ============ MAX VALUE: WORKED EXAMPLE ============ -->
+<section class="slide">
+  <h2>The max, bit by bit</h2>
+  <div class="body">
+    <p>Concretely, which bit pattern <em>is</em> FP16's max? All mantissa bits set, largest usable
+    exponent, exactly as the previous slide's formula describes:</p>
+    <table>
+      <thead><tr><th>step</th><th>computation</th><th>result</th></tr></thead>
+      <tbody>
+        <tr><td>sign</td><td>$S=0\Rightarrow(-1)^0$</td><td>$+1$</td></tr>
+        <tr><td>exponent</td><td>$E=11110_2=30$ (all-1s, $11111$, is reserved for $\infty$/NaN — so the largest <em>usable</em> pattern is one less)</td><td>$30-15=15$</td></tr>
+        <tr><td>mantissa</td><td>all 10 bits set: $1111111111\Rightarrow 1023/1024$</td><td>$0.9990234375$</td></tr>
+        <tr><td>value</td><td>$(+1)\times 2^{15}\times(1+0.9990234375)$</td><td>$65504$</td></tr>
+      </tbody>
+    </table>
+    <p>This is exactly the $6.5504\times10^4$ from the previous slide's table — not a separately
+    quoted constant, but this specific bit pattern, decoded with the same formula used for every
+    other value. One exponent step higher would need the reserved all-1s pattern, which is why
+    $65504$ is the ceiling.</p>
+  </div>
+</section>
+
+<!-- ============ SUBNORMAL NUMBERS ============ -->
+<section class="slide">
+  <h2>Subnormal numbers: the other reserved exponent</h2>
+  <div class="body">
+    <p>Just as all-1s exponent bits are reserved (for $\pm\infty$/NaN), all-<strong>0s</strong>
+    exponent bits are reserved too — for numbers <em>smaller</em> than any normal number can
+    represent. When $E=0$, the format switches formulas: the implicit leading $1$ disappears, and
+    the exponent freezes at the smallest normal's value instead of continuing to shrink:</p>
+    <div class="cols">
+      <div class="card int"><span class="lab">Normal ($E\neq 0$)</span>
+      <div class="eq" style="font-size:.85em">$$(-1)^S\times 2^{E-\text{bias}}\times(1+F)$$</div></div>
+      <div class="card warn"><span class="lab">Subnormal ($E=0$, $F\neq0$)</span>
+      <div class="eq" style="font-size:.85em">$$(-1)^S\times 2^{1-\text{bias}}\times F$$</div></div>
+    </div>
+    <p>$F$ — the mantissa read as a plain fraction ($F=\sum F_k2^{-k}$, no added $1$). Dropping the
+    implicit $1$ is what lets these values shrink past the normal floor — each step down the
+    mantissa halves the value instead of barely denting it, so precision degrades gracefully
+    instead of the format jumping straight from its smallest normal number to exactly $0$
+    (<strong>gradual underflow</strong>). If $E=0$ and $F=0$ too, the value is exactly $0$.</p>
+    <table>
+      <thead><tr><th>bit pattern ($S$ $E$ $F$)</th><th>computation</th><th>value</th></tr></thead>
+      <tbody>
+        <tr><td>0 00000 1000000000</td><td>$2^{1-15}\times(512/1024)$</td><td>$3.0518\times10^{-5}$</td></tr>
+        <tr><td>0 00000 0000000001</td><td>$2^{1-15}\times(1/1024)$</td><td>$5.9605\times10^{-8}$ (smallest subnormal)</td></tr>
+        <tr><td>0 00001 0000000000</td><td>$2^{1-15}\times(1+0)$</td><td>$6.1035\times10^{-5}$ (smallest <em>normal</em>)</td></tr>
+      </tbody>
+    </table>
+    <p>So FP16's true floor isn't $6.1\times10^{-5}$ — it's $5.96\times10^{-8}$, once subnormals
+    are counted. A value can still be too small even for that: $1.8\times10^{-42}$, coming up
+    shortly, is far below even this subnormal floor, which is why it underflows all the way to
+    $0.0$ rather than landing on a subnormal.</p>
+    <div class="card warn"><span class="lab">Subnormals are not "everything below 1"</span>
+      <p>Almost all of $(0,1)$ — $0.5$, $0.1$, $0.001$, down to about $6.1\times10^{-5}$ — is
+      still <strong>normal</strong>, just with a negative exponent ($0.1=2^{-4}\times1.6$, e.g.).
+      Subnormals only take over in the last, extremely thin sliver right before zero.</p></div>
+  </div>
+</section>
+
+<!-- ============ FP32 VS FP16: PRECISION ============ -->
+<section class="slide">
+  <h2>Same value, different precision</h2>
+  <div class="body">
+    <p>$\pi$ encoded in FP32 and FP16 side by side — more mantissa bits means the rounded value
+    sits closer to the true one:</p>
+    <div class="fig"><img src="images/img05.png" alt="FP32 vs FP16 precision comparison for pi"></div>
+    <p>Both use the same $2^{E-\text{bias}}$ term (exponent $=1$ either way); only the fraction
+    changes — FP32's 23 mantissa bits place $\pi$ within $10^{-8}$, FP16's 10 bits within
+    $10^{-3}$.</p>
+  </div>
+</section>
+
+<!-- ============ OVERFLOW / UNDERFLOW ============ -->
+<section class="slide">
+  <h2>When a value falls outside the range</h2>
+  <div class="body">
+    <p>Two numbers, cast to progressively narrower formats — one is an ordinary magnitude, the
+    other deliberately tiny:</p>
+    <div class="fig"><img src="images/img06.png" alt="overflow and underflow table across bit widths"></div>
+    <p>$75505.0$ is an ordinary magnitude — well inside FP32's range, and still fine at FP16's own
+    range... except FP16's max is $65504$ (a few slides back), and $75505.0>65504$. It
+    <strong>overflows</strong>: there's no representable FP16 value large enough, so it rounds to
+    $+\infty$. $1.8\times10^{-42}$ fails at the <em>opposite</em> end — it's below FP16's minimum
+    normal magnitude ($6.1\times10^{-5}$) and even below FP16's subnormal floor, so it
+    <strong>underflows to exactly 0.0</strong>. Same failure, two different directions: one value
+    is too big for the range, the other too small.</p>
+  </div>
+</section>
+
+<!-- ============ DYNAMIC RANGE VS PRECISION ============ -->
+<section class="slide">
+  <h2>Dynamic range vs. precision</h2>
+  <div class="body">
+    <p>Two separate properties of a format, easy to conflate:</p>
+    <div class="fig wide"><img src="images/img07.png" alt="dynamic range vs precision across FP32, BF16, FP16, INT8"></div>
+    <p><strong>Dynamic range</strong> — the interval of representable magnitudes (dominated by
+    exponent bits; the earlier min/max slide has the small mantissa contribution too).
+    <strong>Precision</strong> — the gap between two neighboring representable values (set by
+    mantissa bits, for floats). BF16 trades FP16's precision for FP32's exponent range; INT8 has
+    neither an exponent nor a mantissa — its whole range is fixed and evenly spaced.</p>
+  </div>
+</section>
+
+<!-- ============ MEMORY FORMULA ============ -->
+<section class="slide">
+  <h2>The memory cost of a data type</h2>
+  <div class="body">
+    <p>Every parameter costs its bit-width, no more and no less:</p>
+    <div class="fig"><img src="images/img08.png" alt="memory = nr_bits/8 x nr_params"></div>
+    <p>$\text{nr\_bits}$ — bits per stored parameter ($32$ for FP32, $16$ for FP16/BF16, $8$ for
+    INT8, …); $\text{nr\_params}$ — the model's total parameter count; dividing by $8$ converts
+    bits to bytes.</p>
+  </div>
+</section>
+
+<!-- ============ 70B MODEL MEMORY EXAMPLE ============ -->
+<section class="slide">
+  <h2>A 70-billion-parameter model, in memory</h2>
+  <div class="body">
+    <p>Applying the formula from the previous slide to a 70B-parameter model at three precisions:</p>
+    <div class="fig"><img src="images/img09.png" alt="70B model memory at 64/32/16 bits"></div>
+    <p>Halving the bit-width exactly halves the memory — going from FP32 to FP16/BF16 alone turns
+    a model that needs <strong>280GB</strong> (more than any single consumer GPU) into one that
+    needs <strong>140GB</strong>. Quantization pushes this idea further, down to 8 or even 4 bits
+    per weight.</p>
+  </div>
+</section>
+
+<!-- ============ WHAT IS QUANTIZATION ============ -->
+<section class="slide">
+  <h2>What is quantization?</h2>
+  <div class="body">
+    <p>Quantization maps each original value onto the <strong>nearest point of a coarser,
+    lower-granularity grid</strong> — trading precision for a far smaller representation:</p>
+    <div class="fig"><img src="images/img10.png" alt="original weight snapped to a lower-granularity grid"></div>
+    <p>The gap between the original weight and its quantized snap-point is the
+    <strong>quantization error</strong> — small enough, in aggregate across billions of weights,
+    that the model's behavior barely changes, even though every individual number moved.</p>
+  </div>
+</section>
+
+<!-- ============ POSTERIZATION ANALOGY ============ -->
+<section class="slide">
+  <h2>The same idea, in an image</h2>
+  <div class="body">
+    <p>Reducing a photo from millions of colors to an 8-color palette is the same operation —
+    every pixel snaps to its nearest available color:</p>
+    <div class="fig wide"><img src="images/img11.png" alt="posterization: original vs quantized image"></div>
+    <p>Structure survives (the cookies are still clearly cookies); fine gradation is what's lost —
+    exactly the trade-off model weight quantization makes.</p>
+  </div>
+</section>
+
+<!-- ============ BF16 ============ -->
+<section class="slide">
+  <h2>BF16: FP32's range, less precision</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/img13.png" alt="FP32 vs BF16 bit layout and range comparison"></div>
+    <p>BF16 keeps FP32's 8 exponent bits (same dynamic range, same min/max) but cuts the mantissa
+    to 7 bits, so it's cheaper to store than FP32 while far less likely to overflow/underflow than
+    FP16 — the reason it's the default training dtype for most modern LLMs.</p>
+  </div>
+</section>
+
+<!-- ============ INT8 ============ -->
+<section class="slide">
+  <h2>INT8: a fixed integer grid</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/img14.png" alt="FP32 vs INT8 bit layout and range comparison"></div>
+    <p>INT8 has no exponent or mantissa — just a sign and 7 bits of magnitude, giving exactly 256
+    evenly-spaced integers, $-127$ to $127$ (signed). There's no built-in notion of where the
+    decimal point goes; <strong>quantization is exactly the scheme that decides that</strong>,
+    covered next.</p>
+  </div>
+</section>
+
+<!-- ============ SYMMETRIC QUANTIZATION: CONCEPT ============ -->
+<section class="slide">
+  <h2>Symmetric quantization</h2>
+  <div class="body">
+    <p>Map the range $[-\alpha,\alpha]$ — centered on the original data's largest magnitude —
+    onto the integer range $[-(2^{b-1}-1),\,2^{b-1}-1]$, so that $0$ always maps to $0$:</p>
+    <div class="fig"><img src="images/img15.png" alt="symmetric range centered at zero"></div>
+    <div class="eq hero">$$s=\frac{2^{b-1}-1}{\alpha},\qquad x_{\text{quantized}}=\operatorname{round}(s\cdot x)$$</div>
+    <p>$\alpha$ — the highest absolute value in the tensor being quantized; $b$ — the number of
+    <strong>bits</strong> per stored value, not bytes ($b=8$ bits $\Rightarrow 2^{b-1}-1=127$,
+    the INT8 range from Part 1); $s$ — the scale factor, real-valued; $x$ — an original FP32
+    value; $x_{\text{quantized}}$ — the stored integer; $\operatorname{round}(\cdot)$ — round to
+    the nearest integer, same as everyday rounding (e.g. $\operatorname{round}(64.33)=64$,
+    $\operatorname{round}(-89.26)=-89$) — this is the only step that actually loses information;
+    everything else here is exact arithmetic.</p>
+  </div>
+</section>
+
+<!-- ============ SYMMETRIC: WORKED EXAMPLE (QUANTIZE) ============ -->
+<section class="slide">
+  <h2>Symmetric quantization: a worked example</h2>
+  <div class="body">
+    <div class="fig tight"><img src="images/img16.png" alt="symmetric quantization mapping a vector to INT8"></div>
+    <p>$x=[5.47,\,3.08,\,{-7.59},\,0,\,{-1.95},\,{-4.57},\,10.8]$, so
+    $\alpha=\max|x|=10.8$ and $s=127/10.8=11.76$:</p>
+    <table>
+      <thead><tr><th>$x$</th><th>$s\cdot x$</th><th>$x_{\text{quantized}}=\operatorname{round}(s\cdot x)$</th></tr></thead>
+      <tbody>
+        <tr><td>5.47</td><td>64.33</td><td>64</td></tr>
+        <tr><td>3.08</td><td>36.22</td><td>36</td></tr>
+        <tr><td>−7.59</td><td>−89.26</td><td>−89</td></tr>
+        <tr><td>0</td><td>0</td><td>0</td></tr>
+        <tr><td>−1.95</td><td>−22.93</td><td>−23</td></tr>
+        <tr><td>−4.57</td><td>−53.74</td><td>−54</td></tr>
+        <tr><td>10.8</td><td>127.0</td><td>127</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ SYMMETRIC: DEQUANTIZE + ERROR ============ -->
+<section class="slide">
+  <h2>Symmetric quantization: dequantizing back</h2>
+  <div class="body">
+    <div class="eq hero">$$x_{\text{dequantized}}=\frac{x_{\text{quantized}}}{s},\qquad \text{error}=|x-x_{\text{dequantized}}|$$</div>
+    <table>
+      <thead><tr><th>$x$</th><th>$x_{\text{quantized}}$</th><th>$x_{\text{dequantized}}$</th><th>error</th></tr></thead>
+      <tbody>
+        <tr><td>5.47</td><td>64</td><td>5.44</td><td>0.03</td></tr>
+        <tr><td>3.08</td><td>36</td><td>3.06</td><td>0.02</td></tr>
+        <tr><td>−7.59</td><td>−89</td><td>−7.57</td><td>0.02</td></tr>
+        <tr><td>0</td><td>0</td><td>0.00</td><td>0.00</td></tr>
+        <tr><td>−1.95</td><td>−23</td><td>−1.96</td><td>0.01</td></tr>
+        <tr><td>−4.57</td><td>−54</td><td>−4.59</td><td>0.02</td></tr>
+        <tr><td>10.8</td><td>127</td><td>10.80</td><td>0.00</td></tr>
+      </tbody>
+    </table>
+    <p>Dividing each stored integer back by $s=11.76$ recovers values close to, but not exactly,
+    the originals. The error is at most about $0.03$ here, and exactly $0$ wherever a value
+    happened to round perfectly — like $10.8$, which mapped straight onto the grid's own edge
+    ($x_{\text{quantized}}=127$) with no rounding at all.</p>
+  </div>
+</section>
+
+<!-- ============ ASYMMETRIC QUANTIZATION: CONCEPT ============ -->
+<section class="slide">
+  <h2>Asymmetric quantization</h2>
+  <div class="body">
+    <p>Symmetric quantization wastes range when data isn't centered on zero. Asymmetric
+    quantization maps the data's <em>actual</em> min/max, $[\beta,\alpha]$, onto the full integer
+    range and shifts the origin with a <strong>zero-point</strong> $z$:</p>
+    <div class="fig tight"><img src="images/img22.png" alt="asymmetric range mapping with beta and alpha"></div>
+    <div class="eq hero">$$s=\frac{2^{b}-1}{\alpha-\beta},\qquad z=\operatorname{round}(-s\cdot\beta)-2^{b-1},\qquad
+      x_{\text{quantized}}=\operatorname{round}(s\cdot x+z)$$</div>
+    <p>$\beta$ — the lowest value in the tensor; $\alpha$ — the highest value; $z$ — the integer
+    zero-point, the stored code that FP32's $0$ maps to (generally $\ne 0$, unlike the symmetric
+    case).</p>
+    <div class="card int"><span class="lab">Where $z$ comes from: scale first, then slide</span>
+      <p>$s$ alone only fixes the interval's <em>width</em> to match the integer range's width —
+      after scaling, $\beta$ and $\alpha$ have the right spread but not necessarily the right
+      position. $z$ is the leftover <strong>shift</strong> needed to slide $s\cdot\beta$ exactly
+      onto the integer floor $-2^{b-1}$: $z=-2^{b-1}-s\cdot\beta$. Setting $x=0$ in
+      $s\cdot x+z$ then gives $z$ itself — the same shift that aligns the minimum also happens to
+      be where zero lands, which is why it's called the zero-point.</p></div>
+  </div>
+</section>
+
+<!-- ============ ASYMMETRIC: WORKED EXAMPLE ============ -->
+<section class="slide">
+  <h2>Asymmetric quantization: a worked example</h2>
+  <div class="body">
+    <p>Same vector as before: $\beta=\min(x)=-7.59$, $\alpha=\max(x)=10.8$, so
+    $s=255/18.39=13.86$ and $z=\operatorname{round}(13.86\times7.59)-128=105-128=-23$:</p>
+    <table>
+      <thead><tr><th>$x$</th><th>$s\cdot x+z$</th><th>$x_{\text{quantized}}$</th><th>dequantized $(x_{\text{quantized}}-z)/s$</th></tr></thead>
+      <tbody>
+        <tr><td>5.47</td><td>52.82</td><td>53</td><td>5.481</td></tr>
+        <tr><td>3.08</td><td>19.69</td><td>20</td><td>3.101</td></tr>
+        <tr><td>−7.59</td><td>−128.19</td><td>−128 (clamped)</td><td>−7.572</td></tr>
+        <tr><td>0</td><td>−23</td><td>−23</td><td>0.0</td></tr>
+        <tr><td>−1.95</td><td>−50.03</td><td>−50</td><td>−1.947</td></tr>
+        <tr><td>−4.57</td><td>−86.34</td><td>−86</td><td>−4.543</td></tr>
+        <tr><td>10.8</td><td>126.7</td><td>127</td><td>10.818</td></tr>
+      </tbody>
+    </table>
+    <p>Note $-7.59$ needed $-128.19$, outside even the asymmetric grid's floor — it gets clamped
+    to $-128$, the largest quantization error in this example.</p>
+  </div>
+</section>
+
+<!-- ============ SYMMETRIC VS ASYMMETRIC ============ -->
+<section class="slide">
+  <h2>Symmetric vs. asymmetric, side by side</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/img26.png" alt="symmetric vs asymmetric quantization comparison"></div>
+    <p>Asymmetric quantization uses the integer grid more fully whenever the data isn't centered
+    on zero — at the cost of tracking one extra number, $z$, and a slightly more expensive
+    dequantization step.</p>
+  </div>
+</section>
+
+<!-- ============ THE OUTLIER PROBLEM ============ -->
+<section class="slide">
+  <h2>One outlier ruins the whole grid</h2>
+  <div class="body">
+    <div class="cols">
+      <div class="fig"><img src="images/img27.png" alt="vector with one large outlier"></div>
+      <div class="fig"><img src="images/img28.png" alt="quantization collapsing to zero due to outlier"></div>
+    </div>
+    <p>$\alpha=\max|x|$ is set entirely by the single outlier ($256$), so $s=127/256\approx0.496$
+    is tiny — every other value, all under $1.0$ in magnitude, rounds straight down to
+    <strong>0</strong>. A single extreme value can silently destroy the precision of every normal
+    value sharing its scale factor.</p>
+  </div>
+</section>
+
+<!-- ============ CLIPPING FIXES IT ============ -->
+<section class="slide">
+  <h2>Clipping: trading outlier accuracy for the rest</h2>
+  <div class="body">
+    <div class="fig"><img src="images/img29.png" alt="clipping range to -5,5 before quantizing"></div>
+    <p>Clip the range to $[-5,5]$ before computing $\alpha$: the outlier gets truncated to $5$ (and
+    quantizes with large error), but $s=127/5=25.4$ is now large enough that every normal value
+    gets a distinct, meaningful integer code instead of collapsing to $0$. Choosing <em>where</em>
+    to clip is exactly what calibration (next) is for.</p>
+  </div>
+</section>
+
+<!-- ============ CALIBRATION: STATIC VS DYNAMIC ============ -->
+<section class="slide">
+  <h2>Calibration: what range do we clip to?</h2>
+  <div class="body">
+    <p>Every quantization scheme needs a $[\beta,\alpha]$ (or $\alpha$) range before it can compute
+    $s$ — <strong>calibration</strong> is how that range gets chosen, and it looks different for
+    the two kinds of values a network holds:</p>
+    <div class="cols">
+      <div class="fig"><img src="images/img30.png" alt="weights are static values"></div>
+      <div class="fig"><img src="images/img32.png" alt="activations are dynamic values"></div>
+    </div>
+    <p><strong>Weights</strong> are fixed after training — their range can be measured once, in
+    advance. <strong>Activations</strong> depend on the current input, so their range shifts on
+    every forward pass — calibrating them means deciding whether to measure that range on the fly
+    or fix it ahead of time (Part 3).</p>
+  </div>
+</section>
+
+<!-- ============ CALIBRATION TECHNIQUES ============ -->
+<section class="slide">
+  <h2>Min/max isn't the only calibration choice</h2>
+  <div class="body">
+    <p>Using the tensor's literal min/max as $[\beta,\alpha]$ is simplest, but a single outlier
+    (as just seen) can force a huge $\alpha$ and waste precision on everything else. An
+    alternative: pick $\alpha$ from a <strong>percentile</strong> of the distribution instead of
+    its true maximum, deliberately clipping rare extreme values:</p>
+    <div class="fig"><img src="images/img31.png" alt="min/max range vs percentile range calibration comparison"></div>
+    <p>With an outlier of $999$ in the tensor, the full min/max range forces high error onto every
+    normal value; a percentile-based range accepts a large error on the outlier itself in exchange
+    for much lower error everywhere else — the same trade as the clipping example, chosen
+    automatically from the data's distribution rather than a hand-picked cutoff. (Other calibration
+    criteria — minimizing mean-squared error, or KL-divergence between original and quantized
+    distributions — make the same trade using a different statistical target.)</p>
+  </div>
+</section>
+
+<!-- ============ DYNAMIC QUANTIZATION ============ -->
+<section class="slide">
+  <h2>Dynamic quantization</h2>
+  <div class="body">
+    <p>Weights are quantized once, offline, using their fixed range. Activations don't have a
+    fixed range — <strong>dynamic quantization</strong> handles this by computing $\alpha,\beta$
+    freshly from the actual values flowing through, on every single forward pass:</p>
+    <div class="fig wide"><img src="images/img34.png" alt="collecting activation ranges per layer during inference"></div>
+    <p>No calibration data needed ahead of time, and the range always matches the real input — at
+    the cost of computing $s$ and $z$ live, for every layer, on every inference call.</p>
+  </div>
+</section>
+
+<!-- ============ DYNAMIC QUANTIZATION: MECHANICS ============ -->
+<section class="slide">
+  <h2>Dynamic quantization: what happens per layer</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/img35.png" alt="collect statistics then quantize, repeated per layer"></div>
+    <p>Each layer runs the same two steps independently, in sequence: collect this layer's
+    $\alpha,\beta$ from the activations just produced, then quantize them with the resulting
+    $s,z$ — the exact asymmetric formulas from Part 2, just re-run at every layer boundary instead
+    of once in advance.</p>
+  </div>
+</section>
+
+<!-- ============ STATIC QUANTIZATION ============ -->
+<section class="slide">
+  <h2>Static quantization</h2>
+  <div class="body">
+    <p><strong>Static quantization</strong> avoids computing $s,z$ at inference time at all: run a
+    small calibration dataset through the model once, offline, record the activation
+    distributions it produces, and fix $\alpha,\beta$ (and hence $s,z$) from that — before any
+    real inference happens:</p>
+    <div class="fig wide"><img src="images/img36.png" alt="calibration dataset through the LLM to fix activation ranges in advance"></div>
+    <p>Inference is now as cheap as weight quantization — no per-layer statistics collection — but
+    the fixed range is only as good as how representative the calibration dataset was.</p>
+  </div>
+</section>
+
+<!-- ============ GPTQ: LAYER-WISE ============ -->
+<section class="slide">
+  <h2>GPTQ: quantizing one layer at a time</h2>
+  <div class="body">
+    <div class="fig"><img src="images/img37.png" alt="layer-wise quantization processed independently in sequence"></div>
+    <p>GPTQ quantizes a pretrained model layer by layer, each processed independently and in
+    sequence — turning "quantize the whole network" into a series of smaller, self-contained
+    per-layer problems: <em>which 4-bit values best reconstruct this one layer's original
+    outputs?</em></p>
+  </div>
+</section>
+
+<!-- ============ GPTQ: WHICH WEIGHTS MATTER ============ -->
+<section class="slide">
+  <h2>GPTQ: which weights matter most</h2>
+  <div class="body">
+    <div class="fig"><img src="images/img38.png" alt="weights and their inverse Hessian sensitivity"></div>
+    <p>Not every weight matters equally to the layer's output — the (inverse) Hessian of the
+    layer's reconstruction error tells GPTQ exactly how sensitive the output is to rounding each
+    particular weight. A weight with a large inverse-Hessian entry can absorb more rounding error
+    for the same output impact; this sensitivity is what later decides how much of one weight's
+    rounding error gets pushed onto the others.</p>
+  </div>
+</section>
+
+<!-- ============ GPTQ: QUANTIZE FIRST WEIGHT ============ -->
+<section class="slide">
+  <h2>GPTQ: quantize one weight, measure the damage</h2>
+  <div class="body">
+    <div class="fig"><img src="images/img39.png" alt="quantizing the first weight, then dequantizing it"></div>
+    <div class="eq hero">$$e = w - \hat w$$</div>
+    <p>Quantize the row's first weight ($0.5\to 0.33$ in 4-bit, dequantized back to $\hat
+    w=0.297$) exactly as in Part 2. $e=w-\hat w=0.5-0.297=0.203$ is the rounding error this one
+    weight introduced — GPTQ's key idea is that this error doesn't have to be wasted: it can be
+    <em>redistributed</em> onto the weights not yet quantized.</p>
+  </div>
+</section>
+
+<!-- ============ GPTQ: REDISTRIBUTE ERROR ============ -->
+<section class="slide">
+  <h2>GPTQ: redistributing the error</h2>
+  <div class="body">
+    <div class="fig"><img src="images/img41.png" alt="updating the next weight using the error weighted by sensitivity"></div>
+    <div class="eq hero">$$w_j \leftarrow w_j + e\cdot h_j$$</div>
+    <p>$e=0.203$ — the rounding error from the previous slide; $h_j$ — how sensitive the output is
+    to weight $j$ (from the inverse-Hessian row). Weight 2, with $h_2=0.8$:
+    $w_2\leftarrow 0.3+0.203\times0.8=0.4624$ — nudged <em>before</em> it gets quantized itself, so
+    its own rounding starts from a value that already compensates for weight 1's mistake.</p>
+  </div>
+</section>
+
+<!-- ============ GPTQ: FULL ROW ============ -->
+<section class="slide">
+  <h2>GPTQ: one weight at a time, down the row</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/img42.png" alt="original row of weights updated after redistributing error"></div>
+    <p>Every not-yet-quantized weight in the row absorbs a share of the error, proportional to its
+    own sensitivity $h_j$, before its turn to be quantized comes up. Repeating
+    quantize-measure-redistribute across the whole row, then the whole layer, is what lets GPTQ
+    push weights to 3–4 bits with far less accuracy loss than quantizing each one independently.</p>
+  </div>
+</section>
+
+<!-- ============ GGUF: SUPER/SUB BLOCKS ============ -->
+<section class="slide">
+  <h2>GGUF: blocks inside blocks</h2>
+  <div class="body">
+    <div class="fig"><img src="images/img43.png" alt="super-block containing multiple sub-blocks"></div>
+    <p>Rather than one scale per fixed-size block (Part 2), GGUF's k-quants nest two levels: a
+    <strong>super-block</strong> of weights is split into several <strong>sub-blocks</strong>,
+    and every sub-block gets its own scale — finer-grained than one scale for the whole
+    super-block, without paying for a full scale per individual weight.</p>
+  </div>
+</section>
+
+<!-- ============ GGUF: QUANTIZING THE SCALES ============ -->
+<section class="slide">
+  <h2>GGUF: even the scales get quantized</h2>
+  <div class="body">
+    <div class="cols">
+      <div class="fig"><img src="images/img44.png" alt="basic absmax quantization formula"></div>
+      <div class="fig"><img src="images/img45.png" alt="sub-block scale quantized using the super-block scale"></div>
+    </div>
+    <p>Ordinary absmax quantization (Part 2) needs one real-valued scale per block. GGUF goes one
+    step further: each sub-block's scale $s_{\text{sub}}$ is <em>itself</em> quantized, using the
+    super-block's own scale $s_{\text{super}}$ — the same double-quantization idea QLoRA uses for
+    its block constants, applied to an integer format instead of NF4.</p>
+  </div>
+</section>
+
+<!-- ============ GGUF: LEVELS IN PRACTICE ============ -->
+<section class="slide">
+  <h2>GGUF: quantization levels in practice</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/img46.png" alt="GGUF quantization level table: Q2_K, Q4_K, Q6_K"></div>
+    <p>Each named GGUF level trades off weight bit-width against how finely the scales themselves
+    are stored — <code>Q4_K</code>'s 4-bit weights end up costing <strong>4.5 bits/weight</strong>
+    once its super- and sub-block scales are counted in, not exactly 4; <code>Q2_K</code> and
+    <code>Q6_K</code> follow the same accounting at their own bit-widths.</p>
+  </div>
+</section>
+
+<!-- ============ QAT: INTRO ============ -->
+<section class="slide">
+  <h2>Quantization-aware training</h2>
+  <div class="body">
+    <p>Everything so far quantizes a model <strong>after</strong> it's already trained
+    (post-training quantization, PTQ). <strong>Quantization-aware training</strong> (QAT) instead
+    trains the model already knowing it will be quantized — quantization parameters
+    ($s,\alpha,\beta,z$) are learned during the backward pass itself, alongside the weights:</p>
+    <div class="fig"><img src="images/img47.png" alt="learning quantization parameters during backward pass"></div>
+    <p>The network's weights adapt <em>around</em> the quantization grid, instead of the grid
+    being imposed on weights that never knew it was coming.</p>
+  </div>
+</section>
+
+<!-- ============ QAT: FAKE QUANTIZATION ============ -->
+<section class="slide">
+  <h2>Training through a "fake" quantization step</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/img48.png" alt="fake quantization: quantize then dequantize between layers during training"></div>
+    <p>Between layers, every activation is quantized to INT4 and immediately dequantized back to
+    FP32 before continuing — a <strong>"fake" quantization</strong> step. The forward pass sees
+    the same rounding it would see at real low-bit inference; gradients still flow through it in
+    FP32, so the network learns weights that are robust to that specific rounding.</p>
+  </div>
+</section>
+
+<!-- ============ WIDE VS NARROW MINIMA ============ -->
+<section class="slide">
+  <h2>Why this produces better minima</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/img49.png" alt="wide vs narrow minima in the loss landscape"></div>
+    <p>A <strong>wide</strong> minimum stays low-loss even if the weight shifts a bit (as
+    quantization forces it to); a <strong>narrow</strong> minimum's loss shoots up under the same
+    shift. Ordinary training has no reason to prefer one over the other — it just finds the lowest
+    point it can, wide or narrow.</p>
+  </div>
+</section>
+
+<!-- ============ QAT VS PTQ MINIMA ============ -->
+<section class="slide">
+  <h2>QAT seeks wide minima on purpose</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/img50.png" alt="QAT finds wide minima with smaller quantization error vs PTQ's narrow minima"></div>
+    <p>Because QAT's forward pass already includes the rounding step, gradient descent is
+    steered <em>away</em> from narrow minima that quantization would wreck, and <em>into</em> wide
+    ones that tolerate it — a smaller quantization error for the same bit-width, entirely because
+    training saw the rounding coming. PTQ, quantizing after the fact, has no such guarantee and can
+    land its rounded weight in a narrow, high-loss minimum.</p>
+  </div>
+</section>
+
+<!-- ============ BITNET: BITLINEAR ============ -->
+<section class="slide">
+  <h2>BitNet: replacing Linear with BitLinear</h2>
+  <div class="body">
+    <div class="cols">
+      <div class="fig"><img src="images/img51.png" alt="standard Transformer block with FP16 Linear layers"></div>
+      <div class="fig"><img src="images/img52.png" alt="BitNet block with 1-bit BitLinear layers"></div>
+    </div>
+    <p>BitNet is QAT taken to its extreme: every ordinary <code>Linear</code> layer (FP16 weights)
+    in a Transformer is swapped for a <strong>BitLinear</strong> layer, whose weights are trained
+    to live in just <strong>1 bit</strong> from the start.</p>
+  </div>
+</section>
+
+<!-- ============ BITLINEAR: WHAT IT COMPUTES ============ -->
+<section class="slide">
+  <h2>BitLinear: 1-bit weights, INT8 activations</h2>
+  <div class="body">
+    <div class="fig"><img src="images/img53.png" alt="Y = wX with 1-bit weights and INT8 activations"></div>
+    <p>The matrix multiply itself is unchanged, $Y=wX$ — only the precision of $w$ and $X$
+    changes. Weights are quantized to $1$ bit; activations to INT8 (finer than the weights,
+    since activations vary per input and carry more information to preserve).</p>
+  </div>
+</section>
+
+<!-- ============ BITLINEAR: FULL PIPELINE ============ -->
+<section class="slide">
+  <h2>BitLinear: the full pipeline</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/img54.png" alt="BitLinear full pipeline: layer norm, quantize, multiply, dequantize"></div>
+    <p>Input arrives in FP16, gets layer-normalized, then quantized (absmax, to INT8); weights
+    are held in 1-bit; their product $Y$ (INT8) is dequantized back to FP16 using the tracked
+    scale factors $\alpha,\beta$ before leaving the layer — every other layer downstream still
+    sees ordinary FP16 activations.</p>
+  </div>
+</section>
+
+<!-- ============ BITNET: WEIGHT QUANTIZATION ============ -->
+<section class="slide">
+  <h2>BitNet: quantizing weights to ±1</h2>
+  <div class="body">
+    <div class="fig"><img src="images/img55.png" alt="signum function centering weights around zero, quantizing to -1 or 1"></div>
+    <div class="eq hero">$$w_{\text{quantized}}=\operatorname{Sign}(w-\alpha)$$</div>
+    <p>$\alpha$ — the mean weight value in the tensor. Centering on the mean first (not the raw
+    weights) ensures roughly half the weights land on each side of $0$ before the sign function
+    collapses everything to exactly $-1$ or $1$ — the full 1-bit weight.</p>
+  </div>
+</section>
+
+<!-- ============ BITNET: ACTIVATION QUANTIZATION ============ -->
+<section class="slide">
+  <h2>BitNet: quantizing activations to INT8</h2>
+  <div class="body">
+    <div class="fig"><img src="images/img56.png" alt="absmax quantization of activations after layer normalization"></div>
+    <div class="eq hero">$$X_{\text{quantized}}=\operatorname{round}\!\Big(\frac{2^{b-1}}{\alpha}\cdot X-\min(X)\Big)$$</div>
+    <p>$\alpha$ — the highest absolute activation value; $b=8$. Layer normalization runs first, so
+    activations already have a well-behaved, predictable range before this absmax-style scaling
+    maps them into INT8.</p>
+  </div>
+</section>
+
+<!-- ============ BITNET: DEQUANTIZATION ============ -->
+<section class="slide">
+  <h2>BitNet: recovering an FP16 output</h2>
+  <div class="body">
+    <div class="fig"><img src="images/img57.png" alt="dequantization formula using tracked alpha and beta"></div>
+    <div class="eq hero">$$Y_{\text{dequantized}}=Y\cdot\frac{\alpha\cdot\beta}{2^{b-1}}$$</div>
+    <p>$\alpha$ — the weight-quantization scale from a few slides back; $\beta$ — the
+    activation-quantization scale just used. Multiplying by both undoes both roundings at once,
+    handing the next (ordinary, FP16) layer a normal-looking activation.</p>
+  </div>
+</section>
+
+<!-- ============ BITNET 1.58: NO MULTIPLICATION ============ -->
+<section class="slide">
+  <h2>BitNet b1.58: matmul without multiplying</h2>
+  <div class="body">
+    <div class="cols">
+      <div class="fig"><img src="images/img58.png" alt="standard matmul needing multiplication and addition"></div>
+      <div class="fig"><img src="images/img59.png" alt="ternary matmul needing only addition"></div>
+    </div>
+    <p>With weights restricted to $\{-1,0,1\}$ instead of just $\{-1,1\}$, each term in the dot
+    product is either $+X_i$, $-X_i$, or dropped entirely — the multiplication disappears, leaving
+    only additions and subtractions. Explicitly allowing $0$ is what earns the extra $0.58$ bit
+    ($\log_2 3\approx1.58$) over BitNet's strict 1-bit version.</p>
+  </div>
+</section>
+
+<!-- ============ BITNET 1.58: ABSMEAN QUANTIZATION ============ -->
+<section class="slide">
+  <h2>BitNet b1.58: absmean quantization</h2>
+  <div class="body">
+    <div class="fig"><img src="images/img60.png" alt="absmean quantization compressing weights to ternary -1, 0, 1"></div>
+    <div class="eq hero">$$w_{\text{quantized}}=\operatorname{round}\!\Big(\frac{w}{\alpha}\Big),\qquad \alpha=\text{mean}(|w|)$$</div>
+    <p>Dividing by the <em>mean absolute</em> weight (not the max, as in earlier absmax schemes)
+    compresses the distribution so that most values round to $0$, and only the largest round to
+    $\pm1$ — turning the weight tensor sparse as a side effect of quantizing it.</p>
+  </div>
+</section>
+
+<!-- ============ READING LIST ============ -->
+<section class="slide">
+  <h2>Reading list</h2>
+  <div class="body">
+    <ul>
+      <li>Grootendorst, <em>A Visual Guide to Quantization</em> — the source for every figure in
+      this deck.</li>
+      <li>Frantar et al. 2022, <em>GPTQ: Accurate Post-Training Quantization for Generative
+      Pre-trained Transformers</em> — arXiv:2210.17323.</li>
+      <li>Dettmers et al. 2022, <em>LLM.int8(): 8-bit Matrix Multiplication for Transformers at
+      Scale</em> — arXiv:2208.07339.</li>
+      <li>Wang et al. 2023, <em>BitNet: Scaling 1-bit Transformers for Large Language
+      Models</em> — arXiv:2310.11453.</li>
+      <li>Ma et al. 2024, <em>The Era of 1-bit LLMs: All Large Language Models are in 1.58
+      Bits</em> — arXiv:2402.17764.</li>
+      <li>Gerganov et al., <em>GGUF / llama.cpp</em> — the k-quant format (<code>Q2_K</code>,
+      <code>Q4_K</code>, <code>Q6_K</code>, …) used throughout Part 3.</li>
+    </ul>
+  </div>
+</section>
+
+</div><!-- /deck -->
+
+<div id="ov"><h3>All slides — click to jump · press O or Esc to close</h3><div class="ovgrid" id="ovgrid"></div></div>
+<div id="foot"><span id="num">1 / 1</span></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  if (window.renderMathInElement) {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: "$$", right: "$$", display: true},
+        {left: "\\[", right: "\\]", display: true},
+        {left: "$", right: "$", display: false},
+        {left: "\\(", right: "\\)", display: false}
+      ],
+      throwOnError: false
+    });
+  }
+});
+
+/* ---------- deck navigation ---------- */
+(function () {
+  const slides = Array.from(document.querySelectorAll(".slide"));
+  const num = document.getElementById("num");
+  const ov = document.getElementById("ov");
+  const ovgrid = document.getElementById("ovgrid");
+  let i = 0;
+
+  slides.forEach(function (s, k) {
+    const card = document.createElement("div");
+    card.className = "ovcard";
+    const h = s.querySelector("h1, h2");
+    card.innerHTML = '<span class="n2">' + (k + 1) + '</span>' + (h ? h.textContent : "Slide");
+    card.addEventListener("click", function () { go(k); ov.classList.remove("on"); });
+    ovgrid.appendChild(card);
+  });
+
+  function go(k) {
+    i = Math.max(0, Math.min(slides.length - 1, k));
+    slides.forEach(s => s.classList.remove("on"));
+    slides[i].classList.add("on");
+    slides[i].querySelector(".body") && (slides[i].querySelector(".body").scrollTop = 0);
+    num.textContent = (i + 1) + " / " + slides.length;
+    history.replaceState(null, "", "#" + (i + 1));
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); go(i + 1); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); go(i - 1); }
+    else if (e.key === "Home") go(0);
+    else if (e.key === "End") go(slides.length - 1);
+    else if (e.key === "o" || e.key === "O") ov.classList.toggle("on");
+    else if (e.key === "Escape") ov.classList.remove("on");
+    else if (e.key === "f" || e.key === "F") {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+
+  let x0 = null;
+  document.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; }, {passive: true});
+  document.addEventListener("touchend", function (e) {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 55) go(dx < 0 ? i + 1 : i - 1);
+    x0 = null;
+  }, {passive: true});
+
+  const start = parseInt((location.hash || "#1").slice(1), 10);
+  go(isNaN(start) ? 0 : start - 1);
+})();
+</script>
+</body>
+</html>

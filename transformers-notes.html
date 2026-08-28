@@ -1,0 +1,1735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Decoder-Only Transformers — Course Notes | Agentic AI (BITS Pilani)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<style>
+/* ============================================================
+   SOLARIZED LIGHT
+   base3 #fdf6e3  base2 #eee8d5  base1 #93a1a1  base0 #839496
+   base00 #657b83 base01 #586e75 base02 #073642 base03 #002b36
+   yellow #b58900 orange #cb4b16 red #dc322f magenta #d33682
+   violet #6c71c4 blue #268bd2  cyan #2aa198  green #859900
+   ============================================================ */
+:root{
+  --base3:#fdf6e3; --base2:#eee8d5; --base1:#93a1a1; --base0:#839496;
+  --base00:#657b83; --base01:#586e75; --base02:#073642; --base03:#002b36;
+  --yellow:#b58900; --orange:#cb4b16; --red:#dc322f; --magenta:#d33682;
+  --violet:#6c71c4; --blue:#268bd2; --cyan:#2aa198; --green:#859900;
+  --rule:rgba(147,161,161,.40); --rule-strong:rgba(88,110,117,.28);
+  --serif:"IBM Plex Serif",Georgia,"Times New Roman",serif;
+  --sans:"IBM Plex Sans Condensed","IBM Plex Sans",Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:5rem}
+body{
+  margin:0;background:var(--base3);color:var(--base01);
+  font-family:var(--serif);font-size:17px;line-height:1.68;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+::selection{background:#eee8d5;color:var(--base03)}
+
+/* ---------- masthead ---------- */
+.masthead{border-bottom:1px solid var(--rule);background:var(--base3)}
+.masthead-inner{max-width:1280px;margin:0 auto;padding:2.4rem 1.5rem 2.2rem;
+  display:grid;grid-template-columns:1fr auto;gap:2rem;align-items:end}
+.eyebrow{font-family:var(--sans);font-size:.72rem;font-weight:600;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--base1)}
+.masthead h1{font-family:var(--sans);font-weight:700;font-size:clamp(2.1rem,5.2vw,3.6rem);
+  line-height:1.02;letter-spacing:-.018em;color:var(--base03);margin:.6rem 0 .5rem}
+.masthead h1 em{font-style:normal;color:var(--blue)}
+.deck{max-width:56ch;font-size:1.03rem;color:var(--base00);margin:0}
+.meta{font-family:var(--mono);font-size:.72rem;color:var(--base1);line-height:1.9;text-align:right}
+.meta b{color:var(--base01);font-weight:500}
+
+/* ---------- signature: causal mask ---------- */
+.sig{display:grid;grid-template-columns:repeat(8,14px);gap:3px}
+.sig i{display:block;width:14px;height:14px;border-radius:2px;background:var(--base2)}
+.sig i.on{background:var(--blue);opacity:calc(.28 + var(--w,0)*.62)}
+@media (prefers-reduced-motion:no-preference){
+  .sig i.on{animation:pop .5s cubic-bezier(.2,.8,.3,1) both;animation-delay:var(--d,0s)}
+  @keyframes pop{from{transform:scale(.2);opacity:0}to{transform:scale(1)}}
+}
+
+/* ---------- layout ---------- */
+.wrap{max-width:1280px;margin:0 auto;padding:0 1.5rem;
+  display:grid;grid-template-columns:230px minmax(0,1fr);gap:3.2rem;align-items:start}
+nav.toc{position:sticky;top:1.5rem;padding:2rem 0;max-height:calc(100vh - 3rem);overflow-y:auto;
+  font-family:var(--sans);font-size:.86rem;border-right:1px solid var(--rule);padding-right:1.2rem}
+nav.toc h2{font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--base1);
+  font-weight:600;margin:0 0 .9rem}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:t}
+nav.toc li{counter-increment:t;margin:0 0 .1rem}
+nav.toc a{display:block;padding:.32rem .5rem .32rem 2.1rem;color:var(--base00);text-decoration:none;
+  border-radius:3px;position:relative;line-height:1.35}
+nav.toc a::before{content:counter(t,decimal-leading-zero);position:absolute;left:.4rem;
+  font-family:var(--mono);font-size:.68rem;color:var(--base1);top:.42rem}
+nav.toc a:hover{background:var(--base2);color:var(--base03)}
+nav.toc a.active{background:var(--base2);color:var(--base03);font-weight:600}
+nav.toc a.active::before{color:var(--blue)}
+main{padding:2.6rem 0 6rem;max-width:74ch}
+
+/* ---------- sections ---------- */
+section{margin:0 0 4.2rem;scroll-margin-top:1.5rem}
+.snum{font-family:var(--mono);font-size:.72rem;color:var(--orange);letter-spacing:.08em;
+  display:block;margin-bottom:.35rem}
+h2{font-family:var(--sans);font-weight:700;font-size:1.85rem;line-height:1.12;color:var(--base03);
+  letter-spacing:-.012em;margin:0 0 .4rem;padding-bottom:.7rem;border-bottom:2px solid var(--base02)}
+h3{font-family:var(--sans);font-weight:600;font-size:1.22rem;color:var(--base02);
+  margin:2.2rem 0 .5rem;letter-spacing:-.005em}
+h4{font-family:var(--sans);font-weight:600;font-size:1rem;color:var(--base01);margin:1.5rem 0 .35rem}
+p{margin:0 0 1rem}
+strong{color:var(--base02);font-weight:600}
+em.term{font-style:normal;font-weight:600;color:var(--violet)}
+a{color:var(--blue);text-decoration:none;border-bottom:1px solid rgba(38,139,210,.35)}
+a:hover{border-bottom-color:var(--blue)}
+ul,ol{margin:0 0 1rem;padding-left:1.3rem}
+li{margin:.35rem 0}
+ul li::marker{color:var(--base1)}
+ol li::marker{color:var(--base1);font-family:var(--mono);font-size:.85em}
+hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
+
+/* ---------- callouts ---------- */
+.box{border-left:3px solid var(--c,var(--base1));background:var(--base2);
+  padding:1rem 1.15rem;margin:1.4rem 0;border-radius:0 4px 4px 0}
+.box .lab{font-family:var(--sans);font-size:.68rem;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--c,var(--base00));display:block;margin-bottom:.4rem}
+.box p:last-child,.box ul:last-child,.box ol:last-child{margin-bottom:0}
+.intuition{--c:var(--cyan)} .maths{--c:var(--violet)} .insight{--c:var(--magenta)}
+.pitfall{--c:var(--red)} .example{--c:var(--green)} .qa{--c:var(--blue)} .why{--c:var(--yellow)}
+
+/* ---------- paper chips ---------- */
+.papers{display:flex;flex-wrap:wrap;gap:.4rem;margin:.2rem 0 1.4rem}
+.chip{font-family:var(--mono);font-size:.7rem;padding:.24rem .55rem;border:1px solid var(--rule);
+  border-radius:99px;color:var(--base00);background:var(--base3);text-decoration:none;border-bottom:1px solid var(--rule)}
+.chip:hover{border-color:var(--orange);color:var(--orange)}
+.chip b{color:var(--orange);font-weight:500}
+
+/* ---------- code ---------- */
+code{font-family:var(--mono);font-size:.86em;background:var(--base2);padding:.08em .35em;
+  border-radius:3px;color:var(--base02)}
+pre{background:var(--base2);border:1px solid var(--rule);border-radius:5px;padding:1rem 1.1rem;
+  overflow-x:auto;margin:1.2rem 0;line-height:1.6}
+pre code{background:none;padding:0;font-size:.795rem;color:var(--base01)}
+.k{color:var(--green)} .s{color:var(--cyan)} .n{color:var(--magenta)}
+.c{color:var(--base1);font-style:italic} .f{color:var(--blue)}
+
+/* ---------- tables ---------- */
+.tw{overflow-x:auto;margin:1.3rem 0}
+table{border-collapse:collapse;width:100%;font-size:.88rem;font-family:var(--sans)}
+th{text-align:left;font-weight:600;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--base00);border-bottom:1.5px solid var(--base02);padding:.5rem .7rem}
+td{padding:.55rem .7rem;border-bottom:1px solid var(--rule);vertical-align:top}
+tbody tr:hover{background:var(--base2)}
+td code{font-size:.82em}
+
+/* ---------- math ---------- */
+.katex{font-size:1.03em!important;color:var(--base02)}
+.katex-display{margin:1.3rem 0!important;padding:.2rem 0;overflow-x:auto;overflow-y:hidden}
+
+/* ---------- widgets ---------- */
+.widget{border:1px solid var(--rule);border-radius:5px;padding:1.2rem;margin:1.5rem 0;background:var(--base3)}
+.widget h4{margin:0 0 .2rem}
+.widget .hint{font-family:var(--sans);font-size:.8rem;color:var(--base1);margin:0 0 1rem}
+.grid-attn{display:inline-grid;gap:3px;font-family:var(--mono);font-size:.6rem}
+.cell{width:34px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:3px;
+  background:var(--base2);color:var(--base1);cursor:default;transition:transform .12s}
+.cell.vis{color:var(--base3)}
+.cell.hdr{background:none;color:var(--base00);font-weight:600}
+.rowhl .cell{outline:1.5px solid var(--orange);outline-offset:-1.5px}
+.slider{width:100%;max-width:340px;accent-color:var(--blue)}
+.readout{font-family:var(--mono);font-size:.78rem;color:var(--base02)}
+.legend{font-family:var(--sans);font-size:.75rem;color:var(--base1);margin-top:.7rem}
+
+/* ---------- refs ---------- */
+.reflist{list-style:none;padding:0;font-size:.9rem}
+.reflist li{padding:.55rem 0;border-bottom:1px solid var(--rule)}
+.reflist .tag{font-family:var(--mono);font-size:.66rem;color:var(--base3);background:var(--base01);
+  padding:.1rem .4rem;border-radius:3px;margin-right:.5rem;vertical-align:1px}
+.reflist .tag.core{background:var(--orange)}
+.reflist .tag.arch{background:var(--blue)}
+.reflist .tag.eff{background:var(--cyan)}
+.reflist .tag.interp{background:var(--magenta)}
+.reflist .tag.learn{background:var(--green)}
+
+footer{border-top:1px solid var(--rule);margin-top:3rem;padding:2rem 1.5rem 3rem;
+  font-family:var(--sans);font-size:.82rem;color:var(--base1);text-align:center}
+
+/* ---------- responsive ---------- */
+@media (max-width:980px){
+  .wrap{grid-template-columns:1fr;gap:0;padding:0 1.15rem}
+  nav.toc{position:static;max-height:none;border-right:0;border-bottom:1px solid var(--rule);
+    padding:1.2rem 0;columns:2;column-gap:1.4rem}
+  nav.toc h2{column-span:all}
+  main{padding-top:1.8rem;max-width:none}
+  .masthead-inner{grid-template-columns:1fr;padding:1.8rem 1.15rem;gap:1.4rem}
+  .meta{text-align:left}
+  body{font-size:16px}
+}
+@media print{
+  nav.toc,.widget{display:none}
+  body{font-size:10.5pt} .wrap{display:block} section{page-break-inside:avoid}
+}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:2px}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <div>
+      <span class="eyebrow">CS GXYZ · Agentic AI · Module 1 · Lectures 1–3</span>
+      <h1>Decoder-Only <em>Transformers</em></h1>
+      <p class="deck">Self-attention, causal masking, and multi-head attention — derived from first
+      principles, with the arithmetic written out, the intuition named, and every claim traced back
+      to a paper you can read tonight.</p>
+    </div>
+    <div style="display:grid;gap:1.2rem;justify-items:end">
+      <div class="sig" id="sig" aria-hidden="true"></div>
+      <div class="meta">
+        BITS Pilani · Pilani Campus<br>
+        <b>Second Semester 2025–26</b><br>
+        Ref: TB2 ch. 3–4, RB3<br>
+        Companion slides: <b>transformers-slides.html</b>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<nav class="toc" aria-label="Contents">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#s1">Why attention at all</a></li>
+    <li><a href="#s2">The language-modelling objective</a></li>
+    <li><a href="#s3">Tokens, embeddings, the residual stream</a></li>
+    <li><a href="#s4">Position: the missing ingredient</a></li>
+    <li><a href="#s5">Self-attention from first principles</a></li>
+    <li><a href="#s6">Why divide by √d<sub>k</sub></a></li>
+    <li><a href="#s7">Causal (masked) attention</a></li>
+    <li><a href="#s8">Multi-head attention</a></li>
+    <li><a href="#s9">The rest of the block</a></li>
+    <li><a href="#s10">The full decoder-only stack</a></li>
+    <li><a href="#s11">Cost: parameters, FLOPs, memory</a></li>
+    <li><a href="#s12">Inference &amp; the KV cache</a></li>
+    <li><a href="#s13">MQA, GQA, FlashAttention</a></li>
+    <li><a href="#s14">Training recipe</a></li>
+    <li><a href="#s15">Encoder, decoder, or both?</a></li>
+    <li><a href="#s16">What heads actually learn</a></li>
+    <li><a href="#s17">A complete numeric trace</a></li>
+    <li><a href="#s18">Minimal GPT in PyTorch</a></li>
+    <li><a href="#s19">Misconceptions &amp; pitfalls</a></li>
+    <li><a href="#s20">Exam-style questions</a></li>
+    <li><a href="#s21">Lab exercises</a></li>
+    <li><a href="#s22">Reading list</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<!-- ================= 1 ================= -->
+<section id="s1">
+  <span class="snum">§ 01</span>
+  <h2>Why attention at all</h2>
+  <div class="papers">
+    <a class="chip" href="https://arxiv.org/abs/1409.0473"><b>▸</b> Bahdanau et al. 2014 — Attention for NMT</a>
+    <a class="chip" href="https://arxiv.org/abs/1706.03762"><b>▸</b> Vaswani et al. 2017 — Attention Is All You Need</a>
+  </div>
+
+  <p>Before 2017, the standard way to model a sequence was a recurrent network: read one token,
+  update a hidden state, repeat. That design has three structural problems, and the Transformer is
+  best understood as a direct answer to all three at once.</p>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>Problem with RNNs</th><th>Consequence</th><th>Transformer's answer</th></tr></thead>
+    <tbody>
+      <tr><td>Computation is inherently sequential in <em>n</em></td>
+          <td>Cannot use a GPU's parallelism during training</td>
+          <td>All positions attend simultaneously — one matrix multiply</td></tr>
+      <tr><td>Path length between token <em>i</em> and token <em>j</em> is <code>|i−j|</code> steps</td>
+          <td>Gradients vanish over long range; long-distance agreement is hard</td>
+          <td>Path length is <strong>O(1)</strong> — every token reads every other token directly</td></tr>
+      <tr><td>Fixed-size hidden state must compress all history</td>
+          <td>Information bottleneck; early tokens get overwritten</td>
+          <td>No compression — the whole prefix stays addressable as keys and values</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="box intuition">
+    <span class="lab">Intuition</span>
+    <p>An RNN is a person reading a book while allowed to keep only one sticky note, rewritten after
+    every sentence. Attention is the same person allowed to keep the <em>whole book open</em> and
+    flip back to any page — but they must decide, for each new word they write, which pages to look
+    at. Attention is the mechanism that makes "which pages to look at" differentiable and therefore
+    learnable.</p>
+  </div>
+
+  <div class="box why">
+    <span class="lab">The trade we accept</span>
+    <p>We buy O(1) path length by paying O(n²) compute: every token compares itself to every other
+    token. That quadratic term is the single most consequential design decision in modern AI — it is
+    why context windows are expensive, why FlashAttention exists, why KV caches dominate serving
+    memory, and why state-space models (Module 2) are interesting at all. Keep it in view.</p>
+  </div>
+
+  <h3>The original architecture vs. what we actually build today</h3>
+  <p>The 2017 paper describes an <strong>encoder–decoder</strong> model for machine translation:
+  an encoder with bidirectional self-attention, a decoder with masked self-attention plus
+  cross-attention into the encoder. Almost every large language model you will use in this course —
+  GPT, LLaMA, Mistral, Qwen, Claude — is a <strong>decoder-only</strong> model: it keeps the masked
+  self-attention and the feed-forward network, and drops the encoder and the cross-attention
+  entirely. These notes teach the decoder-only stack as the primary object, and mention the encoder
+  only for contrast (§15).</p>
+</section>
+
+<!-- ================= 2 ================= -->
+<section id="s2">
+  <span class="snum">§ 02</span>
+  <h2>The language-modelling objective</h2>
+  <div class="papers">
+    <a class="chip" href="https://cdn.openai.com/research-covers/language-unsupervised/language_understanding_paper.pdf"><b>▸</b> Radford et al. 2018 — GPT-1</a>
+    <a class="chip" href="https://arxiv.org/abs/2005.14165"><b>▸</b> Brown et al. 2020 — GPT-3</a>
+  </div>
+
+  <p>Everything the architecture does is in service of one objective. A decoder-only Transformer is
+  a machine for estimating the probability of a token sequence, factorised left to right by the
+  chain rule of probability:</p>
+
+  $$P_\theta(x_1,\dots,x_n)=\prod_{t=1}^{n}P_\theta\!\left(x_t \mid x_{&lt;t}\right)$$
+
+  <p>The model is trained by maximum likelihood, which for a categorical distribution is exactly
+  cross-entropy. For a single sequence:</p>
+
+  $$\mathcal{L}(\theta)=-\frac{1}{n}\sum_{t=1}^{n}\log P_\theta\!\left(x_t \mid x_{&lt;t}\right)
+  = -\frac{1}{n}\sum_{t=1}^{n}\log \operatorname{softmax}\!\left(z_t\right)_{x_t}$$
+
+  <p>where <span class="katex-inline">$z_t \in \mathbb{R}^{|V|}$</span> is the logit vector the model
+  emits at position <em>t</em>. Two consequences follow immediately, and they explain the entire
+  design of causal attention:</p>
+
+  <ol>
+    <li><strong>Position <em>t</em> must not see token <em>t+1</em>.</strong> If it could, the task
+    would be trivially solvable by copying, and the model would learn nothing. This is the sole
+    reason the causal mask exists (§7).</li>
+    <li><strong>Every position is a training example.</strong> One sequence of length <em>n</em>
+    gives <em>n</em> supervised predictions, all computable in a single forward pass. This is
+    <em class="term">teacher forcing</em>, and it is why Transformer training parallelises so well.</li>
+  </ol>
+
+  <div class="box maths">
+    <span class="lab">Perplexity</span>
+    <p>Perplexity is the exponentiated mean cross-entropy, <span>$\mathrm{PPL}=\exp(\mathcal{L})$</span>.
+    Read it as "the model is as confused as if it were choosing uniformly among PPL equally likely
+    tokens." A uniform model over a 50,000-token vocabulary has PPL = 50,000. A good modern LLM on
+    English web text sits in the single digits to low teens. Because PPL depends on the tokenizer,
+    <strong>perplexities across different tokenizers are not comparable</strong> — a classic
+    exam trap.</p>
+  </div>
+
+  <div class="box example">
+    <span class="lab">Worked example — one training sequence</span>
+    <p>Input <code>["The","cat","sat","on"]</code>, targets <code>["cat","sat","on","the"]</code>.
+    The batch tensor is simply the sequence shifted by one. Loss is averaged over 4 predictions.
+    Position 0 sees only <code>The</code>; position 3 sees all four. One forward pass, four gradients
+    — no loop.</p>
+  </div>
+</section>
+
+<!-- ================= 3 ================= -->
+<section id="s3">
+  <span class="snum">§ 03</span>
+  <h2>Tokens, embeddings, and the residual stream</h2>
+  <div class="papers">
+    <a class="chip" href="https://arxiv.org/abs/1508.07909"><b>▸</b> Sennrich et al. 2015 — BPE</a>
+    <a class="chip" href="https://arxiv.org/abs/1808.06226"><b>▸</b> Kudo &amp; Richardson 2018 — SentencePiece</a>
+    <a class="chip" href="https://arxiv.org/abs/1608.05859"><b>▸</b> Press &amp; Wolf 2016 — Weight tying</a>
+  </div>
+
+  <h3>Tokenisation</h3>
+  <p>Text is first cut into subword units by <em class="term">byte-pair encoding</em> (BPE) or a
+  variant. BPE starts from bytes and repeatedly merges the most frequent adjacent pair, producing a
+  vocabulary <em>V</em> of typically 32k–256k entries. Frequent words become single tokens
+  (<code>" the"</code>); rare words fragment (<code>"tokenization"</code> → <code>"token"</code> +
+  <code>"ization"</code>). Nothing is out-of-vocabulary because the base alphabet is all 256 bytes.</p>
+
+  <div class="box pitfall">
+    <span class="lab">Why tokenisation is not a footnote</span>
+    <p>A surprising number of LLM failure modes are tokenisation artefacts, not reasoning failures:
+    poor arithmetic (numbers split inconsistently, e.g. <code>1234</code> → <code>12</code>+<code>34</code>),
+    inability to count letters in a word (the model never sees letters), and weak performance on
+    low-resource languages (which fragment into many more tokens, consuming context and compute).
+    Before blaming the architecture, check the tokenizer.</p>
+  </div>
+
+  <h3>Embedding</h3>
+  <p>Each token id is a row lookup in an embedding matrix
+  <span>$W_E \in \mathbb{R}^{|V| \times d_{\text{model}}}$</span>. For a sequence of <em>n</em> ids we
+  obtain <span>$X \in \mathbb{R}^{n \times d_{\text{model}}}$</span>. Throughout these notes
+  <span>$d \equiv d_{\text{model}}$</span> — 768 for GPT-2 small, 4096 for LLaMA-2-7B.</p>
+
+  <p>At the output, logits are produced by an <em class="term">unembedding</em> matrix
+  <span>$W_U \in \mathbb{R}^{d \times |V|}$</span>. Many models set
+  <span>$W_U = W_E^{\top}$</span> (<em class="term">weight tying</em>), saving
+  <span>$|V| \cdot d$</span> parameters — 38M for GPT-2 small, a third of the whole model — and
+  usually improving perplexity.</p>
+
+  <div class="box insight">
+    <span class="lab">The residual stream — the mental model that makes everything else click</span>
+    <p>Do not think of a Transformer as a pipeline that transforms <em>X</em> into something else at
+    each layer. Think of it as a <strong>shared bus of width <em>d</em>, one lane per token
+    position</strong>, running the full depth of the network. Every sub-layer <em>reads</em> a
+    linear projection of the bus, computes something, and <em>adds</em> its result back:</p>
+    $$x \leftarrow x + \text{Attn}(\text{norm}(x)), \qquad x \leftarrow x + \text{MLP}(\text{norm}(x))$$
+    <p>Because every operation is additive, the final representation is literally the sum of the
+    embedding plus every head's and every MLP's contribution. This is what makes gradients flow to
+    depth 100, and it is the foundation of mechanistic interpretability (§16). Attention moves
+    information <em>between</em> lanes; MLPs process information <em>within</em> a lane. That one
+    sentence is most of what a Transformer block does.</p>
+  </div>
+</section>
+
+<!-- ================= 4 ================= -->
+<section id="s4">
+  <span class="snum">§ 04</span>
+  <h2>Position: the missing ingredient</h2>
+  <div class="papers">
+    <a class="chip" href="https://arxiv.org/abs/1706.03762"><b>▸</b> Sinusoidal — Vaswani 2017 §3.5</a>
+    <a class="chip" href="https://arxiv.org/abs/2104.09864"><b>▸</b> Su et al. 2021 — RoPE</a>
+    <a class="chip" href="https://arxiv.org/abs/2108.12409"><b>▸</b> Press et al. 2021 — ALiBi</a>
+    <a class="chip" href="https://arxiv.org/abs/1803.02155"><b>▸</b> Shaw et al. 2018 — Relative PE</a>
+  </div>
+
+  <p>Self-attention is a <strong>set</strong> operation. Permute the rows of <em>X</em> and the output
+  rows permute identically — the mechanism is <em class="term">permutation equivariant</em>. On its
+  own it cannot distinguish "dog bites man" from "man bites dog". Position must be injected
+  explicitly.</p>
+
+  <div class="box maths">
+    <span class="lab">Proof sketch</span>
+    <p>Let <em>P</em> be a permutation matrix. Since <span>$Q=XW_Q$</span> etc. are row-wise linear,
+    <span>$(PX)W_Q = P(XW_Q)$</span>. The score matrix becomes
+    <span>$PQK^\top P^\top$</span>, softmax is applied row-wise so it commutes with <em>P</em>, and
+    the output is <span>$P\,\mathrm{Attn}(X)$</span>. Order information is genuinely absent, not
+    merely weakened. (Note: with a <em>causal mask</em>, permutation equivariance breaks — the mask
+    itself encodes ordering — but the model still cannot measure <em>distance</em>, which is what
+    positional encodings supply.)</p>
+  </div>
+
+  <h3>Three families</h3>
+
+  <h4>1. Sinusoidal (absolute, added)</h4>
+  $$PE_{(t,2i)}=\sin\!\left(\frac{t}{10000^{2i/d}}\right),\qquad
+    PE_{(t,2i+1)}=\cos\!\left(\frac{t}{10000^{2i/d}}\right)$$
+  <p>Each dimension pair is a clock hand rotating at a different frequency — a binary-counter
+  representation in continuous form. Its useful property: <span>$PE_{t+k}$</span> is a
+  <strong>fixed linear function</strong> of <span>$PE_t$</span> (a 2×2 rotation by
+  <span>$k\omega_i$</span>), so relative offsets are linearly decodable. Added to the embedding, not
+  concatenated.</p>
+
+  <h4>2. Learned absolute</h4>
+  <p>A trainable table <span>$W_P \in \mathbb{R}^{n_{\max}\times d}$</span> (GPT-1, GPT-2, BERT).
+  Simple and effective, but it <strong>cannot extrapolate past</strong>
+  <span>$n_{\max}$</span> — there is no row to look up.</p>
+
+  <h4>3. RoPE — rotary position embedding (the modern default)</h4>
+  <p>Used by LLaMA, Mistral, Qwen, Gemma, DeepSeek, PaLM. Instead of adding anything to the
+  embedding, RoPE <strong>rotates the query and key vectors</strong> by an angle proportional to
+  position, in each 2-D coordinate pair. For pair <em>i</em> with frequency
+  <span>$\theta_i = 10000^{-2i/d_h}$</span>:</p>
+
+  $$\begin{pmatrix}\tilde q^{(i)}_1\\ \tilde q^{(i)}_2\end{pmatrix}
+    =\begin{pmatrix}\cos m\theta_i & -\sin m\theta_i\\ \sin m\theta_i & \cos m\theta_i\end{pmatrix}
+     \begin{pmatrix}q^{(i)}_1\\ q^{(i)}_2\end{pmatrix}
+    \;\equiv\; R_{m,i}\,q^{(i)}$$
+
+  <p>The magic is what happens in the dot product. Since rotation matrices satisfy
+  <span>$R_m^\top R_n = R_{n-m}$</span>:</p>
+
+  $$\langle \tilde q_m, \tilde k_n\rangle = q_m^\top R_m^\top R_n k_n = q_m^\top R_{n-m}\, k_n$$
+
+  <div class="box insight">
+    <span class="lab">Why RoPE won</span>
+    <p>The attention score depends <strong>only on the relative offset <em>n−m</em></strong>, even
+    though we only ever applied an absolute rotation to each vector individually. You get
+    relative-position behaviour at absolute-position cost — no extra parameters, no
+    <span>$O(n^2)$</span> bias matrix, and it composes cleanly with the KV cache (rotate keys once,
+    when you cache them). It also degrades gracefully, which is why context-extension tricks
+    (position interpolation, NTK-aware scaling, YaRN) all operate by rescaling
+    <span>$\theta_i$</span>.</p>
+  </div>
+
+  <h4>4. ALiBi — no embedding at all</h4>
+  <p>Add a linear penalty to the pre-softmax scores: <span>$s_{ij} \mathrel{+}= -m_h\,(i-j)$</span>,
+  with a head-specific slope <span>$m_h$</span>. Attention decays with distance by construction.
+  Extremely simple and extrapolates well past the training length.</p>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>Scheme</th><th>Where applied</th><th>Params</th><th>Extrapolates?</th><th>Used by</th></tr></thead>
+    <tbody>
+      <tr><td>Sinusoidal</td><td>Added to embedding</td><td>0</td><td>Weakly</td><td>Original Transformer</td></tr>
+      <tr><td>Learned absolute</td><td>Added to embedding</td><td><code>n_max·d</code></td><td>No</td><td>GPT-2, BERT</td></tr>
+      <tr><td>Relative bias</td><td>Added to scores</td><td>Small</td><td>Moderately</td><td>T5, Transformer-XL</td></tr>
+      <tr><td><strong>RoPE</strong></td><td>Rotates Q and K</td><td>0</td><td>Well (with scaling)</td><td>LLaMA, Mistral, Qwen, Gemma</td></tr>
+      <tr><td>ALiBi</td><td>Added to scores</td><td>0</td><td>Very well</td><td>BLOOM, MPT</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ================= 5 ================= -->
+<section id="s5">
+  <span class="snum">§ 05</span>
+  <h2>Self-attention from first principles</h2>
+  <div class="papers">
+    <a class="chip" href="https://arxiv.org/abs/1706.03762"><b>▸</b> Vaswani et al. 2017 §3.2</a>
+    <a class="chip" href="https://nlp.seas.harvard.edu/annotated-transformer/"><b>▸</b> The Annotated Transformer</a>
+    <a class="chip" href="https://arxiv.org/abs/2207.09238"><b>▸</b> Phuong &amp; Hutter 2022 — Formal Algorithms</a>
+  </div>
+
+  <p>Rather than presenting the formula and explaining it afterwards, let us <em>derive</em> it. The
+  question self-attention answers is: <strong>for each token, which other tokens should shape its
+  representation, and by how much?</strong></p>
+
+  <h3>Step 1 — a differentiable dictionary</h3>
+  <p>A Python dictionary <code>d[query]</code> does a hard lookup: exact key match, return one value.
+  We want a <em>soft</em> version — compare the query against all keys, and return a weighted average
+  of all values, weighted by match quality. Written out:</p>
+
+  $$\text{out}(q) = \sum_j \underbrace{\frac{\exp\!\big(\text{sim}(q,k_j)\big)}{\sum_{j'}\exp\!\big(\text{sim}(q,k_{j'})\big)}}_{\text{attention weight } \alpha_j} \; v_j$$
+
+  <p>The softmax turns arbitrary similarity scores into a probability distribution over positions —
+  non-negative, summing to 1 — and it is smooth, so gradients flow into <em>both</em> the values and
+  the decision of where to look.</p>
+
+  <h3>Step 2 — where Q, K, V come from</h3>
+  <p>In <em>self</em>-attention, queries, keys and values are all linear projections of the
+  <em>same</em> input <em>X</em>. Three learned matrices give the model three different "views" of
+  each token:</p>
+
+  $$Q = XW_Q,\qquad K = XW_K,\qquad V = XW_V$$
+  $$W_Q,W_K \in \mathbb{R}^{d\times d_k},\qquad W_V \in \mathbb{R}^{d\times d_v}$$
+
+  <div class="box intuition">
+    <span class="lab">What each projection means — the classified-ads metaphor</span>
+    <ul>
+      <li><strong>Query</strong> <span>$q_i$</span> — what token <em>i</em> is <em>looking for</em>.
+      "I am a verb; I need my subject."</li>
+      <li><strong>Key</strong> <span>$k_j$</span> — what token <em>j</em> <em>advertises</em>.
+      "I am a plural noun in subject position."</li>
+      <li><strong>Value</strong> <span>$v_j$</span> — what token <em>j</em> <em>hands over</em> if
+      selected. "Here is my number and animacy information."</li>
+    </ul>
+    <p>Keys and queries decide <em>routing</em>; values carry <em>content</em>. That separation is
+    the point: the same token can be highly attended-to for one reason while contributing entirely
+    different information. This is exactly the QK-circuit / OV-circuit split of §16.</p>
+  </div>
+
+  <h3>Step 3 — the similarity function</h3>
+  <p>The paper uses a scaled dot product. Two candidates were considered:</p>
+  <ul>
+    <li><strong>Additive</strong> (Bahdanau): <span>$\text{sim}(q,k)=w^\top\tanh(W_1q+W_2k)$</span>.
+    A small MLP per pair — expressive but slow.</li>
+    <li><strong>Dot-product</strong> (chosen): <span>$\text{sim}(q,k)=q^\top k$</span>. No
+    parameters, and the whole <span>$n\times n$</span> score matrix is <em>one matmul</em>
+    <span>$QK^\top$</span> — perfectly suited to GPU tensor cores.</li>
+  </ul>
+  <p>Dot product is not less expressive: <span>$W_Q$</span> and <span>$W_K$</span> already supply the
+  learnable part, since <span>$q_i^\top k_j = x_i^\top (W_Q W_K^\top) x_j$</span> is a full learned
+  bilinear form on the inputs.</p>
+
+  <h3>Step 4 — the formula</h3>
+  $$\boxed{\;\operatorname{Attention}(Q,K,V)=\operatorname{softmax}\!\left(\frac{QK^{\top}}{\sqrt{d_k}}\right)V\;}$$
+
+  <div class="box maths">
+    <span class="lab">Shapes — always track these</span>
+    <div class="tw"><table>
+      <thead><tr><th>Object</th><th>Shape</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>X</code></td><td><code>n × d</code></td><td>token representations in</td></tr>
+        <tr><td><code>Q, K</code></td><td><code>n × d_k</code></td><td>routing views</td></tr>
+        <tr><td><code>V</code></td><td><code>n × d_v</code></td><td>content view</td></tr>
+        <tr><td><code>S = QKᵀ/√d_k</code></td><td><code>n × n</code></td><td>raw compatibility scores</td></tr>
+        <tr><td><code>A = softmax(S)</code></td><td><code>n × n</code></td><td>rows are distributions, each sums to 1</td></tr>
+        <tr><td><code>AV</code></td><td><code>n × d_v</code></td><td>context vectors out</td></tr>
+      </tbody>
+    </table></div>
+    <p>Row <em>i</em> of <em>A</em> is "how much token <em>i</em> attends to each token". Rows sum to
+    1; <strong>columns do not</strong>. A column summing to a large value means that token is
+    broadcasting to many others.</p>
+  </div>
+
+  <div class="box example">
+    <span class="lab">Concrete: "The animal didn't cross the street because <u>it</u> was too tired."</span>
+    <p>At the position of <code>it</code>, the query encodes "I am a pronoun; I need my antecedent —
+    a singular animate noun." The key at <code>animal</code> matches strongly; the key at
+    <code>street</code> matches weakly. So <span>$\alpha_{\text{animal}} \approx 0.6$</span>,
+    <span>$\alpha_{\text{street}} \approx 0.05$</span>, and the output at <code>it</code> is
+    dominated by <span>$v_{\text{animal}}$</span> — the representation of <code>it</code> literally
+    absorbs animal-ness. Change <em>tired</em> to <em>wide</em> and a well-trained model flips the
+    attention to <code>street</code>. That flip is coreference resolution learned with no
+    coreference supervision.</p>
+  </div>
+
+  <h3>Cross-attention, for contrast</h3>
+  <p>Identical formula, different sources: <span>$Q$</span> from the decoder,
+  <span>$K,V$</span> from the encoder. Decoder-only LLMs have <strong>no cross-attention</strong>;
+  they concatenate the "source" into the same sequence and let causal self-attention handle it. That
+  simplification is why prompting works the way it does.</p>
+</section>
+
+<!-- ================= 6 ================= -->
+<section id="s6">
+  <span class="snum">§ 06</span>
+  <h2>Why divide by √d<sub>k</sub></h2>
+
+  <p>This is the most commonly asked and most commonly hand-waved detail in the paper. Here is the
+  full argument.</p>
+
+  <div class="box maths">
+    <span class="lab">Variance derivation</span>
+    <p>Assume the components of <em>q</em> and <em>k</em> are independent with mean 0 and variance 1
+    (roughly true at initialisation, and approximately maintained by LayerNorm). Then for
+    <span>$q^\top k=\sum_{i=1}^{d_k}q_i k_i$</span>:</p>
+    $$\mathbb{E}[q^\top k]=\sum_i \mathbb{E}[q_i]\mathbb{E}[k_i]=0$$
+    $$\operatorname{Var}(q^\top k)=\sum_{i=1}^{d_k}\operatorname{Var}(q_ik_i)=\sum_{i=1}^{d_k}1 = d_k$$
+    <p>So the score has standard deviation <span>$\sqrt{d_k}$</span>. With
+    <span>$d_k=64$</span>, typical scores are ±8; with <span>$d_k=128$</span>, ±11. Dividing by
+    <span>$\sqrt{d_k}$</span> restores unit variance and keeps scores O(1) regardless of head width.</p>
+  </div>
+
+  <h4>Why large scores are fatal</h4>
+  <p>Softmax with large-magnitude inputs saturates: it approaches a one-hot vector. And the Jacobian
+  of softmax is</p>
+  $$\frac{\partial \alpha_i}{\partial s_j} = \alpha_i(\delta_{ij}-\alpha_j)$$
+  <p>which is <strong>zero when any <span>$\alpha_i \in \{0,1\}$</span></strong>. A saturated softmax
+  passes no gradient at all — the attention pattern freezes at whatever random routing initialisation
+  gave it, and never learns. The <span>$1/\sqrt{d_k}$</span> factor is a <em>trainability</em> fix,
+  not a numerical-overflow fix.</p>
+
+  <div class="widget">
+    <h4>See it: temperature and softmax sharpness</h4>
+    <p class="hint">Same five raw scores, divided by different values of √d<sub>k</sub>. Watch the
+    distribution collapse to one-hot as the divisor shrinks.</p>
+    <label for="tslider" style="font-family:var(--sans);font-size:.82rem">√d<sub>k</sub> divisor:
+      <span class="readout" id="tval">8.00</span></label><br>
+    <input class="slider" id="tslider" type="range" min="10" max="1600" value="800" step="10"
+           aria-label="square root of d_k divisor">
+    <div id="softbars" style="margin-top:.9rem"></div>
+    <p class="legend">Raw scores: 6.0, 4.5, 2.0, 1.0, −1.5. Small divisor → one-hot → zero gradient.</p>
+  </div>
+
+  <div class="box qa">
+    <span class="lab">Exam question</span>
+    <p><em>"Softmax is shift-invariant, so why not just subtract the max instead of scaling?"</em> —
+    Subtracting the max fixes <strong>overflow</strong> (and every implementation does it). It does
+    <strong>not</strong> change the <em>spread</em> of the scores, so it does not fix saturation.
+    Scaling changes the spread. They solve different problems and both are used.</p>
+  </div>
+</section>
+
+<!-- ================= 7 ================= -->
+<section id="s7">
+  <span class="snum">§ 07</span>
+  <h2>Causal (masked) attention</h2>
+  <div class="papers">
+    <a class="chip" href="https://arxiv.org/abs/1706.03762"><b>▸</b> Vaswani 2017 §3.2.3 — "masked attention"</a>
+    <a class="chip" href="https://arxiv.org/abs/1904.10509"><b>▸</b> Child et al. 2019 — Sparse Transformers</a>
+  </div>
+
+  <p>The objective in §2 requires that the prediction at position <em>t</em> depend only on
+  <span>$x_{\le t}$</span>. Self-attention as defined lets every position see every other, including
+  the future. We fix this by <strong>masking the score matrix before the softmax</strong>.</p>
+
+  $$M_{ij}=\begin{cases}0 & j\le i \quad(\text{allowed: past and self})\\[2pt] -\infty & j>i \quad(\text{blocked: future})\end{cases}$$
+  $$A=\operatorname{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}+M\right)$$
+
+  <p>Because <span>$e^{-\infty}=0$</span>, masked entries receive exactly zero weight, and — crucially —
+  the surviving entries are <strong>renormalised</strong> so each row still sums to 1. In code the
+  <span>$-\infty$</span> is a large negative finite number (<code>-1e9</code>, or
+  <code>torch.finfo(dtype).min</code>) to stay safe in fp16.</p>
+
+  <div class="widget">
+    <h4>The causal mask, live</h4>
+    <p class="hint">Hover or tap a row to isolate it. Coloured cells are attendable; grey cells are
+    masked. Note the strictly lower-triangular-plus-diagonal shape.</p>
+    <div id="maskgrid"></div>
+    <p class="legend" id="maskcap">Row <em>i</em> = query at position <em>i</em>. Column <em>j</em> =
+    key at position <em>j</em>. Row 0 sees only itself; row 7 sees everything.</p>
+  </div>
+
+  <div class="box pitfall">
+    <span class="lab">Three things students get wrong</span>
+    <ol>
+      <li><strong>"Mask after softmax and renormalise."</strong> Mathematically it gives the same
+      forward values here, but it wastes compute, breaks fused kernels, and — if you forget to
+      renormalise — silently produces rows that don't sum to 1. Always mask <em>before</em>.</li>
+      <li><strong>"Set masked weights to 0 by multiplying."</strong> Multiplying post-softmax by a
+      0/1 mask leaves rows summing to less than 1, which shrinks the output magnitude at early
+      positions and destabilises training.</li>
+      <li><strong>"Causal means position <em>i</em> can't see itself."</strong> It can. The diagonal
+      is <em>unmasked</em>. Predicting <span>$x_{t+1}$</span> from <span>$x_{\le t}$</span> includes
+      <span>$x_t$</span>.</li>
+    </ol>
+  </div>
+
+  <div class="box insight">
+    <span class="lab">The asymmetry that defines the architecture</span>
+    <p><strong>Training is parallel; generation is sequential.</strong> During training the whole
+    <span>$n\times n$</span> masked matrix is computed at once and all <em>n</em> losses are obtained
+    in one pass — the mask is what makes this legitimate. During generation you only ever have the
+    prefix, so you must emit one token, append it, and re-run. The mask guarantees that the parallel
+    training computation is <em>exactly</em> the computation generation will perform, so there is no
+    train/test mismatch in the attention itself.</p>
+    <p>Note the corollary that trips people up: <strong>causal attention is a purely mechanical
+    restriction on the score matrix, not a change of formula.</strong> Everything else — Q, K, V,
+    scaling, multi-head, the MLP — is identical to bidirectional attention.</p>
+  </div>
+
+  <h4>Prefix-LM / document masks</h4>
+  <p>The mask is just a boolean matrix, so you can shape it. A <em class="term">prefix-LM</em> mask
+  is bidirectional over the prompt and causal over the completion (used by UL2, PaLM in some modes).
+  A <em class="term">document mask</em> blocks attention across document boundaries when several
+  documents are packed into one training sequence — cheap, and it prevents the model learning
+  spurious cross-document dependencies. Sliding-window attention (Mistral) masks anything further
+  than <em>w</em> tokens back, making the cost linear in <em>n</em>.</p>
+
+  <div class="box example">
+    <span class="lab">Numeric check — 4 tokens, 1 head</span>
+    <p>Suppose the row of raw scores for query <em>i</em>=2 is <code>[2.0, 1.0, 3.0, 5.0]</code>. The
+    mask kills index 3 (the future), leaving <code>[2.0, 1.0, 3.0, −∞]</code>. Softmax over the
+    survivors: <code>e²=7.39, e¹=2.72, e³=20.09</code>, sum = 30.20, giving
+    <strong>[0.245, 0.090, 0.665, 0.000]</strong>. Notice the largest raw score (5.0) was discarded
+    and the remaining weights <em>renormalised upward</em> — that renormalisation is the whole point.</p>
+  </div>
+</section>
+
+<!-- ================= 8 ================= -->
+<section id="s8">
+  <span class="snum">§ 08</span>
+  <h2>Multi-head attention</h2>
+  <div class="papers">
+    <a class="chip" href="https://arxiv.org/abs/1706.03762"><b>▸</b> Vaswani 2017 §3.2.2</a>
+    <a class="chip" href="https://arxiv.org/abs/1905.10650"><b>▸</b> Michel et al. 2019 — Are 16 heads better than one?</a>
+    <a class="chip" href="https://arxiv.org/abs/1905.09418"><b>▸</b> Voita et al. 2019 — Head specialisation</a>
+  </div>
+
+  <h3>The problem with one head</h3>
+  <p>A single attention head produces one distribution per query. But the word <code>bank</code> in
+  <em>"she sat on the bank of the river"</em> needs to attend to <code>sat</code> (syntactic role),
+  to <code>river</code> (disambiguating semantics), and to <code>the</code> (determiner agreement) —
+  <em>simultaneously and for different reasons</em>. One softmax is a bottleneck: it is a convex
+  combination, so putting weight on <code>river</code> necessarily takes weight away from
+  <code>sat</code>.</p>
+
+  <h3>The fix: run <em>h</em> attentions in parallel on subspaces</h3>
+  $$\text{head}_i=\operatorname{Attention}(XW_Q^{(i)},\,XW_K^{(i)},\,XW_V^{(i)})$$
+  $$\operatorname{MHA}(X)=\operatorname{Concat}(\text{head}_1,\dots,\text{head}_h)\,W_O$$
+  <p>with <span>$W_Q^{(i)},W_K^{(i)}\in\mathbb{R}^{d\times d_k}$</span>,
+  <span>$W_V^{(i)}\in\mathbb{R}^{d\times d_v}$</span>,
+  <span>$W_O\in\mathbb{R}^{h d_v\times d}$</span>.</p>
+
+  <div class="box maths">
+    <span class="lab">The standard sizing convention</span>
+    <p>Set <span>$d_k=d_v=d/h$</span>. Then the concatenation is again width <em>d</em>, and
+    <strong>total FLOPs and parameters are the same as a single head of full width <em>d</em></strong>.
+    Multi-head attention is therefore <em>free</em> relative to single-head — you are not spending
+    more, you are spending the same budget on <em>h</em> narrow, independent lookups instead of one
+    wide one. GPT-2 small: <span>$d=768,\;h=12,\;d_k=64$</span>. LLaMA-2-7B:
+    <span>$d=4096,\;h=32,\;d_k=128$</span>.</p>
+    <p>Parameter count per MHA layer: <span>$4d^2$</span> (for
+    <span>$W_Q,W_K,W_V,W_O$</span>), plus biases if used.</p>
+  </div>
+
+  <div class="box insight">
+    <span class="lab">W<sub>O</sub> is not a formality — the per-head decomposition</span>
+    <p>Split <span>$W_O$</span> row-wise into <em>h</em> blocks <span>$W_O^{(i)}\in\mathbb{R}^{d_v\times d}$</span>.
+    Then concat-then-project is <em>exactly</em> a sum:</p>
+    $$\operatorname{MHA}(X)=\sum_{i=1}^{h}\text{head}_i\,W_O^{(i)}
+      =\sum_{i=1}^{h} A^{(i)}\,X\,\underbrace{W_V^{(i)}W_O^{(i)}}_{\text{the OV circuit}}$$
+    <p>Each head writes its own additive contribution into the residual stream, entirely
+    independently of the others. Heads never interact <em>within</em> a layer — they only interact by
+    both writing to the stream and being read by a later layer. This decomposition is the starting
+    point of <a href="https://transformer-circuits.pub/2021/framework/index.html">A Mathematical
+    Framework for Transformer Circuits</a> and is worth memorising.</p>
+  </div>
+
+  <h3>What the heads specialise into</h3>
+  <p>Empirically, heads discover interpretable roles with no supervision:</p>
+  <ul>
+    <li><strong>Positional / previous-token heads</strong> — attend to <em>i−1</em>. Ubiquitous in
+    layer 0–1.</li>
+    <li><strong>Syntactic heads</strong> — verb→subject, noun→determiner, preposition→object.</li>
+    <li><strong>Induction heads</strong> — the ones that implement in-context learning (§16).</li>
+    <li><strong>Attention sinks</strong> — heads that dump most of their mass on token 0 or on
+    delimiters. This is a "no-op": the head has nothing to contribute at this position, and softmax
+    <em>forces</em> it to put its mass somewhere. Recognising this explains a lot of otherwise
+    baffling attention maps.</li>
+  </ul>
+
+  <div class="box qa">
+    <span class="lab">Common question</span>
+    <p><em>"If heads are so redundant that most can be pruned at test time (Michel et al. 2019),
+    why train with many?"</em> — Redundancy at convergence does not imply redundancy during
+    optimisation. Many heads give many parallel lottery tickets for discovering a useful routing
+    pattern; heads that lose become approximately no-ops. Pruning after training is a compression
+    result, not an argument for training narrow.</p>
+  </div>
+</section>
+
+<!-- ================= 9 ================= -->
+<section id="s9">
+  <span class="snum">§ 09</span>
+  <h2>The rest of the block: norm, MLP, residual</h2>
+  <div class="papers">
+    <a class="chip" href="https://arxiv.org/abs/1607.06450"><b>▸</b> Ba et al. 2016 — LayerNorm</a>
+    <a class="chip" href="https://arxiv.org/abs/1910.07467"><b>▸</b> Zhang &amp; Sennrich 2019 — RMSNorm</a>
+    <a class="chip" href="https://arxiv.org/abs/2002.04745"><b>▸</b> Xiong et al. 2020 — Pre-LN vs Post-LN</a>
+    <a class="chip" href="https://arxiv.org/abs/2002.05202"><b>▸</b> Shazeer 2020 — GLU variants (SwiGLU)</a>
+  </div>
+
+  <h3>Normalisation, and where to put it</h3>
+  <p>LayerNorm standardises each token vector across its <em>d</em> features (not across the batch —
+  that would leak information between sequences and break at batch size 1):</p>
+  $$\operatorname{LN}(x)=\gamma\odot\frac{x-\mu}{\sqrt{\sigma^2+\epsilon}}+\beta,\qquad
+    \mu=\tfrac1d\textstyle\sum_i x_i$$
+  <p><strong>RMSNorm</strong> drops the mean-centering and the bias — empirically the centering does
+  little, and removing it saves a reduction pass:</p>
+  $$\operatorname{RMSNorm}(x)=\gamma\odot\frac{x}{\sqrt{\tfrac1d\sum_i x_i^2+\epsilon}}$$
+  <p>LLaMA, Mistral, Gemma and most modern models use RMSNorm.</p>
+
+  <div class="box why">
+    <span class="lab">Post-LN vs Pre-LN — a bug fix disguised as a hyperparameter</span>
+    <p>The 2017 paper used <strong>Post-LN</strong>: <span>$x \leftarrow \operatorname{LN}(x+\text{Sublayer}(x))$</span>.
+    This puts a normalisation <em>on</em> the residual path, so gradients are rescaled at every layer;
+    deep Post-LN models diverge without a careful learning-rate warmup.</p>
+    <p>Every modern model uses <strong>Pre-LN</strong>: <span>$x \leftarrow x+\text{Sublayer}(\operatorname{LN}(x))$</span>.
+    Now the residual path is a clean identity from embedding to output — gradients reach layer 1
+    undistorted, and 100-layer models train stably. Xiong et al. (2020) showed this removes the need
+    for warmup almost entirely. If a deep Transformer you write refuses to train, check this first.</p>
+  </div>
+
+  <h3>The feed-forward network</h3>
+  <p>A position-wise two-layer MLP, applied identically and independently to every token:</p>
+  $$\operatorname{FFN}(x)=W_2\,\phi(W_1x+b_1)+b_2,\qquad W_1\in\mathbb{R}^{d_{ff}\times d},\; d_{ff}=4d$$
+  <p>Activation <span>$\phi$</span> was ReLU in 2017, then GELU (GPT-2, BERT), and now usually
+  <strong>SwiGLU</strong>, a gated variant:</p>
+  $$\operatorname{SwiGLU}(x)=\big(\operatorname{Swish}(W_1x)\odot W_3x\big)W_2$$
+  <p>SwiGLU uses three matrices instead of two, so implementations shrink
+  <span>$d_{ff}$</span> to about <span>$\tfrac83 d$</span> to keep the parameter count matched.</p>
+
+  <div class="box insight">
+    <span class="lab">What the MLP is for</span>
+    <p>Attention is (given the weights) a <em>linear</em> map on values — it mixes information across
+    positions but cannot compute a nonlinear function of it. The MLP supplies the nonlinearity and,
+    with <span>$d_{ff}=4d$</span>, holds <strong>roughly two-thirds of all parameters</strong> in the
+    model. A productive reading, supported by interpretability work, is
+    <a href="https://arxiv.org/abs/2012.14913">key–value memory</a>: <span>$W_1$</span> rows are
+    pattern detectors, <span>$W_2$</span> columns are the facts written back when a pattern fires.
+    <strong>Attention routes; the MLP knows things.</strong></p>
+  </div>
+
+  <h3>The complete decoder block</h3>
+  $$\begin{aligned}
+    h &= x + \operatorname{MHA}\big(\operatorname{norm}(x),\ \text{causal mask}\big)\\
+    y &= h + \operatorname{FFN}\big(\operatorname{norm}(h)\big)
+  \end{aligned}$$
+  <p>That is the entire block. Stack it <em>L</em> times. GPT-2 small: L=12. GPT-3: L=96.
+  LLaMA-2-70B: L=80.</p>
+</section>
+
+<!-- ================= 10 ================= -->
+<section id="s10">
+  <span class="snum">§ 10</span>
+  <h2>The full decoder-only stack, end to end</h2>
+
+  <p>One pass, with every shape written out. Batch <em>B</em>, sequence <em>n</em>, model width
+  <em>d</em>, heads <em>h</em>, layers <em>L</em>, vocabulary <em>V</em>.</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>#</th><th>Operation</th><th>Output shape</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Token ids</td><td><code>B × n</code></td></tr>
+      <tr><td>2</td><td>Embedding lookup <code>W_E</code></td><td><code>B × n × d</code></td></tr>
+      <tr><td>3</td><td>+ positional info (or RoPE applied later, inside attention)</td><td><code>B × n × d</code></td></tr>
+      <tr><td>4</td><td><strong>× L blocks:</strong> RMSNorm → causal MHA → residual add</td><td><code>B × n × d</code></td></tr>
+      <tr><td>5</td><td><strong>× L blocks:</strong> RMSNorm → FFN → residual add</td><td><code>B × n × d</code></td></tr>
+      <tr><td>6</td><td>Final RMSNorm</td><td><code>B × n × d</code></td></tr>
+      <tr><td>7</td><td>Unembed <code>W_U</code> (often <code>W_Eᵀ</code>)</td><td><code>B × n × V</code></td></tr>
+      <tr><td>8</td><td>Cross-entropy vs. inputs shifted by one</td><td>scalar</td></tr>
+    </tbody>
+  </table></div>
+
+  <p>Inside step 4, the attention itself reshapes: <code>B × n × d</code> →
+  <code>B × h × n × d_k</code> so that the <span>$QK^\top$</span> matmul batches over heads, giving
+  scores of shape <code>B × h × n × n</code>, then merges back to <code>B × n × d</code> before
+  <span>$W_O$</span>.</p>
+
+  <h3>From logits to text</h3>
+  <p>At generation time only the <em>last</em> position's logits matter. Decoding strategies
+  (Module 4) operate here: greedy (argmax), temperature <span>$\operatorname{softmax}(z/T)$</span>,
+  top-<em>k</em>, top-<em>p</em>/nucleus, beam search. Note that <strong>temperature at inference is
+  the same mathematical knob as <span>$1/\sqrt{d_k}$</span> inside attention</strong> — both control
+  how peaked a softmax is. Two different places, one idea.</p>
+</section>
+
+<!-- ================= 11 ================= -->
+<section id="s11">
+  <span class="snum">§ 11</span>
+  <h2>Cost: parameters, FLOPs, memory</h2>
+  <div class="papers">
+    <a class="chip" href="https://arxiv.org/abs/2001.08361"><b>▸</b> Kaplan et al. 2020 — Scaling laws</a>
+    <a class="chip" href="https://arxiv.org/abs/2203.15556"><b>▸</b> Hoffmann et al. 2022 — Chinchilla</a>
+  </div>
+
+  <h3>Parameter count</h3>
+  <p>Per layer, ignoring norms and biases:</p>
+  $$P_{\text{layer}} = \underbrace{4d^2}_{W_Q,W_K,W_V,W_O} + \underbrace{2\,d\,d_{ff}}_{\text{FFN}}
+   = 4d^2 + 8d^2 = 12d^2 \quad (\text{with } d_{ff}=4d)$$
+  $$P_{\text{total}} \approx 12\,L\,d^2 + \underbrace{|V|\,d}_{\text{embedding}}$$
+
+  <div class="box example">
+    <span class="lab">Check it on GPT-2 small</span>
+    <p><span>$L=12,\ d=768,\ |V|=50257,\ n_{\max}=1024$</span>.<br>
+    Blocks: <span>$12\times12\times768^2 = 84.9\text{M}$</span>.
+    Embeddings: <span>$50257\times768 = 38.6\text{M}$</span>.
+    Positions: <span>$1024\times768=0.8\text{M}$</span>.<br>
+    Total ≈ <strong>124M</strong> — the published figure. Notice the embedding is 31% of the model;
+    at 7B scale it is under 2%.</p>
+  </div>
+
+  <h3>FLOPs</h3>
+  <p>Two rules of thumb you should be able to state from memory:</p>
+  <ul>
+    <li><strong>Forward pass:</strong> <span>$\approx 2N$</span> FLOPs per token, where <em>N</em> is
+    the non-embedding parameter count (one multiply + one add per weight).</li>
+    <li><strong>Training step:</strong> <span>$\approx 6N$</span> per token — forward (2N) plus
+    backward (4N, since the backward pass computes gradients w.r.t. both inputs and weights).</li>
+  </ul>
+  <p>The attention score computation adds <span>$\approx 4\,L\,n\,d$</span> per token on top. Setting
+  the two equal shows the crossover point where attention starts to dominate the MLPs:
+  <span>$n \approx 6d$</span>. For <span>$d=4096$</span> that is around 24k tokens — which is exactly
+  why quadratic attention was tolerable for years and became the bottleneck the moment long context
+  became a product requirement.</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>Component</th><th>Time</th><th>Memory (activations)</th></tr></thead>
+    <tbody>
+      <tr><td>QKV + output projections</td><td><code>O(n·d²)</code></td><td><code>O(n·d)</code></td></tr>
+      <tr><td>Score matrix <code>QKᵀ</code></td><td><code>O(n²·d)</code></td><td><code>O(h·n²)</code> ← the killer</td></tr>
+      <tr><td>Weighted sum <code>AV</code></td><td><code>O(n²·d)</code></td><td><code>O(n·d)</code></td></tr>
+      <tr><td>FFN</td><td><code>O(n·d·d_ff)</code></td><td><code>O(n·d_ff)</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="box pitfall">
+    <span class="lab">The memory wall</span>
+    <p>A naive implementation materialises the <code>B × h × n × n</code> attention matrix. At
+    B=8, h=32, n=8192, fp16 that is <strong>34 GB for a single layer</strong>. This — not the FLOPs —
+    is what actually broke long context, and it is precisely what FlashAttention removes (§13).</p>
+  </div>
+</section>
+
+<!-- ================= 12 ================= -->
+<section id="s12">
+  <span class="snum">§ 12</span>
+  <h2>Inference and the KV cache</h2>
+
+  <p>Generation is autoregressive: emit one token, append, repeat. Naively, generating token
+  <em>t+1</em> re-runs the whole model on all <em>t+1</em> tokens — total cost
+  <span>$O(n^2)$</span> forward passes' worth of work, most of it recomputation.</p>
+
+  <div class="box insight">
+    <span class="lab">Why caching is <em>correct</em>, and why only causal models can do it</span>
+    <p>Under a causal mask, the key and value vectors at position <em>j</em> depend only on
+    <span>$x_{\le j}$</span>. Appending a new token <strong>cannot change any earlier K or V</strong>.
+    So cache them. Each new step computes just one query, dots it against <em>t</em> cached keys, and
+    mixes <em>t</em> cached values.</p>
+    <p>A bidirectional (encoder) model has no such guarantee — every K and V changes when the
+    sequence changes. <strong>The KV cache is a direct dividend of causal masking</strong>, and one
+    of the strongest practical arguments for decoder-only architectures.</p>
+  </div>
+
+  <div class="tw"><table>
+    <thead><tr><th>Phase</th><th>What runs</th><th>Cost per step</th><th>Bound by</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Prefill</strong> (prompt)</td><td>Full parallel pass over <em>n<sub>p</sub></em> tokens</td>
+          <td><code>O(n_p²·d)</code></td><td>Compute (GPU-saturating)</td></tr>
+      <tr><td><strong>Decode</strong> (each new token)</td><td>One query vs. cached K/V</td>
+          <td><code>O(t·d)</code></td><td><strong>Memory bandwidth</strong> — you must re-read all weights and the whole cache per token</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Cache size — know this formula</h3>
+  $$\text{KV bytes} = 2 \times L \times n \times h_{kv} \times d_k \times \text{bytes/elem} \times B$$
+  <p>(the leading 2 is for K and V).</p>
+
+  <div class="box example">
+    <span class="lab">LLaMA-2-13B, 4096 context, fp16, batch 1</span>
+    <p><span>$2 \times 40 \times 4096 \times 40 \times 128 \times 2 = 3.35$</span> GB. At batch 32
+    that is <strong>107 GB of cache</strong> — larger than the 26 GB of model weights. Serving
+    throughput is a KV-cache-capacity problem, which is exactly what PagedAttention/vLLM (Module 4)
+    and GQA (§13) attack.</p>
+  </div>
+</section>
+
+<!-- ================= 13 ================= -->
+<section id="s13">
+  <span class="snum">§ 13</span>
+  <h2>MQA, GQA, and FlashAttention</h2>
+  <div class="papers">
+    <a class="chip" href="https://arxiv.org/abs/1911.02150"><b>▸</b> Shazeer 2019 — Multi-Query Attention</a>
+    <a class="chip" href="https://arxiv.org/abs/2305.13245"><b>▸</b> Ainslie et al. 2023 — GQA</a>
+    <a class="chip" href="https://arxiv.org/abs/2205.14135"><b>▸</b> Dao et al. 2022 — FlashAttention</a>
+    <a class="chip" href="https://arxiv.org/abs/2307.08691"><b>▸</b> Dao 2023 — FlashAttention-2</a>
+  </div>
+
+  <h3>Shrinking the cache: MHA → MQA → GQA</h3>
+  <p>All three keep <em>h</em> query heads. They differ in how many <em>key/value</em> heads exist.</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>Scheme</th><th>K/V heads</th><th>Cache size</th><th>Quality</th><th>Used by</th></tr></thead>
+    <tbody>
+      <tr><td>MHA</td><td><em>h</em></td><td>1× (baseline)</td><td>Best</td><td>GPT-2, LLaMA-1</td></tr>
+      <tr><td>MQA</td><td>1</td><td><em>h</em>× smaller</td><td>Noticeable degradation</td><td>PaLM, Falcon</td></tr>
+      <tr><td><strong>GQA</strong></td><td><em>g</em> groups (e.g. 8)</td><td><em>h/g</em>× smaller</td><td>≈ MHA</td><td>LLaMA-2/3 70B, Mistral, Qwen</td></tr>
+    </tbody>
+  </table></div>
+
+  <p>GQA is the interpolation: query heads are partitioned into <em>g</em> groups, and all heads in a
+  group share one K and one V head. LLaMA-2-70B uses h=64, g=8 — an <strong>8× cache
+  reduction</strong> at near-zero quality cost. Ainslie et al. also showed you can "uptrain" an
+  existing MHA checkpoint into GQA by mean-pooling the K/V heads within each group and fine-tuning
+  for a few percent of the original compute.</p>
+
+  <div class="box why">
+    <span class="lab">Why this works at all</span>
+    <p>What makes heads useful is <em>different queries</em> — different questions asked of the same
+    context. The keys and values (the "index" and the "content") are far more redundant across heads
+    than the queries are. So sharing K/V is the cheapest place to cut. Note that MQA/GQA barely
+    change training FLOPs; they are a <em>decode-time memory-bandwidth</em> optimisation, which is
+    the phase that dominates serving cost.</p>
+  </div>
+
+  <h3>FlashAttention: same maths, no n×n matrix</h3>
+  <p>FlashAttention is an <em class="term">IO-aware</em> exact algorithm. It is not an approximation
+  — outputs are numerically equivalent (up to floating-point reassociation). The insight is that
+  attention on a GPU is bound by traffic between fast on-chip SRAM (~20 MB, ~19 TB/s) and slow HBM
+  (~80 GB, ~2 TB/s), not by arithmetic.</p>
+
+  <ol>
+    <li><strong>Tile</strong> Q, K, V into blocks that fit in SRAM.</li>
+    <li>For each Q block, loop over K/V blocks, computing partial attention <em>on chip</em>.</li>
+    <li>Combine partials with the <em class="term">online softmax</em> trick: maintain a running max
+    <em>m</em> and running sum <em>ℓ</em>, and rescale the accumulated output when a new block raises
+    the max. This gives an exact softmax without ever holding a full row.</li>
+    <li><strong>Never write the <span>$n \times n$</span> matrix to HBM.</strong> In the backward
+    pass, recompute it tile-by-tile from the saved <em>m</em>, <em>ℓ</em> — recomputation is cheaper
+    than the memory traffic it avoids.</li>
+  </ol>
+
+  <p>Result: attention memory drops from <span>$O(n^2)$</span> to <strong>O(n)</strong>, with 2–4×
+  wall-clock speedup. This is the single technique most responsible for context windows going from
+  2k to 128k+. It is now the default path in <code>F.scaled_dot_product_attention</code>.</p>
+
+  <div class="box maths">
+    <span class="lab">Online softmax, in two lines</span>
+    <p>Given a new block of scores with max <span>$m'$</span> and exponent sum <span>$\ell'$</span>,
+    merge with running <span>$(m,\ell,o)$</span> via <span>$m^{new}=\max(m,m')$</span> and</p>
+    $$\ell^{new}=e^{m-m^{new}}\ell + e^{m'-m^{new}}\ell', \qquad
+      o^{new}=\frac{e^{m-m^{new}}\ell\, o + e^{m'-m^{new}}\ell'\, o'}{\ell^{new}}$$
+    <p>Exact, numerically stable, and streaming. Worth deriving once by hand.</p>
+  </div>
+</section>
+
+<!-- ================= 14 ================= -->
+<section id="s14">
+  <span class="snum">§ 14</span>
+  <h2>Training recipe</h2>
+
+  <div class="tw"><table>
+    <thead><tr><th>Choice</th><th>Standard practice</th><th>Reason</th></tr></thead>
+    <tbody>
+      <tr><td>Optimiser</td><td>AdamW, <code>β=(0.9, 0.95)</code>, weight decay 0.1</td>
+          <td>β₂=0.95 (not 0.999) responds faster to the noisy gradients of large-batch LM training</td></tr>
+      <tr><td>LR schedule</td><td>Linear warmup (~1–2% of steps) then cosine decay to ~10% of peak</td>
+          <td>Warmup prevents early divergence while Adam's second-moment estimate is unreliable</td></tr>
+      <tr><td>Init</td><td><code>N(0, 0.02)</code>; residual-output projections scaled by <code>1/√(2L)</code></td>
+          <td>Keeps residual-stream variance from growing with depth (GPT-2 trick)</td></tr>
+      <tr><td>Gradient clipping</td><td>Global norm 1.0</td><td>Survives loss spikes from bad data batches</td></tr>
+      <tr><td>Precision</td><td>bf16 with fp32 master weights</td>
+          <td>bf16 has fp32's exponent range — no loss-scaling needed, unlike fp16</td></tr>
+      <tr><td>Dropout</td><td>0.1 in the original; <strong>0.0</strong> in most large LLM pretraining</td>
+          <td>With trillions of unique tokens you are not overfitting; dropout only slows you down</td></tr>
+      <tr><td>Batch size</td><td>0.5M–4M tokens, often ramped up during training</td>
+          <td>Gradient noise scale grows as loss falls</td></tr>
+      <tr><td>Data budget</td><td>≈20 tokens per parameter (Chinchilla-optimal)</td>
+          <td>Kaplan under-weighted data; Hoffmann et al. corrected it. Inference-optimal models are trained far past this.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="box pitfall">
+    <span class="lab">Debugging checklist when your Transformer won't learn</span>
+    <ol>
+      <li><strong>Loss stuck near <span>$\log|V|$</span>?</strong> That is the uniform-prediction
+      loss (≈10.8 for V=50k). Your model is outputting noise — check the mask, the label shift, and
+      whether the LR is far too high or low.</li>
+      <li><strong>Loss near zero within a few steps?</strong> Label leakage. You almost certainly
+      forgot to shift targets by one, or your mask is not applied.</li>
+      <li><strong>Diverges after a few hundred steps?</strong> Post-LN without warmup, or missing
+      gradient clipping.</li>
+      <li><strong>Works at L=2, breaks at L=24?</strong> Missing the <code>1/√(2L)</code> residual
+      init scaling, or Post-LN.</li>
+      <li><strong>Always sanity-check by overfitting one batch to near-zero loss first.</strong> If
+      that fails, the bug is in the model, not the data pipeline.</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ================= 15 ================= -->
+<section id="s15">
+  <span class="snum">§ 15</span>
+  <h2>Encoder, decoder, or both?</h2>
+  <div class="papers">
+    <a class="chip" href="https://arxiv.org/abs/1810.04805"><b>▸</b> Devlin et al. 2018 — BERT</a>
+    <a class="chip" href="https://arxiv.org/abs/1910.10683"><b>▸</b> Raffel et al. 2019 — T5</a>
+    <a class="chip" href="https://arxiv.org/abs/2204.05832"><b>▸</b> Wang et al. 2022 — Which architecture &amp; objective?</a>
+  </div>
+
+  <div class="tw"><table>
+    <thead><tr><th></th><th>Encoder-only</th><th>Encoder–decoder</th><th>Decoder-only</th></tr></thead>
+    <tbody>
+      <tr><td>Attention</td><td>Bidirectional</td><td>Bi + causal + cross</td><td>Causal only</td></tr>
+      <tr><td>Objective</td><td>Masked LM</td><td>Span corruption / seq2seq</td><td>Next token</td></tr>
+      <tr><td>Good at</td><td>Classification, retrieval embeddings</td><td>Translation, summarisation</td><td>Open-ended generation, everything via prompting</td></tr>
+      <tr><td>KV cache</td><td>No</td><td>Partial</td><td><strong>Yes</strong></td></tr>
+      <tr><td>Examples</td><td>BERT, RoBERTa, ModernBERT</td><td>T5, BART, Whisper</td><td>GPT, LLaMA, Mistral, Claude</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="box insight">
+    <span class="lab">Why decoder-only won</span>
+    <ol>
+      <li><strong>Training signal density.</strong> Next-token prediction supervises <em>every</em>
+      position. BERT-style MLM supervises only the ~15% of masked positions — roughly 6× less signal
+      per token of data.</li>
+      <li><strong>No train/inference mismatch.</strong> MLM inserts <code>[MASK]</code> tokens that
+      never appear downstream.</li>
+      <li><strong>Task unification.</strong> Any task becomes a string. No architectural change is
+      needed for classification vs. translation vs. QA — this is what makes in-context learning and,
+      later, agentic tool use possible.</li>
+      <li><strong>Serving efficiency.</strong> The KV cache (§12).</li>
+    </ol>
+    <p>Encoder models are far from dead, though: for embedding and retrieval — the backbone of RAG in
+    Module 9 — bidirectional encoders are still superior per parameter, because there a
+    representation of the <em>whole</em> text is what you want.</p>
+  </div>
+</section>
+
+<!-- ================= 16 ================= -->
+<section id="s16">
+  <span class="snum">§ 16</span>
+  <h2>What heads actually learn</h2>
+  <div class="papers">
+    <a class="chip" href="https://transformer-circuits.pub/2021/framework/index.html"><b>▸</b> Elhage et al. 2021 — Mathematical Framework</a>
+    <a class="chip" href="https://transformer-circuits.pub/2022/in-context-learning-and-induction-heads/index.html"><b>▸</b> Olsson et al. 2022 — Induction Heads</a>
+    <a class="chip" href="https://arxiv.org/abs/1902.10186"><b>▸</b> Jain &amp; Wallace 2019 — Attention is not Explanation</a>
+  </div>
+
+  <p>This section previews Module 8 (Interpretability) but belongs here, because it is what makes the
+  Q/K/V split feel inevitable rather than arbitrary.</p>
+
+  <h3>QK circuits and OV circuits</h3>
+  <p>Every head factors into two independent low-rank operators:</p>
+  $$\underbrace{W_{QK}=W_QW_K^\top}_{\text{where to read from}}\qquad
+    \underbrace{W_{OV}=W_VW_O}_{\text{what to write}}$$
+  <p>Only the products matter — the individual factorisation is not identifiable. Reading a head
+  means answering two separate questions: <em>which source positions does its QK circuit
+  select?</em> and <em>what does its OV circuit copy into the destination?</em></p>
+
+  <h3>Induction heads: the mechanism behind in-context learning</h3>
+  <p>The most important discovered circuit. It needs exactly two layers and completes the pattern
+  <code>… [A][B] … [A] → [B]</code>:</p>
+  <ol>
+    <li><strong>Layer <em>k</em>: a previous-token head.</strong> At the position of <em>B</em>, it
+    attends to <em>A</em> and writes "I was preceded by A" into <em>B</em>'s residual stream.</li>
+    <li><strong>Layer <em>k+1</em>: the induction head.</strong> At the later occurrence of
+    <em>A</em>, its query is "who was preceded by A?" — which matches the key that layer <em>k</em>
+    just wrote at <em>B</em>. Its OV circuit then copies <em>B</em> to the output.</li>
+  </ol>
+  <p>Olsson et al. showed that induction heads form abruptly during training, in a narrow window that
+  coincides with a visible <strong>bump in the loss curve</strong> — and that this is exactly when
+  few-shot in-context learning ability appears. The ability to learn from examples in the prompt is
+  not a mysterious emergent property; it is a two-layer circuit you can point at.</p>
+
+  <div class="box pitfall">
+    <span class="lab">Attention weights are not explanations</span>
+    <p>It is tempting to read an attention heatmap as "what the model used". Be careful. Jain &amp;
+    Wallace showed you can often find very different attention distributions that produce identical
+    predictions. Attention weights ignore the <em>magnitude</em> of the value vectors, and they say
+    nothing about the OV circuit or downstream MLPs. Attention maps are a hypothesis-generating tool,
+    not evidence. Confirm with causal interventions — activation patching, ablation — which is the
+    Module 8 method.</p>
+  </div>
+</section>
+
+<!-- ================= 17 ================= -->
+<section id="s17">
+  <span class="snum">§ 17</span>
+  <h2>A complete numeric trace</h2>
+
+  <p>Work this by hand once and causal attention will never be mysterious again. Three tokens, one
+  head, <span>$d_k=d_v=2$</span>.</p>
+
+  $$Q=\begin{bmatrix}1&0\\0&1\\1&1\end{bmatrix}\quad
+    K=\begin{bmatrix}1&0\\0&1\\1&1\end{bmatrix}\quad
+    V=\begin{bmatrix}1&0\\0&2\\3&1\end{bmatrix}$$
+
+  <h4>Step 1 — raw scores <span>$S=QK^\top$</span></h4>
+  $$S=\begin{bmatrix}1&0&1\\0&1&1\\1&1&2\end{bmatrix}$$
+
+  <h4>Step 2 — scale by <span>$\sqrt{d_k}=\sqrt2\approx1.4142$</span></h4>
+  $$\tilde S=\begin{bmatrix}0.707&0&0.707\\0&0.707&0.707\\0.707&0.707&1.414\end{bmatrix}$$
+
+  <h4>Step 3 — apply the causal mask</h4>
+  $$\tilde S+M=\begin{bmatrix}0.707&-\infty&-\infty\\0&0.707&-\infty\\0.707&0.707&1.414\end{bmatrix}$$
+
+  <h4>Step 4 — row-wise softmax</h4>
+  <p>Row 0: only one survivor, so the weight is forced to <strong>1.0</strong> — <em>the first token
+  always attends entirely to itself, in every layer, in every model.</em><br>
+  Row 1: <span>$e^{0}=1$</span>, <span>$e^{0.707}=2.028$</span>, sum 3.028 →
+  <strong>[0.330, 0.670, 0]</strong>.<br>
+  Row 2: <span>$e^{0.707}=2.028$</span>, <span>$e^{0.707}=2.028$</span>,
+  <span>$e^{1.414}=4.113$</span>, sum 8.170 → <strong>[0.248, 0.248, 0.503]</strong>.</p>
+
+  $$A=\begin{bmatrix}1.000&0&0\\0.330&0.670&0\\0.248&0.248&0.503\end{bmatrix}$$
+
+  <h4>Step 5 — output <span>$O=AV$</span></h4>
+  $$O=\begin{bmatrix}1.000&0.000\\0.330&1.340\\1.759&1.000\end{bmatrix}$$
+
+  <div class="box example">
+    <span class="lab">The counterfactual that proves the mask matters</span>
+    <p>Without the mask, row 0 would softmax over <code>[0.707, 0, 0.707]</code> →
+    <strong>[0.401, 0.198, 0.401]</strong>, giving output <code>[1.604, 0.797]</code> instead of
+    <code>[1.000, 0.000]</code>. Token 0's representation would carry information from tokens 1 and 2
+    — the very tokens it is supposed to predict. The loss would collapse toward zero and the model
+    would learn nothing transferable. <strong>That single row is the entire argument for causal
+    masking.</strong></p>
+  </div>
+
+  <div class="box qa">
+    <span class="lab">Check your understanding</span>
+    <p>Verify each row of <em>A</em> sums to 1. Then observe that <em>columns</em> do not:
+    column 0 sums to 1.578 and column 2 to 0.503. Token 0 is read by everyone; token 2 is read only
+    by itself. This "early tokens are over-read" effect is the origin of the <em>attention sink</em>
+    phenomenon.</p>
+  </div>
+</section>
+
+<!-- ================= 18 ================= -->
+<section id="s18">
+  <span class="snum">§ 18</span>
+  <h2>Minimal decoder-only Transformer in PyTorch</h2>
+  <div class="papers">
+    <a class="chip" href="https://github.com/karpathy/nanoGPT"><b>▸</b> karpathy/nanoGPT</a>
+    <a class="chip" href="https://github.com/karpathy/build-nanogpt"><b>▸</b> karpathy/build-nanogpt</a>
+  </div>
+
+  <p>Everything in §5–§9, in about 70 lines. Read it alongside the equations.</p>
+
+<pre><code><span class="k">import</span> math, torch, torch.nn <span class="k">as</span> nn
+<span class="k">import</span> torch.nn.functional <span class="k">as</span> F
+
+<span class="k">class</span> <span class="f">CausalSelfAttention</span>(nn.Module):
+    <span class="k">def</span> <span class="f">__init__</span>(self, d, n_head, block_size, dropout=<span class="n">0.0</span>):
+        super().__init__()
+        <span class="k">assert</span> d % n_head == <span class="n">0</span>
+        self.n_head, self.d_k = n_head, d // n_head
+        <span class="c"># one fused matmul for Q, K, V  ->  3d columns</span>
+        self.qkv  = nn.Linear(d, <span class="n">3</span> * d, bias=<span class="k">False</span>)
+        self.proj = nn.Linear(d, d, bias=<span class="k">False</span>)   <span class="c"># W_O</span>
+        self.drop = nn.Dropout(dropout)
+        <span class="c"># lower-triangular causal mask, registered as a non-parameter buffer</span>
+        self.register_buffer(<span class="s">"mask"</span>,
+            torch.tril(torch.ones(block_size, block_size)).view(<span class="n">1</span>, <span class="n">1</span>, block_size, block_size))
+
+    <span class="k">def</span> <span class="f">forward</span>(self, x):
+        B, n, d = x.shape
+        q, k, v = self.qkv(x).split(d, dim=<span class="n">2</span>)
+        <span class="c"># (B, n, d) -> (B, n_head, n, d_k)  so the matmul batches over heads</span>
+        q = q.view(B, n, self.n_head, self.d_k).transpose(<span class="n">1</span>, <span class="n">2</span>)
+        k = k.view(B, n, self.n_head, self.d_k).transpose(<span class="n">1</span>, <span class="n">2</span>)
+        v = v.view(B, n, self.n_head, self.d_k).transpose(<span class="n">1</span>, <span class="n">2</span>)
+
+        att = (q @ k.transpose(-<span class="n">2</span>, -<span class="n">1</span>)) / math.sqrt(self.d_k)      <span class="c"># (B,h,n,n)</span>
+        att = att.masked_fill(self.mask[:, :, :n, :n] == <span class="n">0</span>,
+                              torch.finfo(att.dtype).min)          <span class="c"># mask BEFORE softmax</span>
+        att = self.drop(F.softmax(att, dim=-<span class="n">1</span>))
+        y = att @ v                                                <span class="c"># (B,h,n,d_k)</span>
+        y = y.transpose(<span class="n">1</span>, <span class="n">2</span>).contiguous().view(B, n, d)      <span class="c"># concat heads</span>
+        <span class="k">return</span> self.proj(y)
+        <span class="c"># In production, replace the 5 lines above with:</span>
+        <span class="c">#   y = F.scaled_dot_product_attention(q, k, v, is_causal=True)</span>
+        <span class="c">#   -> dispatches to FlashAttention: same maths, O(n) memory</span>
+
+<span class="k">class</span> <span class="f">Block</span>(nn.Module):
+    <span class="k">def</span> <span class="f">__init__</span>(self, d, n_head, block_size):
+        super().__init__()
+        self.ln1, self.ln2 = nn.LayerNorm(d), nn.LayerNorm(d)
+        self.attn = CausalSelfAttention(d, n_head, block_size)
+        self.mlp  = nn.Sequential(nn.Linear(d, <span class="n">4</span>*d), nn.GELU(), nn.Linear(<span class="n">4</span>*d, d))
+
+    <span class="k">def</span> <span class="f">forward</span>(self, x):
+        x = x + self.attn(self.ln1(x))   <span class="c"># Pre-LN: residual path stays an identity</span>
+        x = x + self.mlp(self.ln2(x))
+        <span class="k">return</span> x
+
+<span class="k">class</span> <span class="f">GPT</span>(nn.Module):
+    <span class="k">def</span> <span class="f">__init__</span>(self, V, d=<span class="n">384</span>, n_layer=<span class="n">6</span>, n_head=<span class="n">6</span>, block_size=<span class="n">256</span>):
+        super().__init__()
+        self.block_size = block_size
+        self.wte = nn.Embedding(V, d)            <span class="c"># token embedding</span>
+        self.wpe = nn.Embedding(block_size, d)   <span class="c"># learned positions</span>
+        self.blocks = nn.ModuleList([Block(d, n_head, block_size) <span class="k">for</span> _ <span class="k">in</span> range(n_layer)])
+        self.ln_f = nn.LayerNorm(d)
+        self.head = nn.Linear(d, V, bias=<span class="k">False</span>)
+        self.head.weight = self.wte.weight       <span class="c"># weight tying</span>
+
+    <span class="k">def</span> <span class="f">forward</span>(self, idx, targets=<span class="k">None</span>):
+        B, n = idx.shape
+        pos = torch.arange(n, device=idx.device)
+        x = self.wte(idx) + self.wpe(pos)
+        <span class="k">for</span> blk <span class="k">in</span> self.blocks: x = blk(x)
+        logits = self.head(self.ln_f(x))         <span class="c"># (B, n, V)</span>
+        <span class="k">if</span> targets <span class="k">is</span> <span class="k">None</span>: <span class="k">return</span> logits, <span class="k">None</span>
+        loss = F.cross_entropy(logits.view(-<span class="n">1</span>, logits.size(-<span class="n">1</span>)), targets.view(-<span class="n">1</span>))
+        <span class="k">return</span> logits, loss
+
+    @torch.no_grad()
+    <span class="k">def</span> <span class="f">generate</span>(self, idx, max_new_tokens, temperature=<span class="n">1.0</span>, top_k=<span class="k">None</span>):
+        <span class="k">for</span> _ <span class="k">in</span> range(max_new_tokens):
+            idx_cond = idx[:, -self.block_size:]          <span class="c"># crop to context</span>
+            logits, _ = self(idx_cond)
+            logits = logits[:, -<span class="n">1</span>, :] / temperature   <span class="c"># only the LAST position matters</span>
+            <span class="k">if</span> top_k <span class="k">is</span> <span class="k">not</span> <span class="k">None</span>:
+                v, _ = torch.topk(logits, top_k)
+                logits[logits &lt; v[:, [-<span class="n">1</span>]]] = -float(<span class="s">'inf'</span>)
+            nxt = torch.multinomial(F.softmax(logits, dim=-<span class="n">1</span>), num_samples=<span class="n">1</span>)
+            idx = torch.cat((idx, nxt), dim=<span class="n">1</span>)        <span class="c"># append and repeat</span>
+        <span class="k">return</span> idx
+</code></pre>
+
+  <div class="box insight">
+    <span class="lab">Read the code for these five things</span>
+    <ol>
+      <li><code>qkv</code> is <strong>one</strong> Linear of width <code>3d</code> — Q, K, V are
+      computed in a single matmul and split. Faster, identical maths.</li>
+      <li>The <code>view/transpose</code> dance is <em>all</em> that multi-head attention is at the
+      tensor level: split the width into <code>h</code> lanes, batch the matmul over them.</li>
+      <li><code>masked_fill</code> happens <strong>before</strong> softmax, using
+      <code>finfo.min</code> rather than <code>-1e9</code> so it is safe in fp16 and bf16 alike.</li>
+      <li>Residual adds are outside the norms — Pre-LN.</li>
+      <li><code>generate</code> takes <code>logits[:, -1, :]</code> and throws away the other
+      <em>n−1</em> predictions. That waste is exactly what the KV cache eliminates.</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ================= 19 ================= -->
+<section id="s19">
+  <span class="snum">§ 19</span>
+  <h2>Misconceptions and pitfalls</h2>
+
+  <div class="box pitfall">
+    <span class="lab">Conceptual</span>
+    <ul>
+      <li><strong>"Attention weights show what the model is thinking."</strong> They show routing,
+      not contribution. Value magnitude and the OV circuit matter just as much. See §16.</li>
+      <li><strong>"Self-attention is quadratic, therefore Transformers are quadratic."</strong> Only
+      for <span>$n \gtrsim 6d$</span>. Below that the MLPs dominate — which is why GPT-3 at n=2048
+      spent most of its FLOPs outside attention.</li>
+      <li><strong>"Deeper always means more expressive per unit of compute."</strong> At fixed
+      budget, depth and width trade off; scaling-law work finds broad optima but strongly penalises
+      extreme aspect ratios.</li>
+      <li><strong>"Positional encodings are concatenated."</strong> They are <em>added</em>
+      (sinusoidal/learned) or applied as a <em>rotation</em> (RoPE). Concatenation would waste width.</li>
+      <li><strong>"The causal mask makes the model unidirectional in a limiting way."</strong>
+      Information still flows forward across layers, so a token at position 50 can be influenced by
+      token 3 via any number of intermediate hops. What is forbidden is only future→past.</li>
+      <li><strong>"Multi-head costs h× more than single-head."</strong> No —
+      <span>$d_k=d/h$</span> keeps FLOPs and parameters constant (§8).</li>
+    </ul>
+  </div>
+
+  <div class="box pitfall">
+    <span class="lab">Implementation</span>
+    <ul>
+      <li>Forgetting to shift targets by one → loss collapses to ~0 → model is useless.</li>
+      <li>Applying the mask after softmax without renormalising → rows sum to &lt;1.</li>
+      <li>Using <code>-1e9</code> in fp16 → overflow to <code>-inf</code> → <code>NaN</code> when an
+      entire row is masked. Use <code>torch.finfo(dtype).min</code>.</li>
+      <li>Padding without a padding mask → the model attends to <code>&lt;pad&gt;</code>. And if a
+      row is <em>fully</em> masked, softmax produces NaN — guard it.</li>
+      <li>Scaling by <code>√d_model</code> instead of <code>√d_k</code>. It is the
+      <em>head</em> dimension.</li>
+      <li>Leaving dropout on during evaluation (<code>model.eval()</code>).</li>
+      <li>Applying RoPE to V. RoPE goes on <strong>Q and K only</strong> — it is a
+      score-space transformation.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= 20 ================= -->
+<section id="s20">
+  <span class="snum">§ 20</span>
+  <h2>Exam-style questions</h2>
+
+  <div class="box qa"><span class="lab">Q1 · Derivation</span>
+    <p><em>Derive the variance of <span>$q^\top k$</span> and explain why the softmax gradient
+    vanishes without the <span>$1/\sqrt{d_k}$</span> scaling.</em></p>
+    <p><strong>A.</strong> See §6: <span>$\operatorname{Var}=d_k$</span> under unit-variance
+    independent components; large scores saturate softmax; the Jacobian
+    <span>$\alpha_i(\delta_{ij}-\alpha_j)$</span> vanishes at one-hot, so no gradient reaches
+    <span>$W_Q,W_K$</span> and the routing never learns.</p>
+  </div>
+
+  <div class="box qa"><span class="lab">Q2 · Reasoning</span>
+    <p><em>A student proposes removing the causal mask during training and adding it only at
+    inference, arguing training will be "richer". What happens?</em></p>
+    <p><strong>A.</strong> Training loss collapses to near zero because position <em>t</em> can read
+    <span>$x_{t+1}$</span> and copy it. Nothing predictive is learned, and at inference — where the
+    future genuinely is unavailable — the model performs at chance. This is label leakage, and it is
+    the single most instructive bug in the topic.</p>
+  </div>
+
+  <div class="box qa"><span class="lab">Q3 · Computation</span>
+    <p><em>A model has d=4096, h=32, L=32, V=32000, d_ff=11008, RoPE. Give (a) parameters,
+    (b) KV cache at n=8192, fp16, batch 4.</em></p>
+    <p><strong>A.</strong> (a) Attention <span>$4d^2 = 67.1$</span>M/layer; FFN with SwiGLU
+    <span>$3\,d\,d_{ff}=135.3$</span>M/layer; total per layer 202.4M × 32 =
+    <strong>6.48B</strong>, plus embedding+unembedding <span>$2\times32000\times4096=0.26$</span>B →
+    ≈ <strong>6.7B</strong>. (b) <span>$2\times32\times8192\times32\times128\times2\times4$</span> =
+    <strong>17.2 GB</strong>. Then explain how GQA with g=8 cuts this to 2.1 GB.</p>
+  </div>
+
+  <div class="box qa"><span class="lab">Q4 · Design</span>
+    <p><em>You must serve a 34B model at 128k context on one 80 GB GPU. Which three changes do you
+    make first, and what does each buy?</em></p>
+    <p><strong>A.</strong> (i) FlashAttention — removes the <span>$O(n^2)$</span> activation matrix,
+    exact, no quality cost. (ii) GQA — cuts KV cache by the group factor; requires uptraining if the
+    checkpoint is MHA. (iii) KV-cache quantisation to int8/fp8 plus PagedAttention — halves cache
+    bytes and eliminates fragmentation. Mention sliding-window attention as a fourth lever if some
+    long-range recall can be traded away.</p>
+  </div>
+
+  <div class="box qa"><span class="lab">Q5 · Conceptual</span>
+    <p><em>Why can a decoder-only model cache K and V while an encoder cannot?</em></p>
+    <p><strong>A.</strong> Causality: <span>$k_j,v_j$</span> depend only on <span>$x_{\le j}$</span>,
+    so appending a token cannot invalidate them. In a bidirectional encoder every representation
+    depends on the full sequence, so the entire cache would be stale after each append.</p>
+  </div>
+
+  <div class="box qa"><span class="lab">Q6 · Analysis</span>
+    <p><em>Show that MHA equals a sum of per-head contributions, and say why this matters.</em></p>
+    <p><strong>A.</strong> Block-partition <span>$W_O$</span>; see §8. It matters because heads are
+    independent additive writers into the residual stream, which makes per-head ablation, head
+    pruning, and circuit analysis well-defined operations.</p>
+  </div>
+
+  <div class="box qa"><span class="lab">Q7 · Positional</span>
+    <p><em>Prove RoPE makes attention scores depend only on relative position.</em></p>
+    <p><strong>A.</strong> <span>$(R_mq)^\top(R_nk)=q^\top R_m^\top R_nk=q^\top R_{n-m}k$</span>,
+    using orthogonality <span>$R_m^\top=R_m^{-1}=R_{-m}$</span> and the group property
+    <span>$R_aR_b=R_{a+b}$</span> of 2-D rotations. Then note this holds blockwise over all
+    <span>$d_h/2$</span> frequency pairs.</p>
+  </div>
+
+  <div class="box qa"><span class="lab">Q8 · Diagnostic</span>
+    <p><em>Your 24-layer model's loss plateaus at 10.8 with V=50257. Diagnose.</em></p>
+    <p><strong>A.</strong> <span>$\ln 50257 = 10.82$</span> — the model is predicting uniformly, i.e.
+    learning nothing. Ordered checks: is the LR sane (not 1e-1, not 1e-8)? Are targets shifted?
+    Is the mask correct? Post-LN without warmup? Missing <code>1/√(2L)</code> residual init? Then
+    try to overfit a single batch — if that fails, the bug is in the model.</p>
+  </div>
+</section>
+
+<!-- ================= 21 ================= -->
+<section id="s21">
+  <span class="snum">§ 21</span>
+  <h2>Lab exercises</h2>
+  <ol>
+    <li><strong>Attention by hand.</strong> Redo §17 with <span>$d_k=4$</span> and your own numbers.
+    Verify your NumPy result matches your arithmetic to 3 decimals.</li>
+    <li><strong>Break it deliberately.</strong> Train a small GPT on Tiny Shakespeare, then remove the
+    causal mask. Plot both loss curves and both samples. Write one paragraph on what you observe and
+    why.</li>
+    <li><strong>Head ablation.</strong> Zero one head at a time in a trained model; record the change
+    in validation loss. Which heads are load-bearing? Reproduce the qualitative finding of Michel
+    et al. (2019).</li>
+    <li><strong>Find an induction head.</strong> Feed a random token sequence repeated twice. Plot
+    per-head attention at the second occurrence. Identify the head attending to
+    <em>position-of-previous-occurrence + 1</em>.</li>
+    <li><strong>Implement the KV cache</strong> in the <code>generate</code> loop of §18. Measure
+    tokens/sec vs. sequence length, with and without. Plot it.</li>
+    <li><strong>Swap the positional scheme.</strong> Replace learned positions with RoPE. Train to
+    the same context length, then evaluate at 2× and 4× that length. Quantify the extrapolation
+    difference.</li>
+    <li><strong>Verify FlashAttention is exact.</strong> Compare
+    <code>F.scaled_dot_product_attention</code> against your naive implementation; report max
+    absolute difference and explain why it is not exactly zero.</li>
+  </ol>
+</section>
+
+<!-- ================= 22 ================= -->
+<section id="s22">
+  <span class="snum">§ 22</span>
+  <h2>Reading list</h2>
+
+  <h3>Read these first</h3>
+  <ul class="reflist">
+    <li><span class="tag core">CORE</span> Vaswani et al. (2017), <em>Attention Is All You Need</em>
+      — <a href="https://arxiv.org/abs/1706.03762">arXiv:1706.03762</a>. Read §3 in full. 15 pages.</li>
+    <li><span class="tag learn">GUIDE</span> Rush et al., <em>The Annotated Transformer</em> —
+      <a href="https://nlp.seas.harvard.edu/annotated-transformer/">nlp.seas.harvard.edu</a>. The
+      paper, line by line, as runnable code.</li>
+    <li><span class="tag learn">GUIDE</span> Karpathy, <em>Let's build GPT: from scratch, in code,
+      spelled out</em> — <a href="https://www.youtube.com/watch?v=kCc8FmEb1nY">YouTube</a> +
+      <a href="https://github.com/karpathy/nanoGPT">nanoGPT</a>. Two hours; worth every minute.</li>
+    <li><span class="tag learn">GUIDE</span> Alammar, <em>The Illustrated Transformer</em> —
+      <a href="https://jalammar.github.io/illustrated-transformer/">jalammar.github.io</a>. The best
+      visual first pass.</li>
+    <li><span class="tag learn">GUIDE</span> 3Blue1Brown, <em>Visualizing attention</em> —
+      <a href="https://www.3blue1brown.com/lessons/attention">3blue1brown.com</a>. Geometric
+      intuition for QK and OV.</li>
+    <li><span class="tag core">CORE</span> Phuong &amp; Hutter (2022), <em>Formal Algorithms for
+      Transformers</em> — <a href="https://arxiv.org/abs/2207.09238">arXiv:2207.09238</a>.
+      Unambiguous pseudocode; excellent for revision.</li>
+  </ul>
+
+  <h3>Architecture and components</h3>
+  <ul class="reflist">
+    <li><span class="tag arch">ARCH</span> Radford et al. (2019), <em>Language Models are
+      Unsupervised Multitask Learners</em> (GPT-2) —
+      <a href="https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf">OpenAI</a></li>
+    <li><span class="tag arch">ARCH</span> Brown et al. (2020), <em>Language Models are Few-Shot
+      Learners</em> (GPT-3) — <a href="https://arxiv.org/abs/2005.14165">arXiv:2005.14165</a></li>
+    <li><span class="tag arch">ARCH</span> Touvron et al. (2023), <em>LLaMA</em> —
+      <a href="https://arxiv.org/abs/2302.13971">arXiv:2302.13971</a>. RMSNorm + SwiGLU + RoPE, the
+      modern default stack.</li>
+    <li><span class="tag arch">ARCH</span> Su et al. (2021), <em>RoFormer / RoPE</em> —
+      <a href="https://arxiv.org/abs/2104.09864">arXiv:2104.09864</a>; see also
+      <a href="https://blog.eleuther.ai/rotary-embeddings/">EleutherAI's explainer</a>.</li>
+    <li><span class="tag arch">ARCH</span> Press et al. (2021), <em>ALiBi</em> —
+      <a href="https://arxiv.org/abs/2108.12409">arXiv:2108.12409</a></li>
+    <li><span class="tag arch">ARCH</span> Xiong et al. (2020), <em>On Layer Normalization in the
+      Transformer Architecture</em> — <a href="https://arxiv.org/abs/2002.04745">arXiv:2002.04745</a></li>
+    <li><span class="tag arch">ARCH</span> Zhang &amp; Sennrich (2019), <em>RMSNorm</em> —
+      <a href="https://arxiv.org/abs/1910.07467">arXiv:1910.07467</a></li>
+    <li><span class="tag arch">ARCH</span> Shazeer (2020), <em>GLU Variants Improve Transformer</em> —
+      <a href="https://arxiv.org/abs/2002.05202">arXiv:2002.05202</a></li>
+    <li><span class="tag arch">ARCH</span> Devlin et al. (2018), <em>BERT</em> —
+      <a href="https://arxiv.org/abs/1810.04805">arXiv:1810.04805</a>; Raffel et al. (2019),
+      <em>T5</em> — <a href="https://arxiv.org/abs/1910.10683">arXiv:1910.10683</a></li>
+  </ul>
+
+  <h3>Efficiency and serving</h3>
+  <ul class="reflist">
+    <li><span class="tag eff">EFF</span> Dao et al. (2022), <em>FlashAttention</em> —
+      <a href="https://arxiv.org/abs/2205.14135">arXiv:2205.14135</a>; FlashAttention-2 —
+      <a href="https://arxiv.org/abs/2307.08691">arXiv:2307.08691</a></li>
+    <li><span class="tag eff">EFF</span> Shazeer (2019), <em>Fast Transformer Decoding</em> (MQA) —
+      <a href="https://arxiv.org/abs/1911.02150">arXiv:1911.02150</a></li>
+    <li><span class="tag eff">EFF</span> Ainslie et al. (2023), <em>GQA</em> —
+      <a href="https://arxiv.org/abs/2305.13245">arXiv:2305.13245</a></li>
+    <li><span class="tag eff">EFF</span> Kwon et al. (2023), <em>PagedAttention / vLLM</em> —
+      <a href="https://arxiv.org/abs/2309.06180">arXiv:2309.06180</a></li>
+    <li><span class="tag eff">EFF</span> Child et al. (2019), <em>Sparse Transformers</em> —
+      <a href="https://arxiv.org/abs/1904.10509">arXiv:1904.10509</a></li>
+    <li><span class="tag eff">EFF</span> Kaplan et al. (2020), <em>Scaling Laws</em> —
+      <a href="https://arxiv.org/abs/2001.08361">arXiv:2001.08361</a>; Hoffmann et al. (2022),
+      <em>Chinchilla</em> — <a href="https://arxiv.org/abs/2203.15556">arXiv:2203.15556</a></li>
+  </ul>
+
+  <h3>Interpretability</h3>
+  <ul class="reflist">
+    <li><span class="tag interp">INTERP</span> Elhage et al. (2021), <em>A Mathematical Framework for
+      Transformer Circuits</em> —
+      <a href="https://transformer-circuits.pub/2021/framework/index.html">transformer-circuits.pub</a></li>
+    <li><span class="tag interp">INTERP</span> Olsson et al. (2022), <em>In-context Learning and
+      Induction Heads</em> —
+      <a href="https://transformer-circuits.pub/2022/in-context-learning-and-induction-heads/index.html">transformer-circuits.pub</a></li>
+    <li><span class="tag interp">INTERP</span> Geva et al. (2020), <em>Transformer Feed-Forward Layers
+      Are Key-Value Memories</em> — <a href="https://arxiv.org/abs/2012.14913">arXiv:2012.14913</a></li>
+    <li><span class="tag interp">INTERP</span> Voita et al. (2019), <em>Analyzing Multi-Head
+      Self-Attention</em> — <a href="https://arxiv.org/abs/1905.09418">arXiv:1905.09418</a>;
+      Michel et al. (2019) — <a href="https://arxiv.org/abs/1905.10650">arXiv:1905.10650</a></li>
+    <li><span class="tag interp">INTERP</span> Jain &amp; Wallace (2019), <em>Attention is not
+      Explanation</em> — <a href="https://arxiv.org/abs/1902.10186">arXiv:1902.10186</a>; and the
+      reply, Wiegreffe &amp; Pinter, <em>Attention is not not Explanation</em> —
+      <a href="https://arxiv.org/abs/1908.04626">arXiv:1908.04626</a></li>
+  </ul>
+
+  <h3>Course textbook mapping</h3>
+  <p><strong>TB2</strong> (Chakraborty, <em>Introduction to Large Language Models</em>) — chapters on
+  attention and Transformers cover §§1–10. <strong>RB1</strong> (Foster, <em>Generative Deep
+  Learning</em> 2e) — the Transformer chapter for the GPT implementation. <strong>RB3</strong> —
+  every arXiv link above.</p>
+</section>
+
+</main>
+</div>
+
+<footer>
+  CS GXYZ · Agentic AI · Module 1 · Birla Institute of Technology &amp; Science, Pilani ·
+  Second Semester 2025–26<br>
+  Instructor-in-Charge: Dr. Tejasvi Alladi · Instructor: Dr. Dhruv Kumar
+</footer>
+
+<script>
+/* ---------- KaTeX ---------- */
+document.addEventListener("DOMContentLoaded", function () {
+  if (window.renderMathInElement) {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: "$$", right: "$$", display: true},
+        {left: "\\[", right: "\\]", display: true},
+        {left: "$", right: "$", display: false},
+        {left: "\\(", right: "\\)", display: false}
+      ],
+      throwOnError: false
+    });
+  }
+});
+
+/* ---------- masthead signature: causal mask ---------- */
+(function () {
+  const sig = document.getElementById("sig");
+  if (!sig) return;
+  let d = 0;
+  for (let i = 0; i < 8; i++) {
+    for (let j = 0; j < 8; j++) {
+      const el = document.createElement("i");
+      if (j <= i) {
+        el.className = "on";
+        el.style.setProperty("--w", (1 / (i + 1)).toFixed(3));
+        el.style.setProperty("--d", (d++ * 0.012).toFixed(3) + "s");
+      }
+      sig.appendChild(el);
+    }
+  }
+})();
+
+/* ---------- interactive causal mask grid ---------- */
+(function () {
+  const host = document.getElementById("maskgrid");
+  if (!host) return;
+  const N = 8;
+  const g = document.createElement("div");
+  g.className = "grid-attn";
+  g.style.gridTemplateColumns = "repeat(" + (N + 1) + ", auto)";
+
+  const corner = document.createElement("div");
+  corner.className = "cell hdr"; corner.textContent = "q\\k";
+  g.appendChild(corner);
+  for (let j = 0; j < N; j++) {
+    const h = document.createElement("div");
+    h.className = "cell hdr"; h.textContent = j;
+    g.appendChild(h);
+  }
+  for (let i = 0; i < N; i++) {
+    const rh = document.createElement("div");
+    rh.className = "cell hdr"; rh.textContent = i;
+    g.appendChild(rh);
+    for (let j = 0; j < N; j++) {
+      const c = document.createElement("div");
+      c.className = "cell" + (j <= i ? " vis" : "");
+      c.dataset.row = i;
+      if (j <= i) {
+        const w = 1 / (i + 1);
+        c.style.background = "rgba(38,139,210," + (0.3 + w * 0.65).toFixed(3) + ")";
+        c.textContent = w.toFixed(2).slice(1);
+      } else {
+        c.textContent = "–";
+      }
+      g.appendChild(c);
+    }
+  }
+  host.appendChild(g);
+
+  const cap = document.getElementById("maskcap");
+  const base = cap.innerHTML;
+  g.addEventListener("mouseover", function (e) {
+    const r = e.target.dataset.row;
+    if (r === undefined) return;
+    g.querySelectorAll(".cell").forEach(c => c.classList.toggle("rowhl", c.dataset.row === r));
+    const n = Number(r) + 1;
+    cap.innerHTML = "<strong>Row " + r + "</strong> attends to " + n + " position" +
+      (n > 1 ? "s" : "") + " (0…" + r + "). With uniform scores each weight is 1/" + n +
+      " = " + (1 / n).toFixed(3) + ". Positions " + (Number(r) + 1) + "…7 are masked to −∞.";
+  });
+  g.addEventListener("mouseleave", function () {
+    g.querySelectorAll(".cell").forEach(c => c.classList.remove("rowhl"));
+    cap.innerHTML = base;
+  });
+})();
+
+/* ---------- softmax temperature widget ---------- */
+(function () {
+  const sl = document.getElementById("tslider");
+  if (!sl) return;
+  const out = document.getElementById("softbars");
+  const val = document.getElementById("tval");
+  const raw = [6.0, 4.5, 2.0, 1.0, -1.5];
+  const col = ["#268bd2", "#2aa198", "#859900", "#b58900", "#cb4b16"];
+
+  function draw() {
+    const t = Number(sl.value) / 100;
+    val.textContent = t.toFixed(2);
+    const s = raw.map(x => x / t);
+    const m = Math.max.apply(null, s);
+    const ex = s.map(x => Math.exp(x - m));
+    const z = ex.reduce((a, b) => a + b, 0);
+    const p = ex.map(x => x / z);
+    out.innerHTML = p.map(function (w, i) {
+      return '<div style="display:flex;align-items:center;gap:.55rem;margin:.22rem 0">' +
+        '<span style="font-family:var(--mono);font-size:.7rem;color:var(--base1);width:2.6rem">s=' +
+        raw[i].toFixed(1) + '</span>' +
+        '<span style="flex:1;background:var(--base2);border-radius:2px;height:16px;overflow:hidden">' +
+        '<span style="display:block;height:100%;width:' + (w * 100).toFixed(1) +
+        '%;background:' + col[i] + ';transition:width .12s"></span></span>' +
+        '<span class="readout" style="width:3.4rem;text-align:right">' + w.toFixed(3) + '</span></div>';
+    }).join("");
+  }
+  sl.addEventListener("input", draw);
+  draw();
+})();
+
+/* ---------- TOC scrollspy ---------- */
+(function () {
+  const links = Array.from(document.querySelectorAll("nav.toc a"));
+  const map = new Map(links.map(a => [a.getAttribute("href").slice(1), a]));
+  const obs = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) {
+      if (en.isIntersecting) {
+        links.forEach(a => a.classList.remove("active"));
+        const a = map.get(en.target.id);
+        if (a) a.classList.add("active");
+      }
+    });
+  }, {rootMargin: "-10% 0px -75% 0px", threshold: 0});
+  document.querySelectorAll("section[id]").forEach(s => obs.observe(s));
+})();
+</script>
+</body>
+</html>

@@ -1,453 +1,64 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Agentic AI — BITS Pilani</title>
-  <style>
-    :root {
-      --base3:  #fdf6e3;
-      --base2:  #eee8d5;
-      --base1:  #93a1a1;
-      --base01: #586e75;
-      --base02: #073642;
-      --orange: #cb4b16;
-      --blue:   #268bd2;
-      --cyan:   #2aa198;
-      --green:  #859900;
-      --yellow: #b58900;
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-    body {
-      background: var(--base3);
-      color: var(--base01);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      font-size: 16px;
-      line-height: 1.7;
-      -webkit-font-smoothing: antialiased;
-    }
-    a { color: var(--blue); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-
-    /* nav */
-    nav {
-      background: var(--base2);
-      border-bottom: 1px solid var(--base1);
-      padding: 14px 0;
-    }
-    nav .inner {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 0 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .nav-title {
-      font-family: Georgia, serif;
-      font-size: 15px;
-      font-weight: normal;
-      color: var(--base02);
-    }
-    .nav-sub {
-      font-size: 12px;
-      color: var(--base1);
-      letter-spacing: 0.06em;
-    }
-
-    /* hero */
-    .hero {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 56px 24px 40px;
-      border-bottom: 1px solid var(--base2);
-    }
-    .hero-eyebrow {
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--orange);
-      margin-bottom: 16px;
-    }
-    .hero h1 {
-      font-family: Georgia, serif;
-      font-size: clamp(28px, 4vw, 42px);
-      font-weight: normal;
-      color: var(--base02);
-      line-height: 1.2;
-      margin-bottom: 16px;
-    }
-    .hero p {
-      font-size: 17px;
-      color: var(--base01);
-      max-width: 620px;
-      line-height: 1.7;
-    }
-
-    /* content */
-    .content {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 0 24px 80px;
-    }
-
-    /* theme group */
-    .theme-group {
-      margin-top: 48px;
-    }
-    .theme-label {
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--base1);
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--base2);
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .theme-label::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: var(--base2);
-    }
-
-    /* topic grid */
-    .topic-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 16px;
-    }
-
-    /* card */
-    .card {
-      background: var(--base2);
-      border: 1px solid var(--base1);
-      border-radius: 10px;
-      padding: 22px 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      transition: box-shadow 0.15s, border-color 0.15s;
-    }
-    .card:hover {
-      border-color: var(--blue);
-      box-shadow: 0 2px 12px rgba(38,139,210,0.10);
-    }
-    .card.soon {
-      opacity: 0.55;
-      pointer-events: none;
-    }
-    .card-title {
-      font-family: Georgia, serif;
-      font-size: 17px;
-      color: var(--base02);
-      line-height: 1.3;
-    }
-    .card-desc {
-      font-size: 13px;
-      color: var(--base01);
-      line-height: 1.55;
-      flex: 1;
-    }
-    .card-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-top: 4px;
-    }
-    .badge {
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      padding: 3px 9px;
-      border-radius: 100px;
-    }
-    .badge-published {
-      background: #d4edda;
-      color: var(--green);
-      border: 1px solid #a3d4ad;
-    }
-    .badge-soon {
-      background: var(--base2);
-      color: var(--base1);
-      border: 1px solid var(--base1);
-    }
-    .card-link {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--blue);
-    }
-
-    footer {
-      border-top: 1px solid var(--base2);
-      padding: 32px 24px;
-      text-align: center;
-      font-size: 13px;
-      color: var(--base1);
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agentic AI — Course Slides</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --base3:#fdf6e3; --base2:#eee8d5; --base1:#93a1a1; --base0:#839496;
+  --base00:#657b83; --base01:#586e75; --base02:#073642; --base03:#002b36;
+  --blue:#268bd2; --cyan:#2aa198; --orange:#cb4b16;
+  --rule:rgba(147,161,161,.42);
+  --serif:"IBM Plex Serif",Georgia,serif;
+  --sans:"IBM Plex Sans Condensed","IBM Plex Sans",Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--base3);color:var(--base01);font-family:var(--serif);
+  line-height:1.5;padding:6vh 6vw;max-width:900px}
+h1{font-family:var(--sans);font-weight:700;font-size:2.4em;color:var(--base03);margin:0 0 .1em;letter-spacing:-.02em}
+.sub{font-family:var(--sans);color:var(--base00);margin:0 0 2.2em;font-size:1.05em}
+.module{margin:0 0 2.4em}
+.module h2{font-family:var(--sans);font-weight:600;font-size:1.15em;color:var(--base03);
+  margin:0 0 .7em;padding-bottom:.3em;border-bottom:1px solid var(--rule)}
+.deck{display:flex;align-items:baseline;gap:.7em;flex-wrap:wrap;margin:.55em 0}
+.deck .name{font-family:var(--sans);font-weight:500;color:var(--base02);min-width:15em}
+a{color:var(--blue);text-decoration:none;border-bottom:1px solid rgba(38,139,210,.35);
+  font-family:var(--mono);font-size:.86em}
+a:hover{border-bottom-color:var(--blue)}
+a.pdf{color:var(--cyan);border-bottom-color:rgba(42,161,152,.35)}
+footer{margin-top:3em;font-family:var(--sans);font-size:.8em;color:var(--base1)}
+</style>
 </head>
 <body>
+<h1>Agentic AI</h1>
+<p class="sub">Course slides — BITS Pilani</p>
 
-<nav>
-  <div class="inner">
-    <span class="nav-title">Agentic AI</span>
-    <span class="nav-sub">BITS Pilani &middot; Semester 1, 2026&ndash;2027</span>
-  </div>
-</nav>
-
-<div class="hero">
-  <div class="hero-eyebrow">Course Material</div>
-  <h1>Agentic AI</h1>
-  <p>
-    Interactive course notes covering the foundations and frontiers of large language
-    models and AI agents. Each topic is a self-contained page with layered explanations,
-    verified interactive visualizations, and cited references.
-  </p>
+<div class="module">
+  <h2>Transformers &amp; Self-Attention</h2>
+  <div class="deck"><span class="name">Slides</span>
+    <a href="transformers-slides.html">html</a> <a class="pdf" href="transformers-slides.pdf">pdf</a></div>
+  <div class="deck"><span class="name">Notes</span>
+    <a href="transformers-notes.html">html</a></div>
 </div>
 
-<div class="content">
-
-  <!-- FOUNDATIONS -->
-  <div class="theme-group">
-    <div class="theme-label">Foundations</div>
-    <div class="topic-grid">
-      <a class="card" href="topics/transformers-self-attention.html">
-        <div class="card-title">Transformers, Self-Attention &amp; Multi-Head Attention</div>
-        <div class="card-desc">
-          How the Transformer replaced recurrent networks, the Query–Key–Value
-          formulation of self-attention, and why multiple heads matter.
-        </div>
-        <div class="card-footer">
-          <span class="badge badge-published">Published</span>
-          <span class="card-link">Read &rarr;</span>
-        </div>
-      </a>
-    </div>
-  </div>
-
-  <!-- ADVANCED ARCHITECTURES -->
-  <div class="theme-group">
-    <div class="theme-label">Advanced Architectures</div>
-    <div class="topic-grid">
-      <div class="card soon">
-        <div class="card-title">State Space Models &amp; Mamba</div>
-        <div class="card-desc">
-          Selective state spaces as an alternative to attention for long sequences;
-          the Mamba architecture and its recurrent-convolutional duality.
-        </div>
-        <div class="card-footer">
-          <span class="badge badge-soon">Coming Soon</span>
-        </div>
-      </div>
-      <div class="card soon">
-        <div class="card-title">Mixture of Experts</div>
-        <div class="card-desc">
-          Sparse gating, routing strategies, and how MoE scales parameters
-          without proportional compute.
-        </div>
-        <div class="card-footer">
-          <span class="badge badge-soon">Coming Soon</span>
-        </div>
-      </div>
-      <div class="card soon">
-        <div class="card-title">Diffusion-Based Language Models</div>
-        <div class="card-desc">
-          Discrete diffusion for text; contrasting autoregressive and
-          diffusion-based training and sampling.
-        </div>
-        <div class="card-footer">
-          <span class="badge badge-soon">Coming Soon</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- EFFICIENT TRAINING -->
-  <div class="theme-group">
-    <div class="theme-label">Efficient Training</div>
-    <div class="topic-grid">
-      <div class="card soon">
-        <div class="card-title">PEFT: LoRA, QLoRA, DoRA, AdaLoRA</div>
-        <div class="card-desc">
-          Parameter-efficient fine-tuning methods; low-rank adaptation,
-          quantization-aware variants, and adaptive rank allocation.
-        </div>
-        <div class="card-footer">
-          <span class="badge badge-soon">Coming Soon</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- INFERENCE & SERVING -->
-  <div class="theme-group">
-    <div class="theme-label">Inference &amp; Serving</div>
-    <div class="topic-grid">
-      <div class="card soon">
-        <div class="card-title">Decoding Strategies &amp; KV-Cache</div>
-        <div class="card-desc">
-          Top-k, top-p, beam search, contrastive decoding; KV-cache mechanics,
-          PagedAttention, and vLLM.
-        </div>
-        <div class="card-footer">
-          <span class="badge badge-soon">Coming Soon</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- TEST-TIME COMPUTE -->
-  <div class="theme-group">
-    <div class="theme-label">Test-Time Compute</div>
-    <div class="topic-grid">
-      <div class="card soon">
-        <div class="card-title">Self-Consistency, Tree &amp; Graph of Thought</div>
-        <div class="card-desc">
-          Spending more compute at inference time; majority voting, tree search,
-          and graph-structured reasoning.
-        </div>
-        <div class="card-footer">
-          <span class="badge badge-soon">Coming Soon</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- POST-TRAINING -->
-  <div class="theme-group">
-    <div class="theme-label">Post-Training</div>
-    <div class="topic-grid">
-      <div class="card soon">
-        <div class="card-title">RLHF: Overview, Rewards &amp; PPO</div>
-        <div class="card-desc">
-          The SFT → reward model → RL pipeline; PPO and REINFORCE for language
-          models; reward over-optimization.
-        </div>
-        <div class="card-footer">
-          <span class="badge badge-soon">Coming Soon</span>
-        </div>
-      </div>
-      <div class="card soon">
-        <div class="card-title">Direct Alignment: DPO &amp; Variants</div>
-        <div class="card-desc">
-          Reference-free alignment without an explicit reward model; DPO, SimPO,
-          KTO, IPO and their trade-offs.
-        </div>
-        <div class="card-footer">
-          <span class="badge badge-soon">Coming Soon</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- INTERPRETABILITY -->
-  <div class="theme-group">
-    <div class="theme-label">Interpretability</div>
-    <div class="topic-grid">
-      <div class="card soon">
-        <div class="card-title">Mechanistic Interpretability</div>
-        <div class="card-desc">
-          Circuits, activation patching, causal tracing; what specific components
-          of a transformer compute.
-        </div>
-        <div class="card-footer">
-          <span class="badge badge-soon">Coming Soon</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- RAG -->
-  <div class="theme-group">
-    <div class="theme-label">Retrieval-Augmented Generation</div>
-    <div class="topic-grid">
-      <div class="card soon">
-        <div class="card-title">RAG: Foundations to RAPTOR &amp; DSPy</div>
-        <div class="card-desc">
-          BM25 vs dense retrieval, HyDE, hierarchical chunk trees, corrective
-          feedback loops, and declarative pipeline optimization.
-        </div>
-        <div class="card-footer">
-          <span class="badge badge-soon">Coming Soon</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- AGENT SECURITY -->
-  <div class="theme-group">
-    <div class="theme-label">Agent Security</div>
-    <div class="topic-grid">
-      <div class="card soon">
-        <div class="card-title">AI Agent Security</div>
-        <div class="card-desc">
-          Threat models, prompt injection, data poisoning; red and blue teaming;
-          MCP security considerations.
-        </div>
-        <div class="card-footer">
-          <span class="badge badge-soon">Coming Soon</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- EVOLUTIONARY METHODS -->
-  <div class="theme-group">
-    <div class="theme-label">Evolutionary Methods</div>
-    <div class="topic-grid">
-      <div class="card soon">
-        <div class="card-title">Evolutionary &amp; Genetic Methods with LLMs</div>
-        <div class="card-desc">
-          Mutation and selection for prompts and tools; fitness metrics; self-evolving
-          agent curricula.
-        </div>
-        <div class="card-footer">
-          <span class="badge badge-soon">Coming Soon</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- MULTIMODAL -->
-  <div class="theme-group">
-    <div class="theme-label">Multimodal LLMs &amp; Agents</div>
-    <div class="topic-grid">
-      <div class="card soon">
-        <div class="card-title">Multimodal Architectures</div>
-        <div class="card-desc">
-          Perceiver-resampler, Q-former, and adapter designs; VLM training
-          and hallucination failure modes.
-        </div>
-        <div class="card-footer">
-          <span class="badge badge-soon">Coming Soon</span>
-        </div>
-      </div>
-      <div class="card soon">
-        <div class="card-title">Multimodal Post-Training &amp; Agents</div>
-        <div class="card-desc">
-          Visual instruction tuning, integrating perception with tool-use plans,
-          safety alignment for multimodal agents.
-        </div>
-        <div class="card-footer">
-          <span class="badge badge-soon">Coming Soon</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
+<div class="module">
+  <h2>Advanced PEFT &amp; Model Compression</h2>
+  <div class="deck"><span class="name">PEFT (LoRA, QLoRA, DoRA, AdaLoRA)</span>
+    <a href="peft-slides.html">html</a> <a class="pdf" href="peft-slides.pdf">pdf</a></div>
+  <div class="deck"><span class="name">PEFT notes</span>
+    <a href="peft-notes.html">html</a></div>
+  <div class="deck"><span class="name">Model compression overview</span>
+    <a href="model-compression-slides.html">html</a> <a class="pdf" href="model-compression-slides.pdf">pdf</a></div>
+  <div class="deck"><span class="name">Model quantization (deep dive)</span>
+    <a href="model-quantization/quantization-slides.html">html</a> <a class="pdf" href="model-quantization/quantization-slides.pdf">pdf</a></div>
 </div>
 
-<footer>
-  Agentic AI &mdash; BITS Pilani &mdash; Semester 1, 2026&ndash;2027
-</footer>
-
+<footer>Built with the <code>simple-slides</code> house style — Solarized Light, keyboard navigation
+(arrows/space, O for overview, F for fullscreen).</footer>
 </body>
 </html>

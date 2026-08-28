@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PEFT &amp; LoRA — Course Notes | Agentic AI (BITS Pilani)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<style>
+/* ============================================================
+   SOLARIZED LIGHT
+   base3 #fdf6e3  base2 #eee8d5  base1 #93a1a1  base0 #839496
+   base00 #657b83 base01 #586e75 base02 #073642 base03 #002b36
+   yellow #b58900 orange #cb4b16 red #dc322f magenta #d33682
+   violet #6c71c4 blue #268bd2  cyan #2aa198  green #859900
+   ============================================================ */
+:root{
+  --base3:#fdf6e3; --base2:#eee8d5; --base1:#93a1a1; --base0:#839496;
+  --base00:#657b83; --base01:#586e75; --base02:#073642; --base03:#002b36;
+  --yellow:#b58900; --orange:#cb4b16; --red:#dc322f; --magenta:#d33682;
+  --violet:#6c71c4; --blue:#268bd2; --cyan:#2aa198; --green:#859900;
+  --rule:rgba(147,161,161,.40); --rule-strong:rgba(88,110,117,.28);
+  --serif:"IBM Plex Serif",Georgia,"Times New Roman",serif;
+  --sans:"IBM Plex Sans Condensed","IBM Plex Sans",Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:5rem}
+body{
+  margin:0;background:var(--base3);color:var(--base01);
+  font-family:var(--serif);font-size:17px;line-height:1.68;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+::selection{background:#eee8d5;color:var(--base03)}
+
+/* ---------- masthead ---------- */
+.masthead{border-bottom:1px solid var(--rule);background:var(--base3)}
+.masthead-inner{max-width:1280px;margin:0 auto;padding:2.4rem 1.5rem 2.2rem;
+  display:grid;grid-template-columns:1fr auto;gap:2rem;align-items:end}
+.eyebrow{font-family:var(--sans);font-size:.72rem;font-weight:600;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--base1)}
+.masthead h1{font-family:var(--sans);font-weight:700;font-size:clamp(2.1rem,5.2vw,3.6rem);
+  line-height:1.02;letter-spacing:-.018em;color:var(--base03);margin:.6rem 0 .5rem}
+.masthead h1 em{font-style:normal;color:var(--blue)}
+.deck{max-width:56ch;font-size:1.03rem;color:var(--base00);margin:0}
+.meta{font-family:var(--mono);font-size:.72rem;color:var(--base1);line-height:1.9;text-align:right}
+.meta b{color:var(--base01);font-weight:500}
+
+/* ---------- layout ---------- */
+.wrap{max-width:1280px;margin:0 auto;padding:0 1.5rem;
+  display:grid;grid-template-columns:230px minmax(0,1fr);gap:3.2rem;align-items:start}
+nav.toc{position:sticky;top:1.5rem;padding:2rem 0;max-height:calc(100vh - 3rem);overflow-y:auto;
+  font-family:var(--sans);font-size:.86rem;border-right:1px solid var(--rule);padding-right:1.2rem}
+nav.toc h2{font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--base1);
+  font-weight:600;margin:0 0 .9rem}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:t}
+nav.toc li{counter-increment:t;margin:0 0 .1rem}
+nav.toc a{display:block;padding:.32rem .5rem .32rem 2.1rem;color:var(--base00);text-decoration:none;
+  border-radius:3px;position:relative;line-height:1.35}
+nav.toc a::before{content:counter(t,decimal-leading-zero);position:absolute;left:.4rem;
+  font-family:var(--mono);font-size:.68rem;color:var(--base1);top:.42rem}
+nav.toc a:hover{background:var(--base2);color:var(--base03)}
+nav.toc a.active{background:var(--base2);color:var(--base03);font-weight:600}
+nav.toc a.active::before{color:var(--blue)}
+main{padding:2.6rem 0 6rem;max-width:74ch}
+
+/* ---------- sections ---------- */
+section{margin:0 0 4.2rem;scroll-margin-top:1.5rem}
+.snum{font-family:var(--mono);font-size:.72rem;color:var(--orange);letter-spacing:.08em;
+  display:block;margin-bottom:.35rem}
+h2{font-family:var(--sans);font-weight:700;font-size:1.85rem;line-height:1.12;color:var(--base03);
+  letter-spacing:-.012em;margin:0 0 .4rem;padding-bottom:.7rem;border-bottom:2px solid var(--base02)}
+h3{font-family:var(--sans);font-weight:600;font-size:1.22rem;color:var(--base02);
+  margin:2.2rem 0 .5rem;letter-spacing:-.005em}
+h4{font-family:var(--sans);font-weight:600;font-size:1rem;color:var(--base01);margin:1.5rem 0 .35rem}
+p{margin:0 0 1rem}
+strong{color:var(--base02);font-weight:600}
+em.term{font-style:normal;font-weight:600;color:var(--violet)}
+a{color:var(--blue);text-decoration:none;border-bottom:1px solid rgba(38,139,210,.35)}
+a:hover{border-bottom-color:var(--blue)}
+ul,ol{margin:0 0 1rem;padding-left:1.3rem}
+li{margin:.35rem 0}
+ul li::marker{color:var(--base1)}
+ol li::marker{color:var(--base1);font-family:var(--mono);font-size:.85em}
+hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
+
+/* ---------- callouts ---------- */
+.box{border-left:3px solid var(--c,var(--base1));background:var(--base2);
+  padding:1rem 1.15rem;margin:1.4rem 0;border-radius:0 4px 4px 0}
+.box .lab{font-family:var(--sans);font-size:.68rem;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--c,var(--base00));display:block;margin-bottom:.4rem}
+.box p:last-child,.box ul:last-child,.box ol:last-child{margin-bottom:0}
+.intuition{--c:var(--cyan)} .maths{--c:var(--violet)} .insight{--c:var(--magenta)}
+.pitfall{--c:var(--red)} .example{--c:var(--green)} .qa{--c:var(--blue)} .why{--c:var(--yellow)}
+
+/* ---------- paper chips ---------- */
+.papers{display:flex;flex-wrap:wrap;gap:.4rem;margin:.2rem 0 1.4rem}
+.chip{font-family:var(--mono);font-size:.7rem;padding:.24rem .55rem;border:1px solid var(--rule);
+  border-radius:99px;color:var(--base00);background:var(--base3);text-decoration:none;border-bottom:1px solid var(--rule)}
+.chip:hover{border-color:var(--orange);color:var(--orange)}
+.chip b{color:var(--orange);font-weight:500}
+
+/* ---------- code ---------- */
+code{font-family:var(--mono);font-size:.86em;background:var(--base2);padding:.08em .35em;
+  border-radius:3px;color:var(--base02)}
+
+/* ---------- tables ---------- */
+.tw{overflow-x:auto;margin:1.3rem 0}
+table{border-collapse:collapse;width:100%;font-size:.88rem;font-family:var(--sans)}
+th{text-align:left;font-weight:600;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--base00);border-bottom:1.5px solid var(--base02);padding:.5rem .7rem}
+td{padding:.55rem .7rem;border-bottom:1px solid var(--rule);vertical-align:top}
+tbody tr:hover{background:var(--base2)}
+td code{font-size:.82em}
+
+/* ---------- math ---------- */
+.katex{font-size:1.03em!important;color:var(--base02)}
+.katex-display{margin:1.3rem 0!important;padding:.2rem 0;overflow-x:auto;overflow-y:hidden}
+
+/* ---------- refs ---------- */
+.reflist{list-style:none;padding:0;font-size:.9rem}
+.reflist li{padding:.55rem 0;border-bottom:1px solid var(--rule)}
+.reflist .tag{font-family:var(--mono);font-size:.66rem;color:var(--base3);background:var(--base01);
+  padding:.1rem .4rem;border-radius:3px;margin-right:.5rem;vertical-align:1px}
+.reflist .tag.core{background:var(--orange)}
+.reflist .tag.arch{background:var(--blue)}
+.reflist .tag.eff{background:var(--cyan)}
+.reflist .tag.maths{background:var(--violet)}
+
+footer{border-top:1px solid var(--rule);margin-top:3rem;padding:2rem 1.5rem 3rem;
+  font-family:var(--sans);font-size:.82rem;color:var(--base1);text-align:center}
+
+/* ---------- responsive ---------- */
+@media (max-width:980px){
+  .wrap{grid-template-columns:1fr;gap:0;padding:0 1.15rem}
+  nav.toc{position:static;max-height:none;border-right:0;border-bottom:1px solid var(--rule);
+    padding:1.2rem 0;columns:2;column-gap:1.4rem}
+  nav.toc h2{column-span:all}
+  main{padding-top:1.8rem;max-width:none}
+  .masthead-inner{grid-template-columns:1fr;padding:1.8rem 1.15rem;gap:1.4rem}
+  .meta{text-align:left}
+  body{font-size:16px}
+}
+@media print{
+  nav.toc{display:none}
+  body{font-size:10.5pt} .wrap{display:block} section{page-break-inside:avoid}
+}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:2px}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <div>
+      <span class="eyebrow">CS GXYZ · Agentic AI · Module 3 · Lectures 7–9</span>
+      <h1>PEFT &amp; <em>LoRA</em></h1>
+      <p class="deck">A self-study companion to the PEFT slides — the four families of
+      parameter-efficient fine-tuning explained in full, and every member of the LoRA family
+      (LoRA, QLoRA, DoRA, AdaLoRA) derived step by step, including the linear-algebra background
+      (low-rank structure, SVD, weight normalization, quantization) each one leans on.</p>
+    </div>
+    <div class="meta">
+      BITS Pilani · Pilani Campus<br>
+      <b>Second Semester 2025–26</b><br>
+      Ref: TB2, RB3<br>
+      Companion slides: <b>peft-slides.html</b>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<nav class="toc" aria-label="Contents">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#s1">Why PEFT: the cost of full fine-tuning</a></li>
+    <li><a href="#s2">The four families of PEFT</a></li>
+    <li><a href="#s3">Maths background — low rank &amp; intrinsic dimension</a></li>
+    <li><a href="#s4">LoRA, step by step</a></li>
+    <li><a href="#s5">Maths background — quantization &amp; NF4</a></li>
+    <li><a href="#s6">QLoRA, step by step</a></li>
+    <li><a href="#s7">Maths background — weight normalization</a></li>
+    <li><a href="#s8">DoRA, step by step</a></li>
+    <li><a href="#s9">Maths background — SVD &amp; the best low-rank approximation</a></li>
+    <li><a href="#s10">AdaLoRA, step by step</a></li>
+    <li><a href="#s11">The LoRA family, side by side</a></li>
+    <li><a href="#s12">Reading list</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<!-- ================= 1 ================= -->
+<section id="s1">
+  <span class="snum">§ 01</span>
+  <h2>Why PEFT: the cost of full fine-tuning</h2>
+
+  <p>Full fine-tuning updates <strong>every</strong> weight matrix in a pretrained model using
+  gradients from a smaller, labeled, task-specific dataset. The cost of this is not just the
+  weights themselves — it's everything Adam needs to keep around in order to update them.</p>
+
+  <p>For every trainable parameter, Adam stores four buffers of the same size: the weight itself,
+  its gradient, and two running statistics — the first moment (a moving average of the gradient)
+  and the second moment (a moving average of the squared gradient):</p>
+
+  $$m_t = \beta_1 m_{t-1} + (1-\beta_1)g_t, \qquad v_t = \beta_2 v_{t-1} + (1-\beta_2)g_t^2$$
+
+  <p>where $g_t$ is the gradient at step $t$. $m_t$ and $v_t$ are used to compute the actual
+  parameter update, and both must be kept in memory, per parameter, for the entire training run.
+  So memory scales as roughly <strong>4×</strong> the raw weight count — weight + gradient + $m$
+  + $v$ — before a single activation is computed.</p>
+
+  <div class="box why">
+    <span class="lab">Why this matters at LLM scale</span>
+    <p>For a 7-billion-parameter model, that 4× factor is the difference between fitting on a
+    single consumer GPU and needing a multi-GPU cluster just to hold optimizer state. PEFT methods
+    sidestep this by freezing almost all of $W$ and training only a small number of new or
+    selected parameters — Adam's extra buffers then only need to cover that small set, not the
+    whole model.</p>
+  </div>
+</section>
+
+<!-- ================= 2 ================= -->
+<section id="s2">
+  <span class="snum">§ 02</span>
+  <h2>The four families of PEFT</h2>
+  <div class="papers">
+    <a class="chip" href="https://arxiv.org/abs/2303.15647"><b>▸</b> Lialin et al. 2023 — Scaling Down to Scale Up</a>
+    <a class="chip" href="https://arxiv.org/abs/1902.00751"><b>▸</b> Houlsby et al. 2019 — Adapters</a>
+    <a class="chip" href="https://arxiv.org/abs/2106.10199"><b>▸</b> Zaken et al. 2021 — BitFit</a>
+    <a class="chip" href="https://arxiv.org/abs/2101.00190"><b>▸</b> Li &amp; Liang 2021 — Prefix-Tuning</a>
+    <a class="chip" href="https://arxiv.org/abs/2104.08691"><b>▸</b> Lester et al. 2021 — Prompt Tuning</a>
+  </div>
+
+  <p>Lialin et al.'s survey groups essentially every PEFT method into four families, distinguished
+  by <em>where</em> the new trainable parameters live relative to the frozen pretrained weights.</p>
+
+  <h3>1. Additive — Adapters</h3>
+  <p>Insert small new modules into the network; train only those. The canonical design is the
+  <em class="term">bottleneck adapter</em>: given a hidden vector $h\in\mathbb{R}^d$ at some point
+  in the network, insert</p>
+
+  $$\text{Adapter}(h) = h + W_{up}\,\phi\!\left(W_{down}\,h\right)$$
+
+  <p>where $W_{down}\in\mathbb{R}^{m\times d}$ projects down to a small bottleneck width
+  $m\ll d$, $\phi$ is a nonlinearity (typically ReLU), and $W_{up}\in\mathbb{R}^{d\times m}$
+  projects back up. One adapter is inserted after the attention sub-layer and another after the
+  feed-forward sub-layer, in every block. Parameters per adapter: $\approx 2md$ (plus small bias
+  terms) — with $m$ in the tens to low hundreds, this is a tiny fraction of $d^2$.</p>
+
+  <div class="box insight">
+    <span class="lab">The near-identity initialization trick</span>
+    <p>$W_{up}$ is initialized to (near) zero, so at the start of training $\text{Adapter}(h)=h$
+    exactly — the adapter is an identity function and the model behaves exactly like the
+    pretrained model. This is the same idea LoRA later reuses (§4): start every new module as a
+    no-op, and let training discover what to add.</p>
+  </div>
+
+  <h3>2. Selective — BitFit</h3>
+  <p>Rather than adding anything new, train a <em>subset</em> of the parameters that already
+  exist. BitFit's version of this is almost aggressively simple: freeze every weight matrix in
+  the network and train only the <strong>bias vectors</strong> — under 0.1% of total parameters —
+  plus, for classification tasks, the final output layer. Surprisingly competitive with full
+  fine-tuning in small-to-medium data regimes, precisely because biases already sit at every
+  layer and can shift each layer's output without touching how it computes.</p>
+
+  <h3>3. Reparameterization — LoRA</h3>
+  <p>Train a <em>compressed representation</em> of the update to an existing weight matrix,
+  rather than the update itself. This is LoRA's family, and the subject of the rest of these
+  notes (§3–§11): instead of learning a full $\Delta W\in\mathbb{R}^{d\times k}$, learn a
+  low-rank factorization of it.</p>
+
+  <h3>4. Soft-prompt — prefix &amp; prompt tuning</h3>
+  <p><em class="term">Prefix-tuning</em> prepends a short sequence of trainable vectors to the
+  keys and values at <strong>every</strong> attention layer: at layer $\ell$, a learned
+  $P_K^{(\ell)}, P_V^{(\ell)}\in\mathbb{R}^{l\times d}$ is concatenated in front of that layer's
+  own keys/values, for a prefix of length $l$. Only these $P_K^{(\ell)}, P_V^{(\ell)}$ are
+  trained — the whole LM stays frozen.</p>
+  <p><em class="term">Prompt tuning</em> simplifies this to a single trainable block
+  $P\in\mathbb{R}^{l\times d}$, prepended <strong>only</strong> to the input embeddings — not at
+  every layer. The effect still reaches every layer, because attention lets later layers read
+  whatever the first layer wrote about the prompt tokens; it just has to propagate there through
+  the network's own computation rather than being injected directly. Lester et al. show that as
+  model scale grows into the billions of parameters, this simpler scheme closes almost the entire
+  gap to prefix-tuning and to full fine-tuning.</p>
+</section>
+
+<!-- ================= 3 ================= -->
+<section id="s3">
+  <span class="snum">§ 03</span>
+  <h2>Maths background — low rank &amp; intrinsic dimension</h2>
+  <div class="papers">
+    <a class="chip" href="https://arxiv.org/abs/2012.13255"><b>▸</b> Aghajanyan et al. 2020 — Intrinsic Dimensionality</a>
+  </div>
+
+  <p>A matrix $M\in\mathbb{R}^{d\times k}$ has <em class="term">rank</em> $\rho$ if $\rho$ is the
+  largest number of linearly independent rows it has (it's a theorem, not a coincidence, that
+  counting independent <em>columns</em> instead always gives the same number). $M$ is
+  <em class="term">low rank</em> if $\rho\ll\min(d,k)$.</p>
+
+  <div class="box intuition">
+    <span class="lab">What rank actually measures</span>
+    <p>Rank counts how many rows of $M$ carry genuinely <em>new</em> information — a row that's
+    just a scaled copy, or a sum, of other rows contributes nothing new and doesn't raise the
+    rank. Equivalently: rank is the smallest number of rank-1 "building block" matrices (each an
+    outer product of a column vector and a row vector) you need to add together to reconstruct
+    $M$ exactly. A matrix with rank $r$ can always be written as a product of two thin
+    matrices — one holding those $r$ column-vectors, one holding the $r$ row-vectors:</p>
+    $$M = BA,\qquad B\in\mathbb{R}^{d\times r},\ A\in\mathbb{R}^{r\times k}$$
+  </div>
+
+  <div class="box example">
+    <span class="lab">Worked example — full rank vs. rank 1</span>
+    <p>The $3\times3$ identity matrix has rank 3 (full rank for its size) — every row points in a
+    genuinely different direction, none is derivable from the others:</p>
+    $$I_3=\begin{bmatrix}1&0&0\\0&1&0\\0&0&1\end{bmatrix}$$
+    <p>Now compare $M=\begin{bmatrix}1&2\\2&4\\3&6\end{bmatrix}$. Every row is a multiple of the
+    first ($[2,4]=2{\cdot}[1,2]$, $[3,6]=3{\cdot}[1,2]$) — only <strong>one</strong> independent
+    direction, so $\operatorname{rank}(M)=1$, even though $M$ is a $3\times2$ matrix with 6
+    entries. And $M$ is exactly a rank-1 outer product — $B\in\mathbb{R}^{3\times1}$ times
+    $A\in\mathbb{R}^{1\times2}$:</p>
+    $$M=\begin{bmatrix}1\\2\\3\end{bmatrix}\begin{bmatrix}1&2\end{bmatrix}
+      =\begin{bmatrix}1&2\\2&4\\3&6\end{bmatrix}$$
+    <p>This is the $M=BA$ factorization above, made concrete: instead of storing 6 numbers, you
+    could store the 3+2=5 numbers in $B$ and $A$ and reconstruct $M$ perfectly. (Not much of a
+    saving at this tiny size — but the same idea at $d=k=4096$, $r=8$ is exactly LoRA's 256×
+    reduction from §4.)</p>
+  </div>
+
+  <p>This factorization is the entire mathematical content of LoRA. The only question is whether
+  it's reasonable to <em>assume</em> that a weight update $\Delta W$ during fine-tuning is
+  well-approximated this way — full rank in general, $\Delta W$ needs $d\cdot k$ numbers to
+  describe; if it happens to have low rank $r$, it only needs $r(d+k)$.</p>
+
+  <div class="box maths">
+    <span class="lab">Why believe ΔW is low rank?</span>
+    <p>Aghajanyan et al. (2020) measured the <em class="term">intrinsic dimension</em> of
+    fine-tuning: they showed that a pretrained language model can be fine-tuned nearly as well by
+    optimizing only within a small, randomly chosen subspace of the full parameter space — for
+    some tasks, a subspace of a few hundred dimensions recovers 90% of full fine-tuning's
+    performance, out of hundreds of millions of parameters available. This means the useful
+    <em>update</em> a task actually needs is intrinsically small, even though the model itself is
+    huge. LoRA's hypothesis (Hu et al. 2021) is the natural sharpening of this finding: instead of
+    a random low-dimensional subspace, constrain the update to be low rank in the specific,
+    structured sense of $\Delta W=BA$, and let training choose which directions within that
+    factorization matter.</p>
+  </div>
+</section>
+
+<!-- ================= 4 ================= -->
+<section id="s4">
+  <span class="snum">§ 04</span>
+  <h2>LoRA, step by step</h2>
+  <div class="papers">
+    <a class="chip" href="https://arxiv.org/abs/2106.09685"><b>▸</b> Hu et al. 2021 — LoRA</a>
+  </div>
+
+  <h3>1. The constraint</h3>
+  <p>Start from a frozen pretrained weight $W_0\in\mathbb{R}^{d\times d_{out}}$. Instead of
+  learning an arbitrary update $\Delta W$, constrain it to rank $r$:</p>
+
+  $$\Delta W = BA,\qquad B\in\mathbb{R}^{d\times r},\ A\in\mathbb{R}^{r\times d_{out}},\qquad r\ll\min(d,d_{out})$$
+
+  <h3>2. The forward pass</h3>
+  <p>For a single input vector $x\in\mathbb{R}^d$ (paper's convention) or, in this course's
+  row-vector convention, a whole batch $X\in\mathbb{R}^{n\times d}$:</p>
+
+  $$h = W_0x + \frac{\alpha}{r}BAx \qquad\Longleftrightarrow\qquad H = X\Big(W_0+\frac{\alpha}{r}BA\Big)$$
+
+  <p>$\alpha$ is a fixed scaling constant, a hyperparameter set once per LoRA layer (not
+  learned).</p>
+
+  <h3>3. Counting parameters</h3>
+  <p>Full fine-tuning of this one matrix trains $d\cdot d_{out}$ numbers. LoRA trains
+  $r(d+d_{out})$. LoRA is cheaper exactly when</p>
+
+  $$r(d+d_{out}) &lt; d\cdot d_{out} \iff r &lt; \frac{d\cdot d_{out}}{d+d_{out}}$$
+
+  <p>For a square matrix ($d=d_{out}$) this simplifies to $r&lt;d/2$ — so LoRA saves parameters for
+  <em>any</em> rank up to nearly half the hidden size. In practice $r$ is chosen far smaller still
+  (4–64, against hidden sizes in the thousands), which is why the savings run into the hundreds of
+  times, not just 2×.</p>
+
+  <h3>4. Initialization: why B = 0</h3>
+  <p>$B$ is initialized to all zeros; $A$ to small random (Gaussian) values. Since
+  $\Delta W = BA$ and $B=0$, we get $\Delta W=0$ at the very first training step — the model's
+  output is <em>exactly</em> the pretrained model's output, with no perturbation to undo before
+  training can make progress.</p>
+
+  <div class="box maths">
+    <span class="lab">Does A move on the first step?</span>
+    <p>Differentiate $H=X(W_0+BA)$ with respect to each trainable matrix. By the chain rule,
+    $\partial H/\partial B = XA$ and $\partial H/\partial A = (XB)^\top(\cdot)$ — i.e. the
+    gradient reaching $A$ is proportional to $B$. At initialization $B=0$, so $A$'s gradient is
+    exactly zero on the very first step; only $B$ (whose gradient is proportional to $A$, which is
+    <em>not</em> zero) actually moves. Once $B$ becomes nonzero on step 2, $A$'s gradient becomes
+    nonzero too, and both matrices train from then on. Zeroing $B$ rather than $A$ is what lets
+    training "wake up" in a single step instead of needing $A$ or $B$ to be perturbed first by
+    some other mechanism.</p>
+  </div>
+
+  <h3>5. Merging: why inference has zero added cost</h3>
+  <p>Because $H=X\big(W_0+\tfrac{\alpha}{r}BA\big)$ is linear in the sum, define a single merged
+  matrix $W' = W_0+\tfrac{\alpha}{r}BA$ once, after training finishes. At inference,
+  $H=XW'$ — an ordinary matrix multiply, identical in cost to the original unmodified model. The
+  low-rank structure only mattered during training, to keep the number of trainable parameters
+  small; it leaves no trace in the deployed model's architecture or latency.</p>
+
+  <h3>6. A numeric example</h3>
+  <p>Take $d=3$, $d_{out}=2$, rank $r=1$, $\alpha=2$ (so the scale $\alpha/r=2$):</p>
+
+  $$W_0=\begin{bmatrix}2&1\\0&1\\1&2\end{bmatrix},\qquad
+    B=\begin{bmatrix}1\\1\\0\end{bmatrix},\qquad A=\begin{bmatrix}1&2\end{bmatrix}$$
+
+  <p>$B$ and $A$ are both rank 1 by construction (a single column times a single row), so
+  $\Delta W=BA$ is a rank-1 matrix:</p>
+
+  $$\Delta W = BA = \begin{bmatrix}1\\1\\0\end{bmatrix}\begin{bmatrix}1&2\end{bmatrix}
+    = \begin{bmatrix}1&2\\1&2\\0&0\end{bmatrix},\qquad
+    W' = W_0+\frac{\alpha}{r}\Delta W = \begin{bmatrix}2&1\\0&1\\1&2\end{bmatrix}
+    + 2\begin{bmatrix}1&2\\1&2\\0&0\end{bmatrix} = \begin{bmatrix}4&5\\2&5\\1&2\end{bmatrix}$$
+
+  <div class="box example">
+    <span class="lab">Worked example — separate B,A vs. merged W′ agree exactly</span>
+    <p>Take one input row $x=[1,\ 1,\ 1]$. Computed the "unmerged" way, through $B$ and $A$
+    separately:</p>
+    $$xW_0 = [3,\ 4],\qquad xB = [2],\qquad (xB)A = [2,\ 4],\qquad
+      h = xW_0+\frac{\alpha}{r}(xB)A = [3,\ 4] + 2[2,\ 4] = [7,\ 12]$$
+    <p>Computed the "merged" way, using $W'$ directly:</p>
+    $$h = xW' = [1{\cdot}4+1{\cdot}2+1{\cdot}1,\ \ 1{\cdot}5+1{\cdot}5+1{\cdot}2] = [7,\ 12]$$
+    <p>Identical, as the algebra in step 5 guarantees. This is the whole basis for merging: compute
+    $W'$ once, and every future forward pass can use it directly instead of the two smaller
+    matrices.</p>
+  </div>
+
+  <h3>7. Which weight matrices to adapt</h3>
+  <p>LoRA can be applied to any weight matrix, but the original paper's ablation (fixing a total
+  parameter budget) found that spreading a fixed budget across <strong>both $W_Q$ and $W_V$</strong>
+  beats spending the whole budget on one matrix type at higher rank: "a rank of four captures
+  enough information in $\Delta W$ such that it is preferable to adapt more weight matrices than
+  adapting a single type of weights with a larger rank." Breadth (more matrices, lower rank each)
+  beats depth (one matrix, higher rank) under a fixed budget.</p>
+</section>
+
+<!-- ================= 5 ================= -->
+<section id="s5">
+  <span class="snum">§ 05</span>
+  <h2>Maths background — quantization &amp; the NF4 data type</h2>
+  <div class="papers">
+    <a class="chip" href="https://arxiv.org/abs/2106.08295"><b>▸</b> Nagel et al. 2021 — Quantization White Paper</a>
+    <a class="chip" href="https://arxiv.org/abs/2305.14314"><b>▸</b> Dettmers et al. 2023 — QLoRA</a>
+  </div>
+
+  <p>Standard uniform quantization maps a real number $x$ to a $b$-bit integer using a scale $s$
+  and an integer zero-point $z$:</p>
+
+  $$x_{int} = \operatorname{clamp}\!\big(\lfloor x/s\rceil + z,\ 0,\ 2^b-1\big),\qquad
+    \hat x = s\,(x_{int}-z)$$
+
+  <p>$\hat x$ is what the weight is actually multiplied by; the gap $|\hat x - x|$ is
+  quantization error. Uniform quantization spaces its representable values evenly — which wastes
+  precision if the real values being represented are <em>not</em> uniformly distributed.</p>
+
+  <div class="box maths">
+    <span class="lab">NF4: quantization levels chosen to match a normal distribution</span>
+    <p>Pretrained weights are empirically close to normally distributed. QLoRA's 4-bit
+    NormalFloat (NF4) data type exploits this directly: instead of spacing 16 representable values
+    evenly, it places them at the <strong>quantiles</strong> of a standard normal distribution
+    $N(0,1)$, so that each of the 16 bins contains an equal <em>probability mass</em> of a
+    normally-distributed weight tensor, not an equal numeric range. Formally, writing
+    $Q_X$ for the quantile function (inverse CDF) of $N(0,1)$, the $i$-th quantization level for a
+    $k$-bit code is</p>
+    $$q_i = \frac12\Big(Q_X\!\big(\tfrac{i}{2^k+1}\big) + Q_X\!\big(\tfrac{i+1}{2^k+1}\big)\Big)$$
+    <p>— the midpoint of two adjacent quantiles. Because $N(0,1)$'s mean is $0$, $Q_X$ is
+    antisymmetric about $p=0.5$ ($Q_X(p)=-Q_X(1-p)$), so this grid's middle index
+    $q_{2^{k-1}}$ cancels to exactly $0$ <em>in exact arithmetic</em> — but only if the two
+    quantile evaluations that feed it round identically in floating point, which isn't
+    guaranteed. NF4 avoids depending on that cancellation: it builds two half-tables at reduced
+    resolution (one for the negative side, one for the positive side) that share a single
+    endpoint fixed at exactly $0$, rather than relying on a symmetric grid to land there by luck.
+    Every weight tensor is first rescaled into $[-1,1]$ by its absolute maximum, then mapped to
+    the nearest $q_i$. The result: for normally-distributed weights, 4 bits of NF4 carry more
+    usable information than 4 bits of a generic linearly-spaced float.</p>
+  </div>
+
+  <div class="box example">
+    <span class="lab">Worked example — the actual NF4 table, and where it wins</span>
+    <p>With $k=4$ (16 levels), NF4's levels bunch up near zero and spread out in the tails —
+    unlike uniform levels, which are evenly spaced throughout. These are the real values (computed
+    from the asymmetric construction above, matching the QLoRA paper's Appendix E / the
+    bitsandbytes reference implementation), not a simplified symmetric approximation:</p>
+    <p style="font-family:var(--mono);font-size:.82rem;line-height:2;word-break:break-word">
+    <strong>NF4:</strong> −1, −.696, −.525, −.395, −.284, −.185, −.091, 0,
+    .080, .161, .246, .338, .441, .563, .723, 1<br>
+    <strong>uniform:</strong> −1, −.867, −.733, −.6, −.467, −.333, −.2, −.067,
+    .067, .2, .333, .467, .6, .733, .867, 1</p>
+    <p>Quantize 8 sample weights (already rescaled into $[-1,1]$) to the nearest level in each
+    scheme, then measure the average absolute error $|\hat x - x|$:</p>
+    <div class="tw">
+    <table>
+      <thead><tr><th>Weight $x$</th><th>NF4 dequantized</th><th>Uniform dequantized</th></tr></thead>
+      <tbody>
+        <tr><td>0.05</td><td>0.080</td><td>0.067</td></tr>
+        <tr><td>−0.12</td><td>−0.091</td><td>−0.067</td></tr>
+        <tr><td>0.31</td><td>0.338</td><td>0.333</td></tr>
+        <tr><td>−0.55</td><td>−0.525</td><td>−0.6</td></tr>
+        <tr><td>0.02</td><td>0</td><td>0.067</td></tr>
+        <tr><td>0.88</td><td>1.0</td><td>0.867</td></tr>
+        <tr><td>−0.03</td><td>0</td><td>−0.067</td></tr>
+        <tr><td>0.15</td><td>0.161</td><td>0.2</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Mean absolute error on these 8 points: <strong>0.037 for NF4</strong> vs.
+    <strong>0.036 for uniform</strong> — essentially tied, and the outlier at 0.88 (which lands on
+    an NF4 edge level) even tips it slightly in uniform's favor. Eight hand-picked points are not
+    enough to see NF4's real advantage; averaged over 20,000 simulated 64-weight blocks drawn from
+    a standard normal (matching how pretrained weights are actually distributed), NF4's mean
+    absolute error is <strong>14.7% lower</strong> than uniform's (0.073 vs. 0.085). NF4 is
+    optimal <em>in expectation</em> over normally-distributed weights — not guaranteed to win on
+    any one hand-picked block, which is exactly why the theoretical argument (equal probability
+    mass per bin) matters more than any single worked example.</p>
+  </div>
+
+  <div class="box maths">
+    <span class="lab">Double quantization</span>
+    <p>Quantization needs one scale constant per block of weights (blocks are typically 64
+    values). Storing those scale constants in fp32 is itself non-trivial memory at scale — so
+    QLoRA quantizes the scale constants a second time, from fp32 down to 8-bit, using a second,
+    coarser blocking. Dettmers et al. report this shrinks the per-parameter overhead of the scale
+    constants from about 0.5 bits down to roughly 0.127 bits — a small-sounding number that adds
+    up to gigabytes on a 65B-parameter model.</p>
+  </div>
+</section>
+
+<!-- ================= 6 ================= -->
+<section id="s6">
+  <span class="snum">§ 06</span>
+  <h2>QLoRA, step by step</h2>
+  <div class="papers">
+    <a class="chip" href="https://arxiv.org/abs/2305.14314"><b>▸</b> Dettmers et al. 2023 — QLoRA</a>
+  </div>
+
+  <h3>1. What's frozen, what's trained</h3>
+  <p>QLoRA keeps the LoRA picture from §4 unchanged — $\Delta W=BA$, only $B,A$ are trained — but
+  additionally stores the frozen base weight $W_0$ in 4-bit NF4 (§5) instead of 16-bit. $B$ and
+  $A$ themselves stay in a higher-precision format (bf16), since they're small and need to
+  accumulate gradients accurately.</p>
+
+  <h3>2. The forward/backward pass</h3>
+  <p>On every forward pass, each NF4-stored block of $W_0$ is <strong>dequantized on the fly</strong>
+  back to bf16 (via $\hat x = s(x_{int}-z)$, §5) just before the matrix multiply, then discarded —
+  it is never stored in bf16 for the whole model at once, only one block at a time. Gradients
+  flow through this dequantization into $B$ and $A$; $W_0$ itself receives no gradient and is
+  never updated, so it can stay compressed for the entire run.</p>
+
+  <h3>3. Paged optimizers</h3>
+  <p>Even with the base frozen and quantized, Adam's optimizer states for $B,A$ (§1) can spike
+  memory momentarily — e.g. during gradient checkpointing recomputation. QLoRA borrows NVIDIA's
+  unified memory paging to let those optimizer buffers spill to CPU RAM automatically when GPU
+  memory is tight, and page back in when needed, avoiding an out-of-memory crash instead of
+  needing to pre-allocate for the worst case.</p>
+
+  <div class="box why">
+    <span class="lab">Net effect</span>
+    <p>Combine 4-bit frozen weights + double quantization + paged optimizers, and a 65-billion
+    parameter model can be fine-tuned on a single 48GB GPU, at a quality matching full 16-bit
+    fine-tuning — a regime that would otherwise need multiple 80GB GPUs just to hold the weights
+    and Adam state.</p>
+  </div>
+</section>
+
+<!-- ================= 7 ================= -->
+<section id="s7">
+  <span class="snum">§ 07</span>
+  <h2>Maths background — weight normalization</h2>
+  <div class="papers">
+    <a class="chip" href="https://arxiv.org/abs/1602.07868"><b>▸</b> Salimans &amp; Kingma 2016 — Weight Normalization</a>
+  </div>
+
+  <p>Any nonzero vector $v$ can be written exactly as its length times a unit vector pointing in
+  its direction:</p>
+
+  $$v = \lVert v\rVert \cdot \frac{v}{\lVert v\rVert}$$
+
+  <p>This is a trivial identity, but reparameterizing a <em>learned</em> weight this way — training
+  the magnitude $\lVert v\rVert$ and the direction $v/\lVert v\rVert$ as separate quantities,
+  rather than training $v$ directly — changes the optimization dynamics. Salimans &amp; Kingma
+  (2016) introduced this as <em class="term">weight normalization</em>: applied per output
+  neuron's weight vector, it decouples "how large is this neuron's weight" from "which direction
+  does it point," which improves the conditioning of the gradient with respect to each factor
+  and, empirically, speeds up convergence.</p>
+
+  <div class="box intuition">
+    <span class="lab">Why decoupling helps</span>
+    <p>When magnitude and direction are entangled in one vector $v$, a gradient step that should
+    only rescale $v$ (make it a bit bigger) and a gradient step that should only rotate it (point
+    it a bit differently) both get mixed into the same update, at the same effective step size.
+    Splitting $v$ into $\lVert v\rVert\cdot(v/\lVert v\rVert)$ gives the optimizer two separate
+    "controls" — one purely for size, one purely for orientation — each of which can move at its
+    own natural scale.</p>
+  </div>
+
+  <div class="box example">
+    <span class="lab">Worked example</span>
+    <p>$v=[3,4]$. Then $\lVert v\rVert=\sqrt{3^2+4^2}=5$, and $v/\lVert v\rVert=[0.6,\,0.8]$
+    — a unit vector, since $0.6^2+0.8^2=1$. Reconstructing: $5\cdot[0.6,\,0.8]=[3,4]=v$ exactly.</p>
+  </div>
+</section>
+
+<!-- ================= 8 ================= -->
+<section id="s8">
+  <span class="snum">§ 08</span>
+  <h2>DoRA, step by step</h2>
+  <div class="papers">
+    <a class="chip" href="https://arxiv.org/abs/2402.09353"><b>▸</b> Liu et al. 2024 — DoRA</a>
+  </div>
+
+  <h3>1. Decompose the weight matrix</h3>
+  <p>DoRA applies the magnitude/direction split of §7 <em>per column</em> of a weight matrix
+  $W\in\mathbb{R}^{d\times k}$ (Eq. 2 of the paper):</p>
+
+  $$W = m\cdot\frac{V}{\lVert V\rVert_c} = \lVert W\rVert_c\cdot\frac{W}{\lVert W\rVert_c}$$
+
+  <p>$V\in\mathbb{R}^{d\times k}$ is the direction matrix; $\lVert V\rVert_c$ denotes the
+  <em>column-wise</em> norm (one scalar per column, so $V/\lVert V\rVert_c$ has every column
+  unit-length); $m\in\mathbb{R}^{1\times k}$ is the magnitude — one learned scalar per column.
+  The right-hand equality is just the identity from §7 applied to the original weight $W$: it
+  shows the decomposition is exact and reversible, not an approximation.</p>
+
+  <h3>2. Initialize to reproduce the pretrained model</h3>
+  <p>Set $V=W_0$ and $m=\lVert W_0\rVert_c$ (the column norms of the original frozen weight). By
+  the identity above, this makes $W = \lVert W_0\rVert_c\cdot(W_0/\lVert W_0\rVert_c) = W_0$
+  <strong>exactly</strong> — training starts at the pretrained model, the same invariant LoRA's
+  zero-init achieves in §4, just reached a different way.</p>
+
+  <h3>3. Apply LoRA only to the direction</h3>
+  <p>From here, DoRA trains $m$ directly (it's just a vector — cheap), and applies LoRA's
+  low-rank update only inside the direction term:</p>
+
+  $$V = W_0 + BA$$
+
+  <p>So the trainable parameters are exactly LoRA's $B,A$, plus the small magnitude vector $m$ —
+  negligible extra cost over plain LoRA, and still mergeable into a single weight matrix after
+  training (no extra inference latency).</p>
+
+  <h3>4. Why this is more expressive than plain LoRA</h3>
+  <p>The paper's own analysis compares how magnitude and direction change during full fine-tuning
+  versus during plain LoRA fine-tuning, and finds the two are more <em>tightly coupled</em> under
+  LoRA than under full fine-tuning — LoRA's single additive update $BA$ tends to move magnitude
+  and direction together, whereas a fully fine-tuned model is freer to change one without the
+  other. By training $m$ as an independent parameter instead of letting it fall out passively from
+  $BA$, DoRA gives the optimizer that same freedom back, which is what closes more of the
+  accuracy gap to full fine-tuning.</p>
+
+  <h3>5. A numeric example, continuing §4's LoRA example</h3>
+  <p>Reuse $W_0$, $B$, $A$, $\alpha/r$ from §4's worked example. Step 1: check the decomposition
+  is exact for $W_0$ itself. Its column norms are $\lVert W_0\rVert_c=[\sqrt5,\sqrt6]\approx
+  [2.236,\,2.449]$, so $m_0=\lVert W_0\rVert_c$ and $V_0=W_0$ reconstruct $W_0$ exactly (§7's
+  identity, applied column by column) — this is DoRA's zero-effect initialization.</p>
+
+  <p>Step 2: apply the same LoRA update as §4 inside the direction term,
+  $V'=W_0+\tfrac{\alpha}{r}BA=\begin{bmatrix}4&5\\2&5\\1&2\end{bmatrix}$ — identical to §4's
+  merged $W'$, since nothing has changed yet except relabeling it as a direction matrix. Its
+  column norms are now $\lVert V'\rVert_c\approx[4.583,\,7.348]$.</p>
+
+  <div class="box example">
+    <span class="lab">Worked example — DoRA reaches weights plain LoRA cannot</span>
+    <p>If $m$ were simply left passive at $\lVert V'\rVert_c$, DoRA's output would equal plain
+    LoRA's $W'$ exactly — no different from §4. The whole point of DoRA is that $m$ is trained
+    <strong>independently</strong>. Suppose training instead found $m_{\text{learned}}=[5.0,\,6.5]$
+    — close to but not equal to the passive value $[4.583,\,7.348]$:</p>
+    $$W_{\text{DoRA}} = m_{\text{learned}}\cdot\frac{V'}{\lVert V'\rVert_c}
+      = \begin{bmatrix}4.364&4.423\\2.182&4.423\\1.091&1.769\end{bmatrix}
+      \qquad\text{vs. plain LoRA's}\qquad
+      W'=\begin{bmatrix}4&5\\2&5\\1&2\end{bmatrix}$$
+    <p>Same $B$, same $A$, same direction update — but a visibly different final weight matrix,
+    because $m$ was free to land somewhere other than the column norm that $BA$ would have
+    produced on its own. That extra degree of freedom, multiplied across every column of every
+    adapted matrix, is what closes more of the gap to full fine-tuning.</p>
+  </div>
+</section>
+
+<!-- ================= 9 ================= -->
+<section id="s9">
+  <span class="snum">§ 09</span>
+  <h2>Maths background — SVD &amp; the best low-rank approximation</h2>
+
+  <p>Every matrix $M\in\mathbb{R}^{d\times k}$ has a <em class="term">singular value
+  decomposition</em>:</p>
+
+  $$M = U\Sigma V^\top$$
+
+  <p>$U\in\mathbb{R}^{d\times d}$ and $V\in\mathbb{R}^{k\times k}$ are orthogonal ($U^\top U=I$,
+  $V^\top V=I$); $\Sigma$ is diagonal with non-negative entries $\sigma_1\ge\sigma_2\ge\dots\ge0$,
+  the <em class="term">singular values</em>, sorted largest first. Each column $u_i$ of $U$ paired
+  with the matching row $v_i^\top$ of $V^\top$ and singular value $\sigma_i$ forms a
+  <em class="term">rank-1 triplet</em> $\sigma_i u_i v_i^\top$, and $M$ is exactly the sum of all
+  of them: $M=\sum_i \sigma_i u_i v_i^\top$.</p>
+
+  <div class="box maths">
+    <span class="lab">The Eckart–Young–Mirsky theorem</span>
+    <p>If you keep only the $r$ triplets with the <strong>largest</strong> singular values and
+    drop the rest — forming $M_r=\sum_{i=1}^r \sigma_i u_i v_i^\top$ — the result is
+    <em>provably</em> the best possible rank-$r$ approximation of $M$, in the sense of minimizing
+    $\lVert M-M_r\rVert_F$ (or the spectral norm) over <strong>every</strong> rank-$r$ matrix, not
+    just ones built from truncated SVD. This is why SVD, and not some other factorization, is the
+    principled way to ask "which $r$ directions matter most in this matrix" — truncating the
+    smallest singular values throws away precisely the least-important structure, by this
+    optimality guarantee.</p>
+  </div>
+
+  <div class="box example">
+    <span class="lab">Worked example — truncated SVD beats an arbitrary rank-1 guess</span>
+    <p>Take $M=\begin{bmatrix}3&1&2\\2&4&1\\1&1&5\end{bmatrix}$. Its singular values are
+    $\sigma=[6.78,\,3.56,\,1.82]$. Keeping only the largest, $r=1$, gives</p>
+    $$M_1=\sigma_1u_1v_1^\top=\begin{bmatrix}1.62&1.66&2.46\\1.75&1.79&2.65\\2.21&2.26&3.35\end{bmatrix},
+      \qquad \lVert M-M_1\rVert_F = 4.00$$
+    <p>Now compare against a different, non-SVD rank-1 guess — say, keep only the top-left entry
+    and zero everything else, $M_{\text{arb}}=\begin{bmatrix}3&0&0\\0&0&0\\0&0&0\end{bmatrix}$
+    (also rank 1):</p>
+    $$\lVert M-M_{\text{arb}}\rVert_F = 7.28$$
+    <p>$4.00 &lt; 7.28$ — the truncated-SVD approximation has <strong>roughly half the error</strong>
+    of the arbitrary rank-1 alternative, exactly as Eckart–Young guarantees it must (it's the
+    <em>smallest possible</em> error among <strong>all</strong> rank-1 matrices, not just this one
+    alternative).</p>
+  </div>
+
+  <p>This theorem is the reason AdaLoRA (§10) chooses to parameterize its update in SVD form: if
+  you're going to allocate a limited rank budget across many weight matrices, the singular values
+  tell you, per matrix, exactly which rank-1 pieces are safest to drop.</p>
+</section>
+
+<!-- ================= 10 ================= -->
+<section id="s10">
+  <span class="snum">§ 10</span>
+  <h2>AdaLoRA, step by step</h2>
+  <div class="papers">
+    <a class="chip" href="https://arxiv.org/abs/2303.10512"><b>▸</b> Zhang et al. 2023 — AdaLoRA</a>
+  </div>
+
+  <h3>1. Parameterize the update in SVD form</h3>
+  <p>Instead of LoRA's plain product $BA$, AdaLoRA writes the update as an explicit SVD-like
+  triplet product:</p>
+
+  $$\Delta W = P\Lambda Q,\qquad P\in\mathbb{R}^{d\times r},\ \Lambda=\operatorname{diag}(\lambda_1,\dots,\lambda_r),\ Q\in\mathbb{R}^{r\times d_{out}}$$
+
+  <p>$P$ and $Q$ play the role of $U$ and $V^\top$ from §9 (restricted to $r$ columns/rows); the
+  diagonal $\Lambda$ plays the role of the singular values $\Sigma$. Computing an exact SVD every
+  training step would be far too expensive, so $P,\Lambda,Q$ are simply trained as ordinary
+  parameters via gradient descent — with one addition needed to keep them SVD-<em>like</em>.</p>
+
+  <h3>2. Keep P and Q close to orthonormal</h3>
+  <p>Without a constraint, gradient descent has no reason to keep $P$'s columns and $Q$'s rows
+  orthonormal the way true SVD factors are. AdaLoRA adds a regularization term to the training
+  loss that penalizes deviation from orthonormality:</p>
+
+  $$R(P,Q) = \lVert P^\top P - I\rVert_F^2 + \lVert QQ^\top - I\rVert_F^2$$
+
+  <p>added to the task loss with a small coefficient. This keeps the $r$ triplets $(p_i,\lambda_i,q_i)$
+  behaving like genuine (approximate) singular-value triplets throughout training — each roughly
+  independent of the others — which is what makes it meaningful to prune one triplet without
+  disturbing the rest.</p>
+
+  <h3>3. Score each triplet's importance</h3>
+  <p>AdaLoRA needs a way to decide <em>which</em> triplets, across <em>all</em> the weight
+  matrices being adapted, are least useful. It starts from a per-parameter sensitivity score —
+  how much the loss would change if this parameter were zeroed, approximated to first order by
+  gradient times weight:</p>
+
+  $$I(w_{ij}) = \big|\,w_{ij}\,\nabla_{w_{ij}}\mathcal{L}\,\big|$$
+
+  <p>Raw sensitivity is noisy from one minibatch to the next, so it's smoothed with an exponential
+  moving average $\bar I^{(t)}$, combined with an uncertainty term $\bar U^{(t)}$ (how much the
+  sensitivity itself has been fluctuating) into a stabilized score
+  $s^{(t)}(w_{ij}) = \bar I^{(t)}(w_{ij})\cdot \bar U^{(t)}(w_{ij})$. The importance of an entire
+  triplet $k$ is then the singular value's own score plus the average score of every parameter in
+  its $P$-column and $Q$-row:</p>
+
+  $$S_{k,i} = s(\lambda_{k,i}) + \frac{1}{d}\sum_{j=1}^{d} s(P_{k,ji}) + \frac{1}{d_{out}}\sum_{j=1}^{d_{out}} s(Q_{k,ij})$$
+
+  <h3>4. Prune and reallocate the rank budget</h3>
+  <p>Triplets with the lowest importance score $S_{k,i}$ have their $\lambda_{k,i}$ set to zero —
+  effectively removing that rank-1 piece from that matrix's update. The <em>total</em> number of
+  non-zero triplets across all adapted matrices is controlled by a schedule that starts above the
+  final target budget, holds during an initial warm-up, then <strong>cubically</strong> decays
+  down to the target budget over the remaining training steps. Because pruning is scored
+  per-triplet, per-matrix, the freed-up budget doesn't vanish — it simply means matrices whose
+  triplets kept scoring high end up retaining a higher effective rank than matrices whose triplets
+  were pruned away early, all under one global parameter budget.</p>
+</section>
+
+<!-- ================= 11 ================= -->
+<section id="s11">
+  <span class="snum">§ 11</span>
+  <h2>The LoRA family, side by side</h2>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>Method</th><th>What's new vs. LoRA</th><th>Base weight precision</th><th>Rank</th><th>Extra trained params</th></tr></thead>
+    <tbody>
+      <tr><td><strong>LoRA</strong></td><td>—</td><td>16-bit, frozen</td><td>fixed $r$</td><td>$B,A$</td></tr>
+      <tr><td><strong>QLoRA</strong></td><td>4-bit frozen base (NF4) + double quantization + paged optimizers</td><td>4-bit, frozen</td><td>fixed $r$</td><td>$B,A$</td></tr>
+      <tr><td><strong>DoRA</strong></td><td>Magnitude/direction decomposition; LoRA applied only to direction</td><td>16-bit, frozen</td><td>fixed $r$</td><td>$B,A$ + magnitude vector $m$</td></tr>
+      <tr><td><strong>AdaLoRA</strong></td><td>SVD-form update + orthogonality regularizer + importance-pruned, adaptively allocated rank</td><td>16-bit, frozen</td><td>adaptive, per matrix</td><td>$P,\Lambda,Q$</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>All four share the same two invariants that make LoRA-style methods practical in the first
+  place: (1) the base weight $W_0$ is never updated, only ever read, so it can be frozen and even
+  compressed; and (2) whatever the trainable addition is, it can be algebraically folded back into
+  a single weight matrix once training ends, so none of them add inference-time latency.</p>
+</section>
+
+<!-- ================= 12 ================= -->
+<section id="s12">
+  <span class="snum">§ 12</span>
+  <h2>Reading list</h2>
+
+  <h3>Read these first</h3>
+  <ul class="reflist">
+    <li><span class="tag core">CORE</span> Hu et al. (2021), <em>LoRA: Low-Rank Adaptation of
+      Large Language Models</em> — <a href="https://arxiv.org/abs/2106.09685">arXiv:2106.09685</a></li>
+    <li><span class="tag core">CORE</span> Lialin et al. (2023), <em>Scaling Down to Scale Up: A
+      Guide to Parameter-Efficient Fine-Tuning</em> — <a href="https://arxiv.org/abs/2303.15647">arXiv:2303.15647</a></li>
+    <li><span class="tag maths">MATHS</span> Aghajanyan et al. (2020), <em>Intrinsic
+      Dimensionality Explains the Effectiveness of Language Model Fine-Tuning</em> —
+      <a href="https://arxiv.org/abs/2012.13255">arXiv:2012.13255</a></li>
+  </ul>
+
+  <h3>The LoRA family</h3>
+  <ul class="reflist">
+    <li><span class="tag arch">ARCH</span> Dettmers et al. (2023), <em>QLoRA: Efficient
+      Finetuning of Quantized LLMs</em> — <a href="https://arxiv.org/abs/2305.14314">arXiv:2305.14314</a></li>
+    <li><span class="tag arch">ARCH</span> Liu et al. (2024), <em>DoRA: Weight-Decomposed
+      Low-Rank Adaptation</em> — <a href="https://arxiv.org/abs/2402.09353">arXiv:2402.09353</a></li>
+    <li><span class="tag arch">ARCH</span> Zhang et al. (2023), <em>AdaLoRA: Adaptive Budget
+      Allocation for Parameter-Efficient Fine-Tuning</em> — <a href="https://arxiv.org/abs/2303.10512">arXiv:2303.10512</a></li>
+    <li><span class="tag maths">MATHS</span> Salimans &amp; Kingma (2016), <em>Weight
+      Normalization</em> — <a href="https://arxiv.org/abs/1602.07868">arXiv:1602.07868</a></li>
+  </ul>
+
+  <h3>Other PEFT families</h3>
+  <ul class="reflist">
+    <li><span class="tag eff">FAMILY</span> Houlsby et al. (2019), <em>Parameter-Efficient
+      Transfer Learning for NLP</em> (adapters) — <a href="https://arxiv.org/abs/1902.00751">arXiv:1902.00751</a></li>
+    <li><span class="tag eff">FAMILY</span> Zaken et al. (2021), <em>BitFit</em> —
+      <a href="https://arxiv.org/abs/2106.10199">arXiv:2106.10199</a></li>
+    <li><span class="tag eff">FAMILY</span> Li &amp; Liang (2021), <em>Prefix-Tuning</em> —
+      <a href="https://arxiv.org/abs/2101.00190">arXiv:2101.00190</a></li>
+    <li><span class="tag eff">FAMILY</span> Lester et al. (2021), <em>The Power of Scale for
+      Parameter-Efficient Prompt Tuning</em> — <a href="https://arxiv.org/abs/2104.08691">arXiv:2104.08691</a></li>
+  </ul>
+
+  <h3>Maths background</h3>
+  <ul class="reflist">
+    <li><span class="tag maths">MATHS</span> Nagel et al. (2021), <em>A White Paper on Neural
+      Network Quantization</em> — <a href="https://arxiv.org/abs/2106.08295">arXiv:2106.08295</a></li>
+  </ul>
+
+  <h3>Course textbook mapping</h3>
+  <p><strong>TB2</strong> (Chakraborty, <em>Introduction to Large Language Models</em>) —
+  Module 3 chapters cover PEFT and model compression. <strong>RB3</strong> — every arXiv link
+  above.</p>
+</section>
+
+</main>
+</div>
+
+<footer>
+  CS GXYZ · Agentic AI · Module 3 · Birla Institute of Technology &amp; Science, Pilani ·
+  Second Semester 2025–26<br>
+  Instructor: Dr. Dhruv Kumar
+</footer>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  if (window.renderMathInElement) {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: "$$", right: "$$", display: true},
+        {left: "\\[", right: "\\]", display: true},
+        {left: "$", right: "$", display: false},
+        {left: "\\(", right: "\\)", display: false}
+      ],
+      throwOnError: false
+    });
+  }
+});
+
+/* ---------- TOC scrollspy ---------- */
+(function () {
+  const links = Array.from(document.querySelectorAll("nav.toc a"));
+  const map = new Map(links.map(a => [a.getAttribute("href").slice(1), a]));
+  const obs = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) {
+      if (en.isIntersecting) {
+        links.forEach(a => a.classList.remove("active"));
+        const a = map.get(en.target.id);
+        if (a) a.classList.add("active");
+      }
+    });
+  }, {rootMargin: "-10% 0px -75% 0px", threshold: 0});
+  document.querySelectorAll("section[id]").forEach(s => obs.observe(s));
+})();
+</script>
+</body>
+</html>

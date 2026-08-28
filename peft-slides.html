@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PEFT — Dhruv Kumar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<style>
+/* ===== Solarized Light — fixed palette ===== */
+:root{
+  --base3:#fdf6e3; --base2:#eee8d5; --base1:#93a1a1; --base0:#839496;
+  --base00:#657b83; --base01:#586e75; --base02:#073642; --base03:#002b36;
+  --yellow:#b58900; --orange:#cb4b16; --red:#dc322f; --magenta:#d33682;
+  --violet:#6c71c4; --blue:#268bd2; --cyan:#2aa198; --green:#859900;
+  --rule:rgba(147,161,161,.42);
+  --serif:"IBM Plex Serif",Georgia,serif;
+  --sans:"IBM Plex Sans Condensed","IBM Plex Sans",Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --u:clamp(13px,1.42vw,22px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--base3)}
+body{font-family:var(--serif);color:var(--base01);font-size:var(--u);line-height:1.5;
+  -webkit-font-smoothing:antialiased}
+
+/* ---------- deck ---------- */
+#deck{position:relative;height:100vh;width:100vw}
+.slide{position:absolute;inset:0;display:none;flex-direction:column;
+  padding:5vh 6vw 6vh;overflow:hidden}
+.slide.on{display:flex}
+@media (prefers-reduced-motion:no-preference){
+  .slide.on{animation:fade .3s ease both}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+}
+
+/* ---------- typography ---------- */
+h1{font-family:var(--sans);font-weight:700;font-size:3.4em;line-height:.98;letter-spacing:-.02em;
+  color:var(--base03);margin:0 0 .2em}
+h2{font-family:var(--sans);font-weight:700;font-size:1.85em;line-height:1.06;letter-spacing:-.015em;
+  color:var(--base03);margin:0 0 .8em;flex:0 0 auto}
+h2 .accent{color:var(--blue)}
+.body{flex:1;min-height:0;overflow:auto;padding-right:.4em}
+p{margin:0 0 .8em}
+strong{color:var(--base03);font-weight:600}
+.big{font-size:1.2em;line-height:1.4}
+ul,ol{margin:0 0 .9em;padding-left:1.4em}
+ol{list-style-position:outside}
+li{margin:.42em 0}
+ul li::marker{color:var(--blue)}
+ol li::marker{color:var(--orange);font-family:var(--mono);font-size:.85em}
+code{font-family:var(--mono);font-size:.86em;background:var(--base2);padding:.06em .32em;border-radius:3px;color:var(--base02)}
+a{color:var(--blue);text-decoration:none;border-bottom:1px solid rgba(38,139,210,.4)}
+em.t{font-style:normal;font-weight:600;color:var(--violet)}
+
+/* ---------- layout helpers ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:2.4em;align-items:start}
+.cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5em}
+.stack{display:flex;flex-direction:column;gap:.8em}
+
+/* ---------- cards & tiles ---------- */
+.card{background:var(--base2);border-left:3px solid var(--c,var(--base1));
+  padding:.85em 1em;border-radius:0 4px 4px 0}
+.card .lab{font-family:var(--sans);font-size:.6em;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--c,var(--base00));display:block;margin-bottom:.35em}
+.card p:last-child,.card ul:last-child{margin-bottom:0}
+.key{--c:var(--magenta)} .int{--c:var(--cyan)} .warn{--c:var(--red)}
+.math{--c:var(--violet)} .ex{--c:var(--green)} .note{--c:var(--yellow)} .q{--c:var(--blue)}
+
+.tile{border:1px solid var(--rule);border-radius:5px;padding:.9em 1em;background:var(--base3)}
+.tile h4{font-family:var(--sans);font-size:.78em;font-weight:600;color:var(--base03);
+  margin:0 0 .3em;letter-spacing:.02em}
+.tile p{font-size:.86em;margin:0;color:var(--base00)}
+
+/* ---------- tables ---------- */
+table{border-collapse:collapse;width:100%;font-family:var(--sans);font-size:.82em}
+th{text-align:left;font-size:.72em;letter-spacing:.1em;text-transform:uppercase;color:var(--base00);
+  border-bottom:1.5px solid var(--base02);padding:.4em .6em;font-weight:600}
+td{padding:.42em .6em;border-bottom:1px solid var(--rule);vertical-align:top}
+tr.hl td{background:var(--base2);color:var(--base03)}
+
+/* ---------- math ---------- */
+.katex{color:var(--base02)}
+.katex-display{margin:.7em 0!important;overflow-x:auto;overflow-y:hidden}
+.eq{background:var(--base2);border-radius:5px;padding:.35em 1em;margin:.7em 0}
+.eq.hero{border:1px solid var(--rule);background:var(--base3)}
+
+/* ---------- chrome: bare page counter only ---------- */
+#foot{position:fixed;right:6vw;bottom:2vh;font-family:var(--mono);font-size:.62em;
+  color:var(--base1);z-index:10}
+
+/* ---------- title slide ---------- */
+.slide.title{justify-content:center}
+.titlemeta{margin-top:1.3em}
+.titlemeta .author{display:block;font-family:var(--sans);font-weight:600;font-size:1.4em;color:var(--base02)}
+.titlemeta .affil{display:block;font-family:var(--sans);font-size:1.05em;color:var(--base00);margin-top:.25em}
+
+/* ---------- overview mode ---------- */
+#ov{position:fixed;inset:0;background:rgba(253,246,227,.97);z-index:30;display:none;
+  overflow:auto;padding:3vh 4vw}
+#ov.on{display:block}
+#ov h3{font-family:var(--sans);font-size:1em;color:var(--base03);margin:0 0 1em;letter-spacing:.02em}
+.ovgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.6em}
+.ovcard{border:1px solid var(--rule);border-radius:4px;padding:.6em .7em;cursor:pointer;
+  background:var(--base3);font-family:var(--sans);font-size:.72em;line-height:1.3}
+.ovcard:hover{border-color:var(--blue);background:var(--base2)}
+.ovcard .n2{font-family:var(--mono);font-size:.85em;color:var(--orange);display:block}
+
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+@media (max-width:760px){
+  .cols,.cols3{grid-template-columns:1fr;gap:1em}
+  .slide{padding:3vh 5vw 6vh}
+  h1{font-size:2.4em}
+}
+
+/* ---------- print / PDF export: one slide per page, native vector output ---------- */
+@media print{
+  @page{size:1920px 1080px;margin:0}
+  html,body{height:auto;overflow:visible}
+  #deck{position:static;height:auto}
+  .slide{position:static !important;display:flex !important;width:1920px;height:1080px;
+    animation:none !important;break-after:page;page-break-after:always}
+  .slide:last-of-type{break-after:auto;page-break-after:auto}
+  .slide .body{overflow:visible}
+  .cols{grid-template-columns:1fr 1fr !important}
+  .cols3{grid-template-columns:repeat(3,1fr) !important}
+  #foot,#ov{display:none !important}
+}
+</style>
+</head>
+<body>
+
+<div id="deck">
+
+<!-- ============ TITLE ============ -->
+<section class="slide title">
+  <h1>Parameter-Efficient<br>Fine-Tuning</h1>
+  <div class="titlemeta"><span class="author">Dhruv Kumar</span><span class="affil">BITS Pilani</span></div>
+</section>
+
+<!-- ============ FULL FINE-TUNING BASELINE ============ -->
+<section class="slide">
+  <h2>Full fine-tuning: the baseline</h2>
+  <div class="body">
+    <p>Full fine-tuning updates <strong>every</strong> weight matrix in a pretrained model, using
+    gradients computed from a smaller, labeled, task-specific dataset.</p>
+    <div class="card warn"><span class="lab">Why this motivates PEFT</span>
+      <p>For a multi-billion-parameter model, updating and storing gradients for every weight puts
+      fine-tuning out of reach on a single consumer GPU. PEFT methods avoid this by leaving almost
+      all of the pretrained weights untouched.</p></div>
+  </div>
+</section>
+
+<!-- ============ WHAT IS PEFT ============ -->
+<section class="slide">
+  <h2>What is PEFT?</h2>
+  <div class="body">
+    <p>Parameter-efficient fine-tuning (PEFT) adapts a pretrained model to a new task by training
+    a <strong>small fraction</strong> of its parameters — often under 1% — while keeping the rest
+    frozen.</p>
+    <p>PEFT methods fall into four families:</p>
+    <ul>
+      <li><strong>Additive</strong> — insert new trainable modules into the network (e.g.
+      <em>adapters</em>: small bottleneck layers between existing ones).</li>
+      <li><strong>Selective</strong> — train a subset of the existing parameters (e.g.
+      <em>BitFit</em>: only the bias terms).</li>
+      <li><strong>Reparameterization</strong> — train a low-rank or otherwise compressed update to
+      existing weights (e.g. <strong>LoRA</strong> — the focus of the rest of this lecture).</li>
+      <li><strong>Soft-prompt</strong> — prepend trainable vectors to the input or activations,
+      freezing everything else (e.g. prefix-tuning, prompt tuning).</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ WHAT IS RANK ============ -->
+<section class="slide">
+  <h2>What is rank?</h2>
+  <div class="body">
+    <p>The <strong>rank</strong> of a matrix is the number of linearly independent rows it has
+    (counting independent columns instead always gives the same number). It measures how much
+    genuinely <em>new</em> information the matrix contains — a row that's just a scaled copy, or a
+    sum, of other rows adds nothing new and doesn't raise the rank.</p>
+    <div class="card int"><span class="lab">How to compute it: row reduction</span>
+      <p>Use elementary row operations (subtract a multiple of one row from another) to reduce the
+      matrix to echelon form. The rank is the number of <strong>nonzero rows</strong> left.</p></div>
+    <p>Example: $M=\begin{bmatrix}1&2\\2&4\\3&6\end{bmatrix}$ — every row is a multiple of the
+    first one:</p>
+    <div class="eq hero" style="font-size:.92em">$$\begin{bmatrix}1&2\\2&4\\3&6\end{bmatrix}
+      \xrightarrow[R_3\to R_3-3R_1]{R_2\to R_2-2R_1}
+      \begin{bmatrix}1&2\\0&0\\0&0\end{bmatrix}$$</div>
+    <p>Only <strong>1</strong> nonzero row survives, so $\operatorname{rank}(M)=1$ — even though
+    $M$ is $3\times2$ with 6 entries. Compare the $3\times3$ identity $I_3$: no row can be reduced
+    away, so all 3 rows stay nonzero and $\operatorname{rank}(I_3)=3$, <em>full</em> rank for its
+    size.</p>
+  </div>
+</section>
+
+<!-- ============ LORA: IDEA + EQUATION ============ -->
+<section class="slide">
+  <h2>LoRA: low-rank adaptation</h2>
+  <div class="body">
+    <p>Instead of training the full update $\Delta W$ to a weight matrix, LoRA constrains it to be
+    <strong>low rank</strong>: $\Delta W = BA$, a product of two thin matrices.</p>
+    <div class="eq hero">$$H = X\Big(W_0 + \tfrac{\alpha}{r}BA\Big)$$</div>
+    <p>$X\in\mathbb{R}^{n\times d}$ — input; $W_0\in\mathbb{R}^{d\times d_{out}}$ — frozen
+    pretrained weight; $B\in\mathbb{R}^{d\times r}$, $A\in\mathbb{R}^{r\times d_{out}}$ — the only
+    trainable matrices, rank $r\ll\min(d,d_{out})$; $\alpha$ — a fixed scaling constant (tuning
+    $\alpha$ behaves like tuning a learning rate).</p>
+    <div class="card int"><span class="lab">Two details that make it work</span>
+      <p>$B$ is initialized to <strong>all zeros</strong> (and $A$ to small random values), so
+      $\Delta W=0$ and training starts exactly at the pretrained model. After training, $BA$ can
+      be <strong>merged</strong> directly into $W_0$ — inference has zero added latency.</p></div>
+  </div>
+</section>
+
+<!-- ============ LORA: A NUMERIC EXAMPLE ============ -->
+<section class="slide">
+  <h2>LoRA: a numeric example</h2>
+  <div class="body">
+    <p>Take $d=3$, $d_{out}=2$, rank $r=1$, $\alpha=2$ (scale $\alpha/r=2$):</p>
+    <div class="eq hero" style="font-size:.92em">$$W_0=\begin{bmatrix}2&1\\0&1\\1&2\end{bmatrix}\qquad
+      B=\begin{bmatrix}1\\1\\0\end{bmatrix}\qquad A=\begin{bmatrix}1&2\end{bmatrix}$$</div>
+    <div class="eq" style="font-size:.9em">$$\Delta W=BA=\begin{bmatrix}1&2\\1&2\\0&0\end{bmatrix}
+      \qquad W'=W_0+\tfrac{\alpha}{r}\Delta W=\begin{bmatrix}4&5\\2&5\\1&2\end{bmatrix}$$</div>
+    <div class="card ex"><span class="lab">Separate B,A vs. merged W′ agree exactly</span>
+      <p>For input $x=[1,1,1]$: through $B,A$ separately,
+      $h=xW_0+\tfrac{\alpha}{r}(xB)A=[3,4]+2[2,4]=[7,12]$. Through the merged $W'$ directly,
+      $h=xW'=[7,12]$ — identical. This is why merging costs nothing at inference: the two are
+      algebraically the same computation.</p></div>
+  </div>
+</section>
+
+<!-- ============ LORA: VERIFIED PARAMETER SAVINGS ============ -->
+<section class="slide">
+  <h2>LoRA: verified parameter savings</h2>
+  <div class="body">
+    <p>Take one $4096\times4096$ projection matrix (a typical hidden size) with LoRA rank $r=8$:</p>
+    <div class="eq hero" style="font-size:.95em">$$d\times d = 4096\times4096 = 16{,}777{,}216
+      \qquad\text{vs.}\qquad r(d+d) = 8\times8192 = 65{,}536$$</div>
+    <p>That's a <strong>256×</strong> reduction in trainable parameters for one matrix — and the
+    same ratio holds at full-model scale, since every matrix shrinks by the same factor.</p>
+    <p>Apply LoRA to all four attention projections ($W_Q,W_K,W_V,W_O$) in every layer of a
+    32-layer, $d=4096$ model (LLaMA-7B-shaped, 6.74B total parameters):</p>
+    <div class="eq" style="font-size:.9em">$$32\times4\times65{,}536 = 8{,}388{,}608\text{ trainable params}$$</div>
+    <p>That's just <strong>0.124%</strong> of the full 6.74B-parameter model — trained, instead of
+    frozen.</p>
+  </div>
+</section>
+
+<!-- ============ WHAT IS QUANTIZATION ============ -->
+<section class="slide">
+  <h2>What is quantization?</h2>
+  <div class="body">
+    <p>Quantization maps a continuous, high-precision number to one of a small, fixed set of
+    representable values, storable in far fewer bits. With $b$ bits you get exactly $2^b$
+    representable levels — <strong>4 bits means 16</strong> possible values for every weight.</p>
+    <div class="eq hero" style="font-size:.9em">$$x_{int} = \operatorname{clamp}\!\big(\lfloor x/s\rceil + z,\ 0,\ 2^b-1\big),
+      \qquad \hat x = s\,(x_{int}-z)$$</div>
+    <p>$x$ — the original value; $s$ — the scale; $z$ — the integer zero-point; $b$ — the
+    bit-width; $x_{int}$ — the stored integer; $\hat x$ — the dequantized approximation, used
+    whenever the weight is actually multiplied.</p>
+    <p>Calibrate once per tensor from its observed range $[x_{min},x_{max}]$: $s=\dfrac{x_{max}-x_{min}}{2^b-1}$,
+    $z=\operatorname{round}(-x_{min}/s)$ — so $z$ is just the integer code that $x=0$ maps to.
+    With $b=4$ and range $[-2,6]$: $s=\frac{6-(-2)}{15}=0.533$, $z=\operatorname{round}(2/0.533)=4$:</p>
+    <div class="tw" style="overflow-x:auto">
+    <table>
+      <thead><tr><th>$x$</th><th>$x/s+z$</th><th>$x_{int}$</th><th>dequantized $s(x_{int}-z)$</th></tr></thead>
+      <tbody>
+        <tr><td>−2.0</td><td>0</td><td>0</td><td>−2.133</td></tr>
+        <tr><td>0.0</td><td>4</td><td>4</td><td>0.000</td></tr>
+        <tr><td>3.2</td><td>10</td><td>10</td><td>3.200</td></tr>
+        <tr><td>6.0</td><td>15</td><td>15</td><td>5.867</td></tr>
+        <tr><td>9.0</td><td>21</td><td>15 (clamped)</td><td>5.867</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="card int"><span class="lab">Why bother, and why clamp?</span>
+      <p>Bit-width sets memory directly: fp32 → 32 bits/weight, bf16 → 16, int8 → 8, int4 (like
+      NF4) → 4 — a <strong>4×</strong> reduction going 16-bit to 4-bit. Clamping matters for the
+      last row: $9.0$ is outside the calibrated range, so $x/s+z=21$ would need a 5th bit; clamp
+      forces it to the nearest valid code ($15$) instead of overflowing — at the cost of a much
+      larger error ($3.13$ vs. $\le 0.13$ for in-range values).</p></div>
+  </div>
+</section>
+
+<!-- ============ QLORA ============ -->
+<section class="slide">
+  <h2>QLoRA</h2>
+  <div class="body">
+    <p>QLoRA backpropagates LoRA's $B,A$ gradients through a <strong>frozen base model held in
+    4-bit precision</strong> — this is what "quantization-aware LoRA" means in practice.</p>
+    <div class="cols3">
+      <div class="tile"><h4>4-bit NormalFloat</h4>
+        <p>A data type tuned to how pretrained weights are actually distributed (roughly normal),
+        so 4 bits capture more information than a generic 4-bit float.</p></div>
+      <div class="tile"><h4>Double quantization</h4>
+        <p>The quantization constants themselves are quantized again, shrinking memory further.</p></div>
+      <div class="tile"><h4>Paged optimizers</h4>
+        <p>Optimizer states spill to CPU memory on demand, avoiding out-of-memory spikes.</p></div>
+    </div>
+    <div class="card ex" style="margin-top:1.1em"><span class="lab">Headline result</span>
+      <p>Fine-tunes a 65B-parameter model on a <strong>single 48GB GPU</strong>, matching full
+      16-bit fine-tuning quality.</p></div>
+  </div>
+</section>
+
+<!-- ============ NF4: WHERE THE 16 LEVELS COME FROM ============ -->
+<section class="slide">
+  <h2>NF4: where the 16 levels come from</h2>
+  <div class="body">
+    <p>Pretrained weights are roughly normally distributed, so NF4 places its 16 levels at the
+    <strong>quantiles</strong> of a standard normal $N(0,1)$ — each level covers an equal slice
+    of <em>probability</em>, not an equal slice of the number line:</p>
+    <div class="eq hero" style="font-size:.85em">$$q_i=\tfrac12\Big(Q_X\big(\tfrac{i}{2^k+1}\big)+Q_X\big(\tfrac{i+1}{2^k+1}\big)\Big)$$</div>
+    <p>$Q_X$ — the quantile function (inverse CDF) of $N(0,1)$; $k=4$ is the bit-width; $q_i$ is
+    the midpoint of two adjacent quantiles out of $2^k+1=17$. Since $N(0,1)$ has mean $0$, $Q_X$
+    is antisymmetric about $p=0.5$, so this grid's exact-zero index $q_{2^{k-1}}$ only cancels to
+    $0$ if the two quantile evaluations round <em>identically</em> — fragile in floating point.
+    NF4 sidesteps relying on that cancellation: build <strong>two half-tables</strong> at reduced
+    resolution — 8 quantiles for the negative side, 9 for the positive side, each via the same
+    formula — then merge them, sharing one endpoint fixed at exactly $0$. Rescale by the largest
+    $|q_i|$ so everything fits in $[-1,1]$, giving the fixed, precomputed table every weight gets
+    snapped to, next slide onward:</p>
+    <div class="tw" style="overflow-x:auto">
+    <table>
+      <thead><tr><th>index</th><th>value</th><th>index</th><th>value</th></tr></thead>
+      <tbody>
+        <tr><td>0000</td><td>−1.000</td><td>1000</td><td>0.080</td></tr>
+        <tr><td>0001</td><td>−0.696</td><td>1001</td><td>0.161</td></tr>
+        <tr><td>0010</td><td>−0.525</td><td>1010</td><td>0.246</td></tr>
+        <tr><td>0011</td><td>−0.395</td><td>1011</td><td>0.338</td></tr>
+        <tr><td>0100</td><td>−0.284</td><td>1100</td><td>0.441</td></tr>
+        <tr><td>0101</td><td>−0.185</td><td>1101</td><td>0.563</td></tr>
+        <tr><td>0110</td><td>−0.091</td><td>1110</td><td>0.723</td></tr>
+        <tr><td>0111</td><td>0.000</td><td>1111</td><td>1.000</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="card int"><span class="lab">This is the table every index in this lecture points into</span>
+      <p>Index <code>0111</code> is exactly $0$ — the payoff of the asymmetric merge. Index
+      <code>1000</code> → $0.080$ — hold onto that number; it's exactly the lookup used a couple
+      of slides from now. Levels are packed tightly near zero and spread out at the extremes,
+      because that's where a normal distribution puts most of its probability mass.</p></div>
+  </div>
+</section>
+
+<!-- ============ QLORA: FROM WEIGHTS TO 4-BIT CODES ============ -->
+<section class="slide">
+  <h2>QLoRA: from weights to 4-bit codes</h2>
+  <div class="body">
+    <p>Real weights aren't already sitting in $[-1,1]$ — NF4 has to get them there first. Weights
+    are grouped into small <strong>blocks</strong> (64 weights per block in practice), and every
+    block goes through the same four steps:</p>
+    <ol>
+      <li><strong>Find the scale.</strong> $s=\max_i|w_i|$ — the largest magnitude in the block.</li>
+      <li><strong>Normalize.</strong> Divide every weight by $s$, so the whole block now lies in
+      $[-1,1]$: $\tilde w_i = w_i/s$.</li>
+      <li><strong>Snap to the nearest level.</strong> Compare $\tilde w_i$ to the 16 NF4 quantile
+      levels and keep only the <strong>4-bit index</strong> of the closest one.</li>
+      <li><strong>Store.</strong> One 4-bit index per weight, plus a single shared scale $s$ for
+      the whole block.</li>
+    </ol>
+    <div class="card int"><span class="lab">Getting a weight back — concretely</span>
+      <p>Say a weight's stored 4-bit index is <code>1000</code> (decimal 8). Look up index 8 in
+      the fixed 16-value table $\to 0.080$. Multiply by the block's scale, say $s=0.88$:
+      $\hat w = 0.080\times0.88=0.070$. That's the number actually used in the matrix multiply —
+      the original weight might have been $0.05$; the small gap is quantization error. This
+      lookup-then-scale happens on the fly, right before each matrix multiply, never stored.</p></div>
+  </div>
+</section>
+
+<!-- ============ QLORA: A WORKED EXAMPLE ============ -->
+<section class="slide">
+  <h2>QLoRA: a worked example</h2>
+  <div class="body">
+    <p>Take a block of 8 weights (real blocks hold 64 — small here for clarity):</p>
+    <div class="eq hero" style="font-size:.88em">$$w=[0.05,\,{-}0.12,\,0.31,\,{-}0.55,\,0.02,\,0.88,\,{-}0.03,\,0.15]
+      \qquad s=\max_i|w_i|=0.88$$</div>
+    <div class="tw" style="overflow-x:auto">
+    <table>
+      <thead><tr><th>$w_i$</th><th>$w_i/s$</th><th>4-bit index</th><th>dequantized</th></tr></thead>
+      <tbody>
+        <tr><td>0.05</td><td>0.057</td><td>1000</td><td>0.070</td></tr>
+        <tr><td>−0.12</td><td>−0.136</td><td>0110</td><td>−0.080</td></tr>
+        <tr><td>0.31</td><td>0.352</td><td>1011</td><td>0.338</td></tr>
+        <tr><td>−0.55</td><td>−0.625</td><td>0001</td><td>−0.613</td></tr>
+        <tr><td>0.02</td><td>0.023</td><td>0111</td><td>0.000</td></tr>
+        <tr><td>0.88</td><td>1.000</td><td>1111</td><td>0.880</td></tr>
+        <tr><td>−0.03</td><td>−0.034</td><td>0111</td><td>0.000</td></tr>
+        <tr><td>0.15</td><td>0.171</td><td>1001</td><td>0.142</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="card ex" style="margin-top:.9em"><span class="lab">What actually gets stored</span>
+      <p>8 weights × 4 bits + one 32-bit scale = <strong>64 bits</strong> for this block — vs.
+      $8\times16=128$ bits at fp16, already a 2× saving here, and real 64-weight blocks push this
+      much further since one scale is shared over far more weights. Dequantizing recovers each
+      weight only <em>approximately</em> — mean absolute error <strong>0.024</strong> — exactly
+      the accuracy/memory trade QLoRA is making.</p></div>
+  </div>
+</section>
+
+<!-- ============ QLORA: TRAIN VS. INFERENCE ============ -->
+<section class="slide">
+  <h2>QLoRA: what's used where</h2>
+  <div class="body">
+    <p>Two different objects flow through QLoRA, stored and used differently:</p>
+    <div class="cols">
+      <div class="card int"><span class="lab">Base weight $W_0$</span>
+        <p>Stored in 4-bit, <strong>always</strong> — during fine-tuning and at inference alike.
+        Every forward pass, each block is dequantized on the fly to bf16 right before its matmul,
+        then discarded. $W_0$ never receives a gradient and is never updated.</p></div>
+      <div class="card ex"><span class="lab">LoRA's $B,A$</span>
+        <p>Kept in bf16 throughout — small enough that quantizing them wouldn't save much, and
+        they need to accumulate gradients precisely. Trained during fine-tuning; frozen (but
+        still applied) at inference.</p></div>
+    </div>
+    <p style="margin-top:.9em">Both stages run the <strong>same</strong> computation,
+    $h=\operatorname{dequant}(W_0)x+\tfrac{\alpha}{r}(xB)A$ — training additionally tracks
+    gradients through it, into $B,A$ only; inference just evaluates it.</p>
+    <div class="card warn"><span class="lab">Merging is possible — it just undoes the point</span>
+      <p>Plain LoRA merges $B,A$ into $W_0$ once, offline, before deployment — inference then runs
+      a single matmul at zero added cost (an earlier slide). QLoRA <em>could</em> do the same:
+      dequantize $W_0$ to bf16, add $\tfrac{\alpha}{r}BA$, store the result. But that merged model
+      is bf16-sized again — it throws away the 4-bit memory saving that was the whole reason to
+      quantize $W_0$. So QLoRA keeps $W_0$ and $B,A$ unmerged and pays for it on every forward
+      pass: dequantizing each block on the fly, plus a separate small matmul, both of which a
+      merged model would skip. This is genuinely extra latency versus plain LoRA — the trade for
+      a much smaller resident model.</p></div>
+  </div>
+</section>
+
+<!-- ============ QLORA: NF4 IN ACTION ============ -->
+<section class="slide">
+  <h2>QLoRA: NF4 in action</h2>
+  <div class="body">
+    <p>Quantize 5 sample weights (rescaled into $[-1,1]$) with NF4 levels — denser near zero — vs.
+    plain uniform 4-bit levels:</p>
+    <div class="tw" style="overflow-x:auto">
+    <table>
+      <thead><tr><th>Weight $x$</th><th>NF4 dequantized</th><th>Uniform dequantized</th></tr></thead>
+      <tbody>
+        <tr><td>0.05</td><td>0.080</td><td>0.067</td></tr>
+        <tr><td>−0.12</td><td>−0.091</td><td>−0.067</td></tr>
+        <tr><td>0.31</td><td>0.338</td><td>0.333</td></tr>
+        <tr><td>−0.55</td><td>−0.525</td><td>−0.6</td></tr>
+        <tr><td>0.88</td><td>1.0</td><td>0.867</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="card warn" style="margin-top:.9em"><span class="lab">Five points aren't enough to trust</span>
+      <p>On just these 5 points, NF4's mean error (<strong>0.046</strong>) is actually
+      <em>higher</em> than uniform's (<strong>0.031</strong>) — the outlier at 0.88 lands right on
+      an NF4 edge level and gets amplified. NF4's real advantage only shows up in
+      <em>expectation</em>, over many weights.</p></div>
+    <div class="card ex" style="margin-top:.7em"><span class="lab">Averaged over 20,000 simulated 64-weight blocks</span>
+      <p>Drawing each block from a standard normal — matching how pretrained weights are actually
+      distributed — mean absolute error is <strong>0.073</strong> for NF4 vs.
+      <strong>0.085</strong> for uniform: <strong>14.7% lower</strong>. This is what "NF4 is
+      information-theoretically optimal for normal data" actually means — a population-level
+      guarantee, not a promise for any single block.</p></div>
+  </div>
+</section>
+
+<!-- ============ QLORA: DOUBLE QUANTIZATION IN NUMBERS ============ -->
+<section class="slide">
+  <h2>QLoRA: double quantization in numbers</h2>
+  <div class="body">
+    <p>Every block of $64$ weights shares one scale constant $s$, normally stored in 32-bit
+    float — that's a real, per-parameter memory cost on top of the 4-bit weights themselves:</p>
+    <div class="eq hero" style="font-size:.92em">$$\text{overhead} = \frac{32\text{ bits}}{64\text{ weights}} = 0.5\text{ bits/weight}$$</div>
+    <p><strong>Double quantization</strong> quantizes those scale constants too: every 256 of
+    them (themselves covering $256\times64=16{,}384$ weights) share one 32-bit meta-constant, and
+    each individual scale is stored in only 8 bits:</p>
+    <div class="eq hero" style="font-size:.92em">$$\text{overhead} = \frac{256\times8\text{ bits} + 32\text{ bits}}{16{,}384\text{ weights}}
+      = \frac{2080}{16{,}384} \approx 0.127\text{ bits/weight}$$</div>
+    <div class="card ex"><span class="lab">At model scale</span>
+      <p>$0.5-0.127=0.373$ bits saved per weight. Across a 65-billion-parameter model, that's
+      $0.373\times65\text{B}$ bits $\approx$ <strong>3.0 GB</strong> of GPU memory recovered — from
+      compressing numbers that were only ever there to describe <em>other</em> numbers.</p></div>
+  </div>
+</section>
+
+<!-- ============ QLORA: PAGED OPTIMIZERS ============ -->
+<section class="slide">
+  <h2>QLoRA: paged optimizers</h2>
+  <div class="body">
+    <p>Adam's optimizer state ($m$, $v$ per trainable parameter) is small for LoRA's $B,A$ — but
+    GPU memory use isn't perfectly flat during training. Operations like gradient-checkpoint
+    recomputation cause short-lived <strong>spikes</strong> above the steady-state usage.</p>
+    <div class="card warn"><span class="lab">Without paging</span>
+      <p>The GPU must be provisioned for the <em>peak</em>, not the average. Suppose steady-state
+      training fits in 20GB but one recomputation step briefly needs 24GB — on a 22GB GPU, that
+      spike alone crashes the run, even though it happens for a fraction of a second.</p></div>
+    <div class="card ex"><span class="lab">With paging</span>
+      <p>Paged optimizers use NVIDIA unified memory: pages of optimizer state not needed <em>right
+      now</em> are automatically migrated to CPU RAM when the GPU is under pressure, and paged
+      back in when needed — the same idea an operating system uses to page virtual memory to disk.
+      The 22GB GPU survives the 24GB spike by briefly borrowing 2GB of CPU RAM, then returns to
+      normal.</p></div>
+  </div>
+</section>
+
+<!-- ============ DORA ============ -->
+<section class="slide">
+  <h2>DoRA: weight-decomposed LoRA</h2>
+  <div class="body">
+    <p>DoRA splits a weight matrix into two independent pieces — a <strong>magnitude</strong> and
+    a <strong>direction</strong> — and applies LoRA only to the direction.</p>
+    <div class="eq hero">$$W = m\cdot\frac{V}{\lVert V\rVert_c}$$</div>
+    <p>$V$ — the direction matrix, initialized to $W_0$; $\lVert V\rVert_c$ — its column-wise
+    norm, so $V/\lVert V\rVert_c$ has unit-norm columns; $m$ — a separately trained magnitude
+    vector, one scalar per column, initialized to $\lVert W_0\rVert_c$.</p>
+    <p>LoRA's update is applied only inside the direction term: $V = W_0 + BA$. Training $m$ and
+    $B,A$ separately lets the model adjust a column's <em>length</em> and its
+    <em>orientation</em> independently — closing more of the gap to full fine-tuning than plain
+    LoRA, at no extra inference cost.</p>
+  </div>
+</section>
+
+<!-- ============ DORA: A NUMERIC EXAMPLE ============ -->
+<section class="slide">
+  <h2>DoRA: a numeric example</h2>
+  <div class="body">
+    <p>Reuse LoRA's $W_0$ and update: $V'=W_0+\tfrac{\alpha}{r}BA=\begin{bmatrix}4&5\\2&5\\1&2\end{bmatrix}$,
+    column norms $\lVert V'\rVert_c\approx[4.58,\,7.35]$.</p>
+    <p>If $m$ were left passive at $\lVert V'\rVert_c$, DoRA would just reproduce plain LoRA's
+    $W'$. Suppose training instead finds an <strong>independent</strong> $m_{\text{learned}}=[5.0,\,6.5]$:</p>
+    <div class="eq hero" style="font-size:.88em">$$W_{\text{DoRA}}=m_{\text{learned}}\cdot\frac{V'}{\lVert V'\rVert_c}
+      =\begin{bmatrix}4.36&4.42\\2.18&4.42\\1.09&1.77\end{bmatrix}
+      \qquad\text{vs. plain LoRA's}\qquad
+      W'=\begin{bmatrix}4&5\\2&5\\1&2\end{bmatrix}$$</div>
+    <div class="card key"><span class="lab">Same B, A — different weight</span>
+      <p>The direction update is identical to plain LoRA's, but the final weight matrix visibly
+      differs, because $m$ was free to land somewhere other than the column norm $BA$ would have
+      produced on its own. That extra degree of freedom is what closes more of the gap to full
+      fine-tuning.</p></div>
+  </div>
+</section>
+
+<!-- ============ ADALORA ============ -->
+<section class="slide">
+  <h2>AdaLoRA: adaptive rank allocation</h2>
+  <div class="body">
+    <p>Plain LoRA gives every weight matrix the <strong>same fixed rank</strong> $r$. AdaLoRA
+    instead parameterizes each update in SVD form and lets the rank vary by importance.</p>
+    <div class="eq hero">$$\Delta W \approx P\Lambda Q$$</div>
+    <p>$P\in\mathbb{R}^{d\times r}$, $Q\in\mathbb{R}^{r\times d_{out}}$ — like LoRA's $B,A$, but
+    regularized to stay near-orthonormal; $\Lambda=\operatorname{diag}(\sigma_1,\dots,\sigma_r)$ —
+    singular-value-like weights, one per rank triplet.</p>
+    <p>During training, each triplet $(p_i,\sigma_i,q_i)$ gets an importance score; low-importance
+    triplets are pruned ($\sigma_i\to0$) and the freed rank budget is reallocated to more
+    important matrices — so more useful layers end up with higher effective rank than less useful
+    ones, for the same total parameter budget.</p>
+  </div>
+</section>
+
+<!-- ============ ADALORA: WHY SVD ============ -->
+<section class="slide">
+  <h2>AdaLoRA: why SVD</h2>
+  <div class="body">
+    <p>Take $M=\begin{bmatrix}3&1&2\\2&4&1\\1&1&5\end{bmatrix}$, singular values
+    $\sigma=[6.78,\,3.56,\,1.82]$. Keeping only the largest, $r=1$:</p>
+    <div class="eq hero" style="font-size:.9em">$$M_1=\sigma_1u_1v_1^\top,\qquad \lVert M-M_1\rVert_F = 4.00$$</div>
+    <p>Compare against a different, non-SVD rank-1 guess — keep only the top-left entry, zero
+    everything else:</p>
+    <div class="eq" style="font-size:.9em">$$M_{\text{arb}}=\begin{bmatrix}3&0&0\\0&0&0\\0&0&0\end{bmatrix},
+      \qquad \lVert M-M_{\text{arb}}\rVert_F = 7.28$$</div>
+    <div class="card key"><span class="lab">Eckart–Young, confirmed</span>
+      <p>$4.00 &lt; 7.28$ — truncated SVD's error is smaller, and it's provably the <strong>smallest
+      possible</strong> among every rank-1 matrix, not just this one alternative. That's why
+      AdaLoRA parameterizes its update in SVD form: the singular values say exactly which rank-1
+      pieces are safest to drop.</p></div>
+  </div>
+</section>
+
+<!-- ============ READING LIST ============ -->
+<section class="slide">
+  <h2>Reading list</h2>
+  <div class="body">
+    <div class="cols">
+      <div class="stack">
+        <div class="card ex"><span class="lab">Start here</span>
+          <p><a href="https://arxiv.org/abs/2303.15647" target="_blank">Lialin et al., "Scaling
+          Down to Scale Up: A Guide to PEFT" (2023)</a><br>
+          <a href="https://arxiv.org/abs/2106.09685" target="_blank">Hu et al., "LoRA: Low-Rank
+          Adaptation of Large Language Models" (2021)</a></p></div>
+        <div class="card"><span class="lab">LoRA variants</span>
+          <p><a href="https://arxiv.org/abs/2305.14314" target="_blank">Dettmers et al., "QLoRA:
+          Efficient Finetuning of Quantized LLMs" (2023)</a><br>
+          <a href="https://arxiv.org/abs/2402.09353" target="_blank">Liu et al., "DoRA:
+          Weight-Decomposed Low-Rank Adaptation" (2024)</a><br>
+          <a href="https://arxiv.org/abs/2303.10512" target="_blank">Zhang et al., "AdaLoRA:
+          Adaptive Budget Allocation for PEFT" (2023)</a></p></div>
+      </div>
+      <div class="stack">
+        <div class="card"><span class="lab">Other PEFT families</span>
+          <p><a href="https://arxiv.org/abs/1902.00751" target="_blank">Houlsby et al.,
+          "Parameter-Efficient Transfer Learning for NLP" (2019)</a> — adapters<br>
+          <a href="https://arxiv.org/abs/2106.10199" target="_blank">Zaken et al., "BitFit"
+          (2021)</a><br>
+          <a href="https://arxiv.org/abs/2101.00190" target="_blank">Li &amp; Liang,
+          "Prefix-Tuning" (2021)</a><br>
+          <a href="https://arxiv.org/abs/2104.08691" target="_blank">Lester et al., "The Power of
+          Scale for Prompt Tuning" (2021)</a></p></div>
+        <div class="card note"><span class="lab">Self-study</span>
+          <p><strong>ReLoRA</strong> repeatedly merges and restarts LoRA updates during training,
+          approximating a higher effective rank over time.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div><!-- /deck -->
+
+<div id="ov"><h3>All slides — click to jump · press O or Esc to close</h3><div class="ovgrid" id="ovgrid"></div></div>
+<div id="foot"><span id="num">1 / 1</span></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  if (window.renderMathInElement) {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: "$$", right: "$$", display: true},
+        {left: "\\[", right: "\\]", display: true},
+        {left: "$", right: "$", display: false},
+        {left: "\\(", right: "\\)", display: false}
+      ],
+      throwOnError: false
+    });
+  }
+});
+
+/* ---------- deck navigation ---------- */
+(function () {
+  const slides = Array.from(document.querySelectorAll(".slide"));
+  const num = document.getElementById("num");
+  const ov = document.getElementById("ov");
+  const ovgrid = document.getElementById("ovgrid");
+  let i = 0;
+
+  slides.forEach(function (s, k) {
+    const card = document.createElement("div");
+    card.className = "ovcard";
+    const h = s.querySelector("h1, h2");
+    card.innerHTML = '<span class="n2">' + (k + 1) + '</span>' + (h ? h.textContent : "Slide");
+    card.addEventListener("click", function () { go(k); ov.classList.remove("on"); });
+    ovgrid.appendChild(card);
+  });
+
+  function go(k) {
+    i = Math.max(0, Math.min(slides.length - 1, k));
+    slides.forEach(s => s.classList.remove("on"));
+    slides[i].classList.add("on");
+    slides[i].querySelector(".body") && (slides[i].querySelector(".body").scrollTop = 0);
+    num.textContent = (i + 1) + " / " + slides.length;
+    history.replaceState(null, "", "#" + (i + 1));
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); go(i + 1); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); go(i - 1); }
+    else if (e.key === "Home") go(0);
+    else if (e.key === "End") go(slides.length - 1);
+    else if (e.key === "o" || e.key === "O") ov.classList.toggle("on");
+    else if (e.key === "Escape") ov.classList.remove("on");
+    else if (e.key === "f" || e.key === "F") {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+
+  let x0 = null;
+  document.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; }, {passive: true});
+  document.addEventListener("touchend", function (e) {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 55) go(dx < 0 ? i + 1 : i - 1);
+    x0 = null;
+  }, {passive: true});
+
+  const start = parseInt((location.hash || "#1").slice(1), 10);
+  go(isNaN(start) ? 0 : start - 1);
+})();
+</script>
+</body>
+</html>
