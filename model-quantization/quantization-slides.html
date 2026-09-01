@@ -684,9 +684,15 @@ tr.hl td{background:var(--base2);color:var(--base03)}
     <p>Weights are quantized once, offline, using their fixed range. Activations don't have a
     fixed range — <strong>dynamic quantization</strong> handles this by computing $\alpha,\beta$
     freshly from the actual values flowing through, on every single forward pass:</p>
-    <div class="fig wide"><img src="images/img34.png" alt="collecting activation ranges per layer during inference"></div>
+    <div class="fig tight"><img src="images/img34.png" alt="collecting activation ranges per layer during inference"></div>
     <p>No calibration data needed ahead of time, and the range always matches the real input — at
     the cost of computing $s$ and $z$ live, for every layer, on every inference call.</p>
+    <div class="card int"><span class="lab">One real input, computed once, every single time</span>
+      <p>There's no sample dataset involved at all for activations — that's static quantization
+      (next). Here, every time you run inference on one real input, each layer measures
+      $\alpha,\beta$ from <em>that input's own</em> activations at that layer, right there, and
+      throws the measurement away afterward. Run a different input tomorrow and every layer
+      re-measures from scratch — nothing is aggregated or remembered between calls.</p></div>
   </div>
 </section>
 
@@ -699,6 +705,32 @@ tr.hl td{background:var(--base2);color:var(--base03)}
     $\alpha,\beta$ from the activations just produced, then quantize them with the resulting
     $s,z$ — the exact asymmetric formulas from Part 2, just re-run at every layer boundary instead
     of once in advance.</p>
+  </div>
+</section>
+
+<!-- ============ WHAT'S ACTUALLY BEING SAVED ============ -->
+<section class="slide">
+  <h2>If we dequantize right back, what's saved?</h2>
+  <div class="body">
+    <p>Nothing round-trips unchanged — dequantizing doesn't reconstruct the tensor you quantized,
+    it produces the <em>output</em> of a computation the quantized version was used for. Trace one
+    $128\times4096$ activation $X$ through a $4096\times4096$ projection $W$:</p>
+    <table>
+      <thead><tr><th>tensor</th><th>form</th><th>size</th><th>what happens to it</th></tr></thead>
+      <tbody>
+        <tr><td>$X$</td><td>FP32</td><td>2.10 MB</td><td>quantized to $X_q$, then discarded — never touches the matmul</td></tr>
+        <tr><td>$X_q$</td><td>INT8</td><td>0.52 MB</td><td>4× smaller; this is what's actually read into the matmul</td></tr>
+        <tr><td>$W_q$</td><td>INT8</td><td>16.78 MB</td><td>stored this small <em>permanently</em>, read as-is</td></tr>
+        <tr><td>$Y$</td><td>FP32</td><td>2.10 MB</td><td>freshly produced by $X_qW_q$, dequantized once — the next layer's input</td></tr>
+      </tbody>
+    </table>
+    <div class="card ex"><span class="lab">Verified: 75% less data moved into this one matmul</span>
+      <p>$X_q+W_q=17.3$ MB actually gets read into the compute unit, vs. $X+W=69.2$ MB if both
+      stayed FP32 — a $75\%$ cut, for this single layer. $X$ (FP32) is gone before the matmul
+      starts; $Y$ (FP32) didn't exist before the matmul finished — you never hold two full-size
+      copies of the same tensor at once. The saving is in what got <em>moved and multiplied</em>,
+      not in some tensor staying compressed forever — that persistent saving is what the weights
+      alone already provide.</p></div>
   </div>
 </section>
 
