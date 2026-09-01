@@ -570,10 +570,15 @@ tr.hl td{background:var(--base2);color:var(--base03)}
 <section class="slide">
   <h2>Symmetric vs. asymmetric, side by side</h2>
   <div class="body">
-    <div class="fig wide"><img src="images/img26.png" alt="symmetric vs asymmetric quantization comparison"></div>
+    <div class="fig tight"><img src="images/img26.png" alt="symmetric vs asymmetric quantization comparison"></div>
     <p>Asymmetric quantization uses the integer grid more fully whenever the data isn't centered
     on zero — at the cost of tracking one extra number, $z$, and a slightly more expensive
     dequantization step.</p>
+    <div class="card note"><span class="lab">Why $[-127,127]$ here but $[-128,127]$ there</span>
+      <p>INT8 spans $[-128,127]$ — $256$ codes, asymmetric since two's-complement has no separate
+      $+0$/$-0$. Symmetric quantization gives up code $-128$ so $\pm\alpha$ land on
+      <em>equal-magnitude</em> codes ($\mp127$) with $0$ exactly centered — that mirror symmetry
+      is the whole point. Asymmetric never needed $0\mapsto0$, so it keeps all $256$ codes.</p></div>
   </div>
 </section>
 
