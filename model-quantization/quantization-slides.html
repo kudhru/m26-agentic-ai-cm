@@ -786,16 +786,20 @@ tr.hl td{background:var(--base2);color:var(--base03)}
   </div>
 </section>
 
-<!-- ============ GPTQ: WHICH WEIGHTS MATTER ============ -->
+<!-- ============ GPTQ: WHERE THE HESSIAN COMES FROM ============ -->
 <section class="slide">
-  <h2>GPTQ: which weights matter most</h2>
+  <h2>GPTQ: where the Hessian actually comes from</h2>
   <div class="body">
-    <div class="fig"><img src="images/img38.png" alt="weights and their inverse Hessian sensitivity"></div>
-    <p>Not every weight matters equally to the layer's output — the (inverse) Hessian of the
-    layer's reconstruction error tells GPTQ exactly how sensitive the output is to rounding each
-    particular weight. A weight with a large inverse-Hessian entry can absorb more rounding error
-    for the same output impact; this sensitivity is what later decides how much of one weight's
-    rounding error gets pushed onto the others.</p>
+    <div class="fig tight"><img src="images/img38.png" alt="weights and their inverse Hessian sensitivity"></div>
+    <p>The goal is: pick $\hat W$ to minimize $\lVert WX-\hat WX\rVert^2$ — how far the
+    <em>layer's output</em> drifts on real data, not how far the weights themselves drift.
+    $X$ is the calibration input activations ($d_{in}\times n$, $n$ calibration samples) — the
+    <strong>same $X$ for every output row</strong> of $W$, since every row multiplies the same
+    inputs. Expanding the squared error per row gives a quadratic form, and its Hessian is:</p>
+    <div class="eq hero">$$H = XX^\top\ (+\,\lambda I\text{ for numerical stability})$$</div>
+    <p>$H$ comes entirely from <strong>calibration activations</strong>, never from the weight
+    values themselves — and it's identical for every row of $W$ in this layer, which is exactly
+    why GPTQ can compute $H^{-1}$ once per layer and reuse it everywhere.</p>
   </div>
 </section>
 
@@ -803,25 +807,31 @@ tr.hl td{background:var(--base2);color:var(--base03)}
 <section class="slide">
   <h2>GPTQ: quantize one weight, measure the damage</h2>
   <div class="body">
-    <div class="fig"><img src="images/img39.png" alt="quantizing the first weight, then dequantizing it"></div>
     <div class="eq hero">$$e = w - \hat w$$</div>
-    <p>Quantize the row's first weight ($0.5\to 0.33$ in 4-bit, dequantized back to $\hat
-    w=0.297$) exactly as in Part 2. $e=w-\hat w=0.5-0.297=0.203$ is the rounding error this one
-    weight introduced — GPTQ's key idea is that this error doesn't have to be wasted: it can be
-    <em>redistributed</em> onto the weights not yet quantized.</p>
+    <p>Take a row $w=[0.42,\,0.30,\,0.50]$ (INT4, so $\hat w=\operatorname{round}(14w)/14$).
+    Quantize just the first entry: $0.42\to\hat w=0.4286$. $e=w-\hat w=0.42-0.4286=-0.0086$ is
+    the rounding error this one weight introduced — GPTQ's key idea is that this error doesn't
+    have to be wasted: it can be <em>redistributed</em> onto the weights not yet quantized.</p>
   </div>
 </section>
 
 <!-- ============ GPTQ: REDISTRIBUTE ERROR ============ -->
 <section class="slide">
-  <h2>GPTQ: redistributing the error</h2>
+  <h2>GPTQ: the exact compensation formula</h2>
   <div class="body">
-    <div class="fig"><img src="images/img41.png" alt="updating the next weight using the error weighted by sensitivity"></div>
-    <div class="eq hero">$$w_j \leftarrow w_j + e\cdot h_j$$</div>
-    <p>$e=0.203$ — the rounding error from the previous slide; $h_j$ — how sensitive the output is
-    to weight $j$ (from the inverse-Hessian row). Weight 2, with $h_2=0.8$:
-    $w_2\leftarrow 0.3+0.203\times0.8=0.4624$ — nudged <em>before</em> it gets quantized itself, so
-    its own rounding starts from a value that already compensates for weight 1's mistake.</p>
+    <p>Update every weight uniformly as $w_j\leftarrow w_j-\delta_j$, subject to one constraint:
+    weight $q$ must land exactly on its quantized value, i.e. $\delta_q=e$ (subtracting $e$ is
+    exactly what rounds $w_q$ to $\hat w_q$). Minimizing the resulting loss increase
+    $\delta^\top H\delta$ subject to that constraint (Lagrange multipliers) has a closed form —
+    the update that does the <em>least possible damage</em> to the layer's output:</p>
+    <div class="eq hero" style="font-size:.92em">$$\delta = \frac{e}{[H^{-1}]_{qq}}\,H^{-1}_{:,q}$$</div>
+    <p>$[H^{-1}]_{qq}$ — the just-quantized weight's own diagonal entry (normalizes the size of
+    the push; setting $j=q$ above collapses back to exactly $\delta_q=e$). $H^{-1}_{:,q}$ — that
+    column of the inverse Hessian, spreading the correction weighted by how correlated each other
+    weight is with $q$ in the calibration data. With $[H^{-1}]_{qq}=0.1268$,
+    $[H^{-1}]_{2,1}=-0.0504$: $w_2\leftarrow 0.30-\dfrac{-0.0086}{0.1268}\times(-0.0504)=0.2966$ —
+    nudged <em>before</em> its own turn to be quantized, so its rounding starts from a value that
+    already compensates for weight 1's mistake.</p>
   </div>
 </section>
 
@@ -829,11 +839,71 @@ tr.hl td{background:var(--base2);color:var(--base03)}
 <section class="slide">
   <h2>GPTQ: one weight at a time, down the row</h2>
   <div class="body">
-    <div class="fig wide"><img src="images/img42.png" alt="original row of weights updated after redistributing error"></div>
-    <p>Every not-yet-quantized weight in the row absorbs a share of the error, proportional to its
-    own sensitivity $h_j$, before its turn to be quantized comes up. Repeating
-    quantize-measure-redistribute across the whole row, then the whole layer, is what lets GPTQ
-    push weights to 3–4 bits with far less accuracy loss than quantizing each one independently.</p>
+    <p>Repeat quantize → compensate for the whole row, using $H^{-1}$ restricted to whichever
+    weights are still unquantized at each step (removing a fixed coordinate just shrinks the
+    relevant submatrix):</p>
+    <table>
+      <thead><tr><th>step</th><th>quantize</th><th>row after this step</th></tr></thead>
+      <tbody>
+        <tr><td>start</td><td>—</td><td>$[0.4200,\ 0.3000,\ 0.5000]$</td></tr>
+        <tr><td>1</td><td>$w_1\to0.4286$</td><td>$[0.4286,\ 0.2966,\ 0.4999]$</td></tr>
+        <tr><td>2</td><td>$w_2\to0.2857$</td><td>$[0.4286,\ 0.2857,\ 0.5010]$</td></tr>
+        <tr><td>3</td><td>$w_3\to0.5000$</td><td>$[0.4286,\ 0.2857,\ 0.5000]$</td></tr>
+      </tbody>
+    </table>
+    <div class="card note"><span class="lab">A 3-weight row is too small to see the point</span>
+      <p>Here the final result happens to <strong>match naive independent rounding exactly</strong>
+      — compensations this tiny rarely push a neighbor across a rounding boundary in a row this
+      short. The benefit is real but statistical: it shows up reliably once there are enough
+      weights for compensations to matter, verified two slides ahead.</p></div>
+  </div>
+</section>
+
+<!-- ============ GPTQ: PROCESSING ORDER ============ -->
+<section class="slide">
+  <h2>GPTQ: one column at a time — across every row at once</h2>
+  <div class="body">
+    <p>Not "quantize every weight in the entire layer, one at a time, in some arbitrary order" —
+    and not "finish one full row independently, then start the next row from scratch." Because
+    $H$ depends only on $X$ (previous slide), <strong>every output row of $W$ shares the exact
+    same $H$, the same $H^{-1}$, and the same elimination order</strong>. So GPTQ fixes one column
+    order for the whole layer (e.g. left to right) and processes it as:</p>
+    <ol>
+      <li>Quantize column $q$ (weight $q$) of <strong>every row simultaneously</strong> — same $q$,
+      whole matrix.</li>
+      <li>Apply the compensation formula to columns $q\!+\!1,\ldots$ of <strong>every row
+      simultaneously</strong>, reusing the one precomputed $H^{-1}$.</li>
+      <li>Move to column $q+1$; repeat until every column is quantized.</li>
+    </ol>
+    <p>This is GPTQ's actual speed trick over the earlier, slower OBQ method: instead of solving
+    an independent $O(d^3)$ elimination per output row (thousands of rows per layer), one
+    Cholesky decomposition of $H^{-1}$ is computed once and reused, column by column, across the
+    <em>whole weight matrix</em> at once.</p>
+  </div>
+</section>
+
+<!-- ============ GPTQ: DOES IT ACTUALLY HELP ============ -->
+<section class="slide">
+  <h2>GPTQ: does this actually help?</h2>
+  <div class="body">
+    <p>At realistic scale — a $64$-weight row, calibration activations with realistic feature
+    correlation, INT4 — sequential quantize-and-compensate vs. naive independent rounding,
+    measured on the loss GPTQ actually optimizes, $e^\top He$ (the real output-reconstruction
+    error, not raw weight error):</p>
+    <table>
+      <thead><tr><th>method</th><th>$e^\top He$ (output error)</th></tr></thead>
+      <tbody>
+        <tr><td>naive independent rounding</td><td>$151.4$</td></tr>
+        <tr><td>GPTQ (sequential + compensation)</td><td>$71.8$</td></tr>
+      </tbody>
+    </table>
+    <div class="card ex"><span class="lab">Verified: 52.6% lower output error — but not lower weight error</span>
+      <p>Plain unweighted weight MSE tells the <em>opposite</em> story here: naive $=0.00067$ vs.
+      GPTQ $=0.00137$ — GPTQ's weights are individually <em>less</em> accurate on average. That's
+      not a bug: GPTQ deliberately pushes weights further from their true values in directions
+      $H$ says the output barely notices, in exchange for staying accurate in directions the
+      output is sensitive to. It optimizes what the layer actually computes, not how close the
+      weights look on paper.</p></div>
   </div>
 </section>
 
