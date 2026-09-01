@@ -639,9 +639,41 @@ tr.hl td{background:var(--base2);color:var(--base03)}
     <p>With an outlier of $999$ in the tensor, the full min/max range forces high error onto every
     normal value; a percentile-based range accepts a large error on the outlier itself in exchange
     for much lower error everywhere else — the same trade as the clipping example, chosen
-    automatically from the data's distribution rather than a hand-picked cutoff. (Other calibration
-    criteria — minimizing mean-squared error, or KL-divergence between original and quantized
-    distributions — make the same trade using a different statistical target.)</p>
+    automatically from the data's distribution rather than a hand-picked cutoff. Percentile is one
+    way to pick that cutoff automatically — the next slide covers a second, more direct one.</p>
+  </div>
+</section>
+
+<!-- ============ CALIBRATION: MSE SEARCH ============ -->
+<section class="slide">
+  <h2>Calibrating by search: minimize the MSE</h2>
+  <div class="body">
+    <p>Rather than guess a percentile, <strong>search directly</strong> for the clip that minimizes
+    reconstruction error. For a grid of candidate clip values $c$: clip the calibration data to
+    $[-c,c]$, quantize and dequantize it, measure $\text{MSE}=\frac1n\sum(x-\hat x)^2$ against the
+    <em>original, unclipped</em> data — then keep whichever $c$ scored lowest:</p>
+    <table>
+      <thead><tr><th>candidate clip $c$ (as % of true max)</th><th>MSE</th></tr></thead>
+      <tbody>
+        <tr><td>30%</td><td>0.127</td></tr>
+        <tr><td>40%</td><td>0.068</td></tr>
+        <tr><td>50% — the minimum</td><td>0.055</td></tr>
+        <tr><td>60%</td><td>0.063</td></tr>
+        <tr><td>100% (naive full range)</td><td>0.156</td></tr>
+      </tbody>
+    </table>
+    <div class="card ex"><span class="lab">Verified: INT4 on 5,000 heavier-tailed values</span>
+      <p>Quantizing a Laplace-distributed sample (heavier-tailed than Gaussian — closer to how real
+      weight tensors look) to INT4 symmetric: the MSE-searched clip (at $50\%$ of the true max,
+      the $99.2$th percentile of $|x|$) gives <strong>65% lower MSE</strong> than the naive
+      full-range clip. At INT8, the same search barely helps — $127$ levels already have enough
+      resolution that clipping isn't worth the error it introduces on the tail. The lower the
+      bit-width, the more this search matters.</p></div>
+    <p><strong>KL-divergence calibration</strong> (used by e.g. TensorRT) runs the identical
+    search — try each candidate $c$, keep the best — but scores candidates by a different loss:
+    build a fine histogram of the original values as a reference distribution $P$, simulate
+    quantizing under each candidate clip to get $Q$, and keep the $c$ that minimizes
+    $D_{KL}(P\Vert Q)$ instead of MSE.</p>
   </div>
 </section>
 
