@@ -734,6 +734,32 @@ tr.hl td{background:var(--base2);color:var(--base03)}
   </div>
 </section>
 
+<!-- ============ WHY NOT STAY QUANTIZED BETWEEN LAYERS ============ -->
+<section class="slide">
+  <h2>Why not skip dequantizing — the next layer just requantizes anyway?</h2>
+  <div class="body">
+    <p>Two independent reasons the real values have to reappear, even briefly. First:
+    $Y_{\text{int32}}$ isn't in any usable unit on its own — it's scaled by <em>this layer's</em>
+    joint scale $s_x\cdot s_w$, and whatever sits between two matmuls (GELU, softmax, LayerNorm,
+    a residual add) needs real, comparable numbers to compute correctly, not raw accumulator
+    values in an arbitrary per-layer scale.</p>
+    <table>
+      <thead><tr><th></th><th>value</th></tr></thead>
+      <tbody>
+        <tr><td>$Y_{\text{int32}}$ (raw accumulator, one entry)</td><td>$12614$</td></tr>
+        <tr><td>joint scale $s_x\cdot s_w$ (this layer only)</td><td>$4032.25$</td></tr>
+        <tr><td>$Y=Y_{\text{int32}}/(s_x s_w)$ — the real value</td><td>$3.128$</td></tr>
+      </tbody>
+    </table>
+    <p>Second, even for two matmuls with <em>nothing</em> in between: the next layer's dynamic
+    quantization still has to measure $\alpha=\max|Y|$ to build its own fresh scale. $\max|Y_{
+    \text{int32}}|=12614$ alone is useless for that — it still carries the old joint scale baked
+    in. Getting $\max|Y|=3.128$, the number the next scale actually gets calibrated from,
+    requires that same division. Some form of dequantization is what <em>produces</em> the next
+    layer's calibration input — it can't be skipped just because a requantization follows it.</p>
+  </div>
+</section>
+
 <!-- ============ STATIC QUANTIZATION ============ -->
 <section class="slide">
   <h2>Static quantization</h2>
