@@ -502,6 +502,47 @@ tr.hl td{background:var(--base2);color:var(--base03)}
   </div>
 </section>
 
+<!-- ============ ASYMMETRIC: DERIVING Z, TWO EXAMPLES ============ -->
+<section class="slide">
+  <h2>Deriving $z$: two examples</h2>
+  <div class="body">
+    <p>Demand $x=\beta$ maps to the integer floor $-2^{b-1}$, before rounding:
+    $s\beta+z=-2^{b-1}\Rightarrow z=-2^{b-1}-s\beta$. Solving using only $\beta$ is enough —
+    $\alpha$ lands on the ceiling automatically, since $s$ already stretched the span to fit:</p>
+    <div class="cols">
+      <div class="tile"><h4>Mixed-sign data: $\beta=-2,\ \alpha=6$</h4>
+        <p>$s=\dfrac{255}{6-(-2)}=31.875$<br>
+        $z=\operatorname{round}(31.875\times2)-128=-64$</p>
+        <table>
+          <thead><tr><th>$x$</th><th>$sx+z$</th><th>code</th></tr></thead>
+          <tbody>
+            <tr><td>$\beta=-2$</td><td>$-127.75$</td><td>$-128$ (floor)</td></tr>
+            <tr><td>$0$</td><td>$-64.00$</td><td>$-64=z$</td></tr>
+            <tr><td>$\alpha=6$</td><td>$127.25$</td><td>$127$ (ceiling)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tile"><h4>All-positive data: $\beta=10,\ \alpha=20$</h4>
+        <p>$s=\dfrac{255}{20-10}=25.5$<br>
+        $z=\operatorname{round}(-25.5\times10)-128=-383$</p>
+        <table>
+          <thead><tr><th>$x$</th><th>$sx+z$</th><th>code</th></tr></thead>
+          <tbody>
+            <tr><td>$\beta=10$</td><td>$-128.00$</td><td>$-128$ (floor)</td></tr>
+            <tr><td>$0$</td><td>$-383.00$</td><td>never occurs</td></tr>
+            <tr><td>$\alpha=20$</td><td>$127.00$</td><td>$127$ (ceiling)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card ex" style="margin-top:.9em"><span class="lab">$z$ doesn't have to be a valid code itself</span>
+      <p>Here $z=-383$ is far outside $[-128,127]$ — and that's fine. Real zero never actually
+      occurs in this tensor (every value is $\ge10$), so nothing ever needs to be stored at code
+      $-383$; $z$ only has to make the formula land correctly for $x\in[\beta,\alpha]$, which it
+      does exactly.</p></div>
+  </div>
+</section>
+
 <!-- ============ ASYMMETRIC: WORKED EXAMPLE ============ -->
 <section class="slide">
   <h2>Asymmetric quantization: a worked example</h2>
