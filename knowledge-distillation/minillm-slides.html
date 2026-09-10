@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MiniLLM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<style>
+/* ===== Solarized Light — fixed palette, do not change per-deck ===== */
+:root{
+  --base3:#fdf6e3; --base2:#eee8d5; --base1:#93a1a1; --base0:#839496;
+  --base00:#657b83; --base01:#586e75; --base02:#073642; --base03:#002b36;
+  --yellow:#b58900; --orange:#cb4b16; --red:#dc322f; --magenta:#d33682;
+  --violet:#6c71c4; --blue:#268bd2; --cyan:#2aa198; --green:#859900;
+  --rule:rgba(147,161,161,.42);
+  --serif:"IBM Plex Serif",Georgia,serif;
+  --sans:"IBM Plex Sans Condensed","IBM Plex Sans",Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --u:clamp(13px,1.42vw,22px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--base3)}
+body{font-family:var(--serif);color:var(--base01);font-size:var(--u);line-height:1.5;
+  -webkit-font-smoothing:antialiased}
+
+/* ---------- deck ---------- */
+#deck{position:relative;height:100vh;width:100vw}
+.slide{position:absolute;inset:0;display:none;flex-direction:column;
+  padding:5vh 6vw 6vh;overflow:hidden}
+.slide.on{display:flex}
+@media (prefers-reduced-motion:no-preference){
+  .slide.on{animation:fade .3s ease both}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+}
+
+/* ---------- typography ---------- */
+h1{font-family:var(--sans);font-weight:700;font-size:3.4em;line-height:.98;letter-spacing:-.02em;
+  color:var(--base03);margin:0 0 .2em}
+h2{font-family:var(--sans);font-weight:700;font-size:1.85em;line-height:1.06;letter-spacing:-.015em;
+  color:var(--base03);margin:0 0 .8em;flex:0 0 auto}
+h2 .accent{color:var(--blue)}
+.body{flex:1;min-height:0;overflow:auto;padding-right:.4em}
+p{margin:0 0 .8em}
+strong{color:var(--base03);font-weight:600}
+.big{font-size:1.2em;line-height:1.4}
+ul,ol{margin:0 0 .9em;padding-left:1.25em}
+li{margin:.42em 0}
+ul li::marker{color:var(--blue)}
+ol li::marker{color:var(--orange);font-family:var(--mono);font-size:.85em}
+code{font-family:var(--mono);font-size:.86em;background:var(--base2);padding:.06em .32em;border-radius:3px;color:var(--base02)}
+a{color:var(--blue);text-decoration:none;border-bottom:1px solid rgba(38,139,210,.4)}
+em.t{font-style:normal;font-weight:600;color:var(--violet)}
+
+/* ---------- layout helpers ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:2.4em;align-items:start}
+.cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5em}
+.stack{display:flex;flex-direction:column;gap:.8em}
+
+/* ---------- cards & tiles ---------- */
+.card{background:var(--base2);border-left:3px solid var(--c,var(--base1));
+  padding:.85em 1em;border-radius:0 4px 4px 0}
+.card .lab{font-family:var(--sans);font-size:.6em;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--c,var(--base00));display:block;margin-bottom:.35em}
+.card p:last-child,.card ul:last-child{margin-bottom:0}
+.key{--c:var(--magenta)} .int{--c:var(--cyan)} .warn{--c:var(--red)}
+.math{--c:var(--violet)} .ex{--c:var(--green)} .note{--c:var(--yellow)} .q{--c:var(--blue)}
+
+.tile{border:1px solid var(--rule);border-radius:5px;padding:.9em 1em;background:var(--base3)}
+.tile h4{font-family:var(--sans);font-size:.78em;font-weight:600;color:var(--base03);
+  margin:0 0 .3em;letter-spacing:.02em}
+.tile p{font-size:.86em;margin:0;color:var(--base00)}
+
+/* ---------- figures (paper visuals) ---------- */
+.fig{display:flex;justify-content:center;align-items:center;margin:.5em 0}
+.fig img{max-width:100%;max-height:52vh;object-fit:contain}
+.fig.tight img{max-height:38vh}
+.fig.wide img{max-height:62vh}
+
+/* ---------- tables ---------- */
+table{border-collapse:collapse;width:100%;font-family:var(--sans);font-size:.82em}
+th{text-align:left;font-size:.72em;letter-spacing:.1em;text-transform:uppercase;color:var(--base00);
+  border-bottom:1.5px solid var(--base02);padding:.4em .6em;font-weight:600}
+td{padding:.42em .6em;border-bottom:1px solid var(--rule);vertical-align:top}
+tr.hl td{background:var(--base2);color:var(--base03)}
+
+/* ---------- math ---------- */
+.katex{color:var(--base02)}
+.katex-display{margin:.7em 0!important;overflow-x:auto;overflow-y:hidden}
+.eq{background:var(--base2);border-radius:5px;padding:.35em 1em;margin:.7em 0}
+.eq.hero{border:1px solid var(--rule);background:var(--base3)}
+
+/* ---------- chrome: bare page counter only ---------- */
+#foot{position:fixed;right:6vw;bottom:2vh;font-family:var(--mono);font-size:.62em;
+  color:var(--base1);z-index:10}
+
+/* ---------- title slide ---------- */
+.slide.title{justify-content:center}
+.titlemeta{margin-top:1.3em}
+.titlemeta .author{display:block;font-family:var(--sans);font-weight:600;font-size:1.4em;color:var(--base02)}
+.titlemeta .affil{display:block;font-family:var(--sans);font-size:1.05em;color:var(--base00);margin-top:.25em}
+
+/* ---------- overview mode ---------- */
+#ov{position:fixed;inset:0;background:rgba(253,246,227,.97);z-index:30;display:none;
+  overflow:auto;padding:3vh 4vw}
+#ov.on{display:block}
+#ov h3{font-family:var(--sans);font-size:1em;color:var(--base03);margin:0 0 1em;letter-spacing:.02em}
+.ovgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.6em}
+.ovcard{border:1px solid var(--rule);border-radius:4px;padding:.6em .7em;cursor:pointer;
+  background:var(--base3);font-family:var(--sans);font-size:.72em;line-height:1.3}
+.ovcard:hover{border-color:var(--blue);background:var(--base2)}
+.ovcard .n2{font-family:var(--mono);font-size:.85em;color:var(--orange);display:block}
+
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+@media (max-width:760px){
+  .cols,.cols3{grid-template-columns:1fr;gap:1em}
+  .slide{padding:3vh 5vw 6vh}
+  h1{font-size:2.4em}
+}
+
+/* ---------- print / PDF export: one slide per page, native vector output ---------- */
+@media print{
+  @page{size:1920px 1080px;margin:0}
+  /* KaTeX's stylesheet sets html{position:relative}, which — specifically on
+     tall, multi-page print documents — makes Chromium's print engine resolve
+     vw/vh against something other than the declared @page size, so every
+     vw/vh-based value (clamp(13px,1.42vw,22px), the slide's 5vh 6vw 6vh
+     padding, #deck's 100vh/100vw) silently comes out smaller than on an
+     actual 1920x1080 screen. Fix every one of them to the fixed-px
+     equivalent for this exact canvas size, so print no longer depends on
+     vw/vh resolving correctly at all. */
+  :root{--u:22px}
+  html,body{height:auto;overflow:visible}
+  #deck{position:static;height:auto;width:1920px}
+  .slide{position:static !important;display:flex !important;width:1920px;height:1080px;
+    padding:54px 115.2px 64.8px;animation:none !important;break-after:page;page-break-after:always}
+  .slide:last-of-type{break-after:auto;page-break-after:auto}
+  .slide .body{overflow:visible}
+  .cols{grid-template-columns:1fr 1fr !important}
+  .cols3{grid-template-columns:repeat(3,1fr) !important}
+  #foot,#ov{display:none !important}
+}
+</style>
+</head>
+<body>
+
+<div id="deck">
+
+<!-- ============ TITLE ============ -->
+<section class="slide title">
+  <h1>MiniLLM: Knowledge<br>Distillation of LLMs</h1>
+  <div class="titlemeta"><span class="author">Dhruv Kumar</span><span class="affil">BITS Pilani</span></div>
+</section>
+
+<!-- ============ HOW LMS ARE NORMALLY TRAINED ============ -->
+<section class="slide">
+  <h2>How language models are normally trained</h2>
+  <div class="body">
+    <p>An LLM is trained to do one thing, over and over: given the tokens seen so far, predict a
+    probability distribution over the <strong>entire vocabulary</strong> for what comes next.</p>
+    <div class="card int"><span class="lab">One training step</span>
+      <p>Take a real sentence, e.g. "the cat sat". At the position after "the cat", the model
+      outputs a probability for <em>every</em> word in the vocabulary — "sat", "ran", "dog", all
+      of them. Training nudges the weights so this distribution puts more probability on the
+      word that <em>actually</em> comes next in the real sentence — repeated at every position,
+      of every sentence, in the whole training set.</p></div>
+    <p>The question this whole deck is really about: what if, instead of "the word that actually
+    comes next," the target the model is pushed toward is a <strong>teacher model's opinion</strong>
+    of what should come next?</p>
+  </div>
+</section>
+
+<!-- ============ THE STANDARD TRAINING LOSS ============ -->
+<section class="slide">
+  <h2>The loss: cross-entropy against one-hot truth</h2>
+  <div class="body">
+    <p>The "ground truth" at each position is a <strong>one-hot vector</strong> $y$ — probability
+    $1$ on the actual next token, $0$ on every other word in the vocabulary. The loss is
+    cross-entropy between the model's predicted distribution and this one-hot target:</p>
+    <div class="eq hero">$$\mathcal{L}=-\sum_{v\in V} y_v\log q_\theta(v\,|\,y_{&lt;t},x)=-\log q_\theta(y_t\,|\,y_{&lt;t},x)$$</div>
+    <p>$V$ — the vocabulary; $y_v=1$ for the true next token, $0$ otherwise, so every term except
+    the true token's vanishes; $q_\theta(y_t|y_{&lt;t},x)$ — the probability the model actually
+    assigned to the real next token. Minimizing this is exactly maximum-likelihood training: push
+    the probability of the real data as high as possible.</p>
+  </div>
+</section>
+
+<!-- ============ WORKED EXAMPLE: STANDARD TRAINING LOSS ============ -->
+<section class="slide">
+  <h2>A worked example: one token's loss</h2>
+  <div class="body">
+    <p>Vocabulary $\{\text{the, cat, sat, dog, ran}\}$; context "the cat ___", true next word
+    "sat". Suppose the model's predicted distribution is $q_\theta=[0.05,\,0.10,\,0.60,\,0.05,\,0.20]$:</p>
+    <table>
+      <thead><tr><th>word</th><th>the</th><th>cat</th><th>sat (true)</th><th>dog</th><th>ran</th></tr></thead>
+      <tbody>
+        <tr><td>$y$ (one-hot)</td><td>0</td><td>0</td><td><strong>1</strong></td><td>0</td><td>0</td></tr>
+        <tr><td>$q_\theta$</td><td>0.05</td><td>0.10</td><td>0.60</td><td>0.05</td><td>0.20</td></tr>
+        <tr><td>$-y\log q_\theta$</td><td>0</td><td>0</td><td>0.5108</td><td>0</td><td>0</td></tr>
+      </tbody>
+    </table>
+    <p>$\mathcal{L}=-\log(0.60)=0.5108$ — only the true token's probability mattered; the
+    model's other $0.40$ of probability mass (spread over "cat", "dog", "ran") never enters the
+    loss at all, no matter how it's distributed among the wrong answers.</p>
+  </div>
+</section>
+
+<!-- ============ STANDARD KD: SOFT TARGETS ============ -->
+<section class="slide">
+  <h2>Standard knowledge distillation: soft targets</h2>
+  <div class="body">
+    <p>Replace the one-hot target with the <strong>teacher's own predicted distribution</strong>
+    — same cross-entropy formula, different target:</p>
+    <div class="eq hero">$$\mathcal{L}_{\text{KD}}=-\sum_{v\in V}p(v\,|\,y_{&lt;t},x)\log q_\theta(v\,|\,y_{&lt;t},x)$$</div>
+    <p>$p(v|\ldots)$ — the teacher's probability for word $v$, now used as the target instead of
+    a one-hot vector. Often softened with a <strong>temperature</strong> $T$ first:
+    $q_i=\dfrac{\exp(z_i/T)}{\sum_j\exp(z_j/T)}$, $z$ the model's raw logits — $T=1$ is ordinary
+    softmax; $T&gt;1$ spreads probability mass out, revealing the teacher's relative confidence
+    across the <em>wrong</em> answers too — "dark knowledge" a one-hot label can never carry.</p>
+  </div>
+</section>
+
+<!-- ============ WORKED EXAMPLE: WORD-LEVEL KD LOSS ============ -->
+<section class="slide">
+  <h2>A worked example: word-level KD loss</h2>
+  <div class="body">
+    <p>Same context, same student $q_\theta$. Now the teacher's own distribution is the target —
+    say the teacher also rates "ran" fairly plausible ("the cat ran" makes sense too):</p>
+    <table>
+      <thead><tr><th>word</th><th>the</th><th>cat</th><th>sat</th><th>dog</th><th>ran</th></tr></thead>
+      <tbody>
+        <tr><td>$p$ (teacher)</td><td>0.02</td><td>0.05</td><td>0.70</td><td>0.03</td><td>0.20</td></tr>
+        <tr><td>$q_\theta$ (student)</td><td>0.05</td><td>0.10</td><td>0.60</td><td>0.05</td><td>0.20</td></tr>
+        <tr><td>$-p\log q_\theta$</td><td>0.0599</td><td>0.1151</td><td>0.3576</td><td>0.0899</td><td>0.3219</td></tr>
+      </tbody>
+    </table>
+    <p>$\mathcal{L}_{\text{KD}}=0.9444$ — every word contributes now, including "ran" ($0.20$ of
+    the teacher's belief lands there). The student is pushed toward the teacher's <em>whole
+    shape</em>, not just the one correct answer from before.</p>
+  </div>
+</section>
+
+<!-- ============ BRIDGE: WORD-LEVEL KD IS FORWARD KLD ============ -->
+<section class="slide">
+  <h2>This is exactly forward KLD</h2>
+  <div class="body">
+    <p>Split the cross-entropy into two pieces, using an identity true for <em>any</em> two
+    distributions — not something special to KD:</p>
+    <div class="eq hero">$$\mathcal{L}_{\text{KD}}=\underbrace{-\sum_v p_v\log p_v}_{H(\text{teacher}),\ \text{fixed}}\ +\ \underbrace{\sum_v p_v\log\frac{p_v}{q_{\theta,v}}}_{\text{KL}[p\,\|\,q_\theta]}$$</div>
+    <p>$H(\text{teacher})$ — the teacher's own <strong>Shannon entropy</strong>, how spread-out
+    $p$ itself is, computed with no student involved at all. Cross-entropy measures the average
+    "surprise" of an outcome drawn from $p$, scored using $q_\theta$'s probabilities — even a
+    <em>perfect</em> student ($q_\theta=p$) leaves $H(\text{teacher})$ of irreducible surprise
+    behind, since $p$ itself isn't a certainty.</p>
+    <div class="card ex"><span class="lab">Verified: the loss floor is $H(\text{teacher})$, not $0$</span>
+      <p>Student $\ne$ teacher: $H=0.9048$, $\text{KL}=0.0396$, sum $=0.9444=\mathcal{L}_{\text{KD}}$.
+      Student set to match the teacher <em>exactly</em>: $\text{KL}=0$, so
+      $\mathcal{L}_{\text{KD}}=H(\text{teacher})=0.9048$ — not $0$. Since $H(\text{teacher})$
+      never involves $\theta$, it contributes zero gradient — <strong>minimizing the KD loss and
+      minimizing forward KLD are the same optimization problem</strong>, they just report
+      different numbers. This was all at one token — the next slide zooms out to a whole
+      response.</p></div>
+  </div>
+</section>
+
+<!-- ============ WHAT IS KD ============ -->
+<section class="slide">
+  <h2>Knowledge distillation: teacher to student</h2>
+  <div class="body">
+    <p>Zooming out from one token to the whole task: knowledge distillation (KD) trains a small
+    <strong>student</strong> model using supervision from a large, already-trained
+    <strong>teacher</strong> model, instead of (or in addition to) raw labeled data — the point is
+    to shrink the compute needed at inference time.</p>
+    <div class="cols">
+      <div class="tile"><h4>Black-box KD</h4>
+        <p>Only the teacher's generated <em>text</em> is available (e.g. an API like ChatGPT).
+        The student trains on teacher outputs directly.</p></div>
+      <div class="tile"><h4>White-box KD</h4>
+        <p>The teacher's full output <em>distribution</em> is available — exactly the setting from
+        the previous slides. The student can match probabilities, not just copy text.</p></div>
+    </div>
+    <p>This paper studies <strong>white-box KD for open-source LLMs</strong> — small models
+    trained to match a large model's actual output distribution.</p>
+  </div>
+</section>
+
+<!-- ============ FORWARD KLD: THE STANDARD OBJECTIVE ============ -->
+<section class="slide">
+  <h2>The standard objective: forward KLD</h2>
+  <div class="body">
+    <p>Given a prompt $x$, the teacher's output distribution $p(y|x)$ over responses $y$, and a
+    student $q_\theta(y|x)$, standard KD approximately minimizes the <strong>forward</strong>
+    Kullback-Leibler divergence:</p>
+    <div class="eq hero">$$\text{KL}[p\,\|\,q_\theta]=\mathbb{E}_{x\sim p_x,\,y\sim p}\log\frac{p(y|x)}{q_\theta(y|x)}$$</div>
+    <p>$x$ — a prompt, sampled from the prompt distribution $p_x$; $y$ — a full response;
+    $p(y|x)$ — the teacher's probability of response $y$; $q_\theta(y|x)$ — the student's
+    probability of the same response, parameterized by weights $\theta$. This is the same
+    objective as ordinary maximum-likelihood training, just against the teacher's distribution
+    instead of ground-truth labels.</p>
+  </div>
+</section>
+
+<!-- ============ FROM SEQUENCES TO TOKENS: THE CHAIN RULE ============ -->
+<section class="slide">
+  <h2>From sequences to tokens: the chain rule</h2>
+  <div class="body">
+    <p>$p(y|x)$ is a probability over an entire response — but the teacher only ever hands you
+    <em>per-token</em> distributions, the same ones from every earlier slide. The bridge is the
+    chain rule: the probability of a whole sequence is the product of each token's conditional
+    probability, given everything before it:</p>
+    <div class="eq hero">$$p(y|x)=\prod_{t=1}^{T}p(y_t|y_{&lt;t},x)\ \Longrightarrow\ \log\frac{p(y|x)}{q_\theta(y|x)}=\sum_{t=1}^{T}\log\frac{p(y_t|y_{&lt;t},x)}{q_\theta(y_t|y_{&lt;t},x)}$$</div>
+    <p>Extend the running example by one token, "the cat sat down":</p>
+    <table>
+      <thead><tr><th>step</th><th>context → true token</th><th>$p$</th><th>$q_\theta$</th><th>$\log(p/q_\theta)$</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>"the cat" → "sat"</td><td>0.70</td><td>0.60</td><td>0.1542</td></tr>
+        <tr><td>2</td><td>"the cat sat" → "down"</td><td>0.70</td><td>0.50</td><td>0.3365</td></tr>
+      </tbody>
+    </table>
+    <p>$p(y|x)=0.70\times0.70=0.49$, $q_\theta(y|x)=0.60\times0.50=0.30$,
+    $\log(0.49/0.30)=0.4906$ — exactly $0.1542+0.3365$. The sequence-level ratio in the forward-KLD
+    formula <strong>is</strong> a sum of per-token log-ratios — no new quantity to compute, just
+    the per-token terms already familiar, added up along the response.</p>
+  </div>
+</section>
+
+<!-- ============ WORD-LEVEL KD VS SEQKD ============ -->
+<section class="slide">
+  <h2>Word-level KD vs. SeqKD: two approximations</h2>
+  <div class="body">
+    <p>Forward KLD wants two things at once: $y$ sampled from the <strong>teacher's own
+    generation</strong>, and the student matching the teacher's <strong>full distribution</strong>
+    at every step. Neither practical method gets both — they trade off in opposite directions:</p>
+    <table>
+      <thead><tr><th></th><th>context $y_{&lt;t}$ comes from</th><th>per-token target</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Word-level KD</strong></td><td>real, ground-truth data</td><td>teacher's full soft distribution (exact)</td></tr>
+        <tr><td><strong>SeqKD</strong></td><td>the teacher itself (exact)</td><td>one-hot on the teacher's own sampled token</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Word-level KD</strong> keeps the soft, per-token target exact, but evaluates it on
+    real sequences instead of teacher-generated ones — the paper's "approximately," since real
+    data only matches teacher-generated contexts once the teacher is strong. <strong>SeqKD</strong>
+    keeps the sampling source exact — a real teacher-generated sequence — but then discards the
+    teacher's actual probabilities and trains on that one sample as ordinary one-hot ground truth,
+    losing the dark knowledge every other slide has been carrying.</p>
+  </div>
+</section>
+
+<!-- ============ WHY NOT BOTH ============ -->
+<section class="slide">
+  <h2>Why not sample from the teacher and keep the soft target?</h2>
+  <div class="body">
+    <p>Nothing rules this out mathematically — sample $y$ from the teacher, then match the
+    teacher's full distribution at every step of that same $y$. That is exactly the
+    un-approximated forward-KLD objective from three slides ago. Each practical method drops it
+    for its own documented reason:</p>
+    <div class="card note"><span class="lab">SeqKD: the exact target is an intractable sum</span>
+      <p>The true sequence-level target sums over <strong>every</strong> possible response, weighted
+      by how likely the teacher is to produce it: $-\sum_{y\in\mathcal Y}p(y|x)\log q_\theta(y|x)$
+      — exponentially many terms. Kim &amp; Rush's original SeqKD approximates $p(y|x)$ by a single
+      point, the teacher's most likely response $\hat y$ (found via beam search). Collapsing the
+      teacher's distribution down to one response is exactly what removes the soft target — the
+      loss becomes plain $-\log q_\theta(\hat y|x)$, with nothing soft left to keep.</p></div>
+    <div class="card note"><span class="lab">Word-level KD: real data is already there</span>
+      <p>Scoring the teacher's per-token distribution on an <em>already-written</em> sequence takes
+      one parallel forward pass. Generating a <em>new</em> response from the teacher instead takes
+      $T$ sequential decoding steps per example, repeated across the whole training set — so
+      word-level KD keeps using the real dataset it already has.</p></div>
+    <div class="card note"><span class="lab">Self-study: on-policy distillation</span>
+      <p>Later work (Agarwal et al., 2024) shows this combination — a generated sequence <em>plus</em>
+      the teacher's per-token soft distribution along it — is a real option, but works better when
+      the sequence comes from the <strong>student</strong>, not the teacher: that is what the student
+      needs to get right at inference time, the same reason MiniLLM samples $y$ from $q_\theta$ on
+      the next slide.</p></div>
+  </div>
+</section>
+
+<!-- ============ WHY FORWARD KLD STRUGGLES FOR GENERATION ============ -->
+<section class="slide">
+  <h2>Why forward KLD hurts open-ended generation</h2>
+  <div class="body">
+    <p>Forward KLD forces $q_\theta$ to place probability <strong>everywhere</strong> $p$ does —
+    if $p(y|x)&gt;0$ but $q_\theta(y|x)\to0$ anywhere, $\log(p/q_\theta)\to\infty$ and the loss
+    explodes. For a small number of classes (text classification), this is harmless: both
+    distributions have few modes anyway.</p>
+    <div class="card warn"><span class="lab">Text generation has too many modes for a small student</span>
+      <p>An LLM's response space is enormous and multi-modal — many different phrasings are all
+      individually plausible. A small student lacks the capacity to represent every mode $p$
+      does, so forced coverage makes it spread probability onto <strong>void regions</strong> of
+      $p$ — places the teacher finds implausible — producing low-quality, hallucinated
+      generations at free-run time.</p></div>
+  </div>
+</section>
+
+<!-- ============ TOY EXAMPLE: FORWARD KLD IN THE VOID ============ -->
+<section class="slide">
+  <h2>A worked example: forward KLD spills into the void</h2>
+  <div class="body">
+    <p>Context "the cat ___", a 4-token vocabulary. The teacher genuinely likes two different
+    continuations — "sat" and "ran" — and almost never says "purred" or "flew":</p>
+    <table>
+      <thead><tr><th>token</th><th>sat</th><th>purred</th><th>flew</th><th>ran</th></tr></thead>
+      <tbody><tr><td>teacher $p$</td><td>0.49</td><td>0.01</td><td>0.01</td><td>0.49</td></tr></tbody>
+    </table>
+    <p>Suppose the student is capacity-limited to a single "bump" of confidence across these four
+    tokens — it can commit to one coherent continuation shape, not two unrelated ones at once.
+    Fitting that one bump by forward vs. reverse KLD gives very different students:</p>
+    <div class="cols">
+      <div class="card warn"><span class="lab">Forward KLD: $\arg\min_q\text{KL}[p\,\|\,q]$</span>
+        <p>$q=[0.03,\ \mathbf{0.47},\ \mathbf{0.47},\ 0.03]$ — the bump lands <strong>between</strong>
+        the two real modes, the only place a single bump gets partial credit for both. 94% of the
+        student's probability lands on "purred"/"flew".</p></div>
+      <div class="card ex"><span class="lab">Reverse KLD: $\arg\min_q\text{KL}[q\,\|\,p]$</span>
+        <p>$q=[\mathbf{0.80},\ 0.20,\ 0.00,\ 0.00]$ — the bump commits to one real mode, "sat", and
+        stays close to it. Only 20% spills onto the neighboring void token, none onto the far one.</p></div>
+    </div>
+    <p>Same teacher, same student family — minimizing forward KLD produces a student that mostly
+    says implausible things; minimizing reverse KLD produces one that says a real thing, just not
+    always the same real thing.</p>
+  </div>
+</section>
+
+<!-- ============ REVERSE KLD: MINILLM'S OBJECTIVE ============ -->
+<section class="slide">
+  <h2>MiniLLM's objective: reverse KLD</h2>
+  <div class="body">
+    <p>MiniLLM instead minimizes the <strong>reverse</strong> KLD — the same two distributions,
+    with the direction flipped:</p>
+    <div class="eq hero">$$\theta=\arg\min_\theta\text{KL}[q_\theta\,\|\,p]=\arg\min_\theta\Big[-\mathbb{E}_{x\sim p_x,\,y\sim q_\theta}\log\frac{p(y|x)}{q_\theta(y|x)}\Big]$$</div>
+    <p>Same $p$, $q_\theta$, $x$ as before — but now $y$ is sampled from the <strong>student's
+    own</strong> distribution $q_\theta$, not the teacher's. This one change — whose distribution
+    $y$ comes from — is what turns the training signal from "cover everything the teacher might
+    say" into "get good at what you already tend to say."</p>
+  </div>
+</section>
+
+<!-- ============ KLD IS ASYMMETRIC: WORKED EXAMPLE ============ -->
+<section class="slide">
+  <h2>Forward vs. reverse KLD: a numeric example</h2>
+  <div class="body">
+    <p>KL divergence is not symmetric — $\text{KL}[p\|q]\ne\text{KL}[q\|p]$ in general. Take
+    $p=[0.70,\,0.25,\,0.05]$ and $q=[0.40,\,0.40,\,0.20]$ over 3 outcomes:</p>
+    <table>
+      <thead><tr><th>$y$</th><th>$p$</th><th>$q$</th><th>$p\log(p/q)$</th><th>$q\log(q/p)$</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>0.70</td><td>0.40</td><td>0.3917</td><td>−0.2238</td></tr>
+        <tr><td>2</td><td>0.25</td><td>0.40</td><td>−0.1175</td><td>0.1880</td></tr>
+        <tr><td>3</td><td>0.05</td><td>0.20</td><td>−0.0693</td><td>0.2773</td></tr>
+        <tr><td colspan="3"><strong>sum</strong></td><td><strong>KL[p‖q] = 0.2049</strong></td><td><strong>KL[q‖p] = 0.2414</strong></td></tr>
+      </tbody>
+    </table>
+    <p>Same two distributions, two genuinely different numbers — forward and reverse KLD are not
+    interchangeable objectives; minimizing one does not minimize the other.</p>
+  </div>
+</section>
+
+<!-- ============ WHY THEY DIFFER: THE MECHANISM ============ -->
+<section class="slide">
+  <h2>Why: which mistake each direction punishes</h2>
+  <div class="body">
+    <p>Look at what each term does when $p$ and $q$ disagree in different ways:</p>
+    <div class="cols">
+      <div class="card warn"><span class="lab">$q$ spends probability where $p$ is tiny ($q=0.20,\ p=0.01$)</span>
+        <p>reverse term $q\log(q/p)=0.20\log(20)=\mathbf{0.599}$ — big penalty.<br>
+        forward term $p\log(p/q)=0.01\log(0.05)=-0.030$ — negligible.</p></div>
+      <div class="card warn"><span class="lab">$q$ ignores a region $p$ likes ($q=0.001,\ p=0.30$)</span>
+        <p>forward term $p\log(p/q)=0.30\log(300)=\mathbf{1.711}$ — big penalty.<br>
+        reverse term $q\log(q/p)=0.001\log(0.0033)=-0.006$ — negligible.</p></div>
+    </div>
+    <p><strong>Forward KLD</strong> is severely punished for under-covering any mode $p$ has —
+    mode-<em>covering</em>. <strong>Reverse KLD</strong> is severely punished for wandering into
+    regions $p$ dislikes, but barely cares about ignoring modes — mode-<em>seeking</em>. This
+    asymmetry is the entire reason the two objectives train such differently-behaved students.</p>
+  </div>
+</section>
+
+<!-- ============ FIGURE 2: THE PAPER'S TOY EXPERIMENT ============ -->
+<section class="slide">
+  <h2>Seeing it directly: fitting a single Gaussian</h2>
+  <div class="body">
+    <p>Fit one Gaussian $q$ to a multi-modal target $p$ (a Gaussian mixture) by minimizing each
+    KLD direction:</p>
+    <div class="fig"><img src="images/fig2_klds.png" alt="forward KLD vs reverse KLD fitting a Gaussian mixture with a single Gaussian"></div>
+    <p><strong>Forward KLD</strong> (orange) spreads itself thin trying to cover every mode at
+    once, ending up low and wide — reasonably present everywhere, confidently right nowhere.
+    <strong>Reverse KLD</strong> (green) picks the single largest mode and matches it closely,
+    ignoring the smaller ones entirely — exactly the mode-seeking behavior from the previous
+    slide, now visible on an actual distribution.</p>
+  </div>
+</section>
+
+<!-- ============ FIGURE 3: SEQKD VS MINILLM ============ -->
+<section class="slide">
+  <h2>What this means for training</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/fig3_comparison.png" alt="sequence-level KD vs MiniLLM training diagram"></div>
+    <p>Sequence-level KD samples $y$ from the <strong>teacher</strong> and trains the student to
+    match those exact samples — forward KLD, forcing memorization of everything the teacher might
+    generate. MiniLLM samples $y$ from the <strong>student itself</strong> and asks the teacher to
+    grade it — reverse KLD, improving the text the student already tends to produce rather than
+    forcing it to reproduce the teacher's.</p>
+  </div>
+</section>
+
+<!-- ============ WHY POLICY GRADIENT IS NEEDED ============ -->
+<section class="slide">
+  <h2>Why this needs policy gradient</h2>
+  <div class="body">
+    <p>$\text{KL}[q_\theta\|p]$ is an expectation <em>over $y\sim q_\theta$</em> — the distribution
+    being optimized is also the one doing the sampling. Ordinary backprop can't differentiate
+    through a sampling step directly. This is exactly the situation reinforcement learning
+    solves: treat the student as a <strong>policy</strong> choosing tokens, use the
+    <strong>Policy Gradient Theorem</strong> to get a usable gradient anyway.</p>
+    <div class="card int"><span class="lab">The RL framing</span>
+      <p>State = the prompt plus tokens generated so far, $(x,y_{&lt;t})$. Action = the next
+      token $y_t$, chosen from the vocabulary. Reward = how much more the teacher likes each
+      generated token than the student already does.</p></div>
+  </div>
+</section>
+
+<!-- ============ THE GRADIENT, QUALITATIVELY ============ -->
+<section class="slide">
+  <h2>The gradient, qualitatively</h2>
+  <div class="body">
+    <p>The Policy Gradient Theorem gives an update rule with the shape every policy-gradient
+    method shares: push up the probability of an action in proportion to a <strong>reward</strong>
+    signal, push it down otherwise. Here, at each generated token $y_t$, the reward is
+    $R_t$ — how much more the teacher likes the <em>rest</em> of this response, from this point
+    on, than the student itself currently expects.</p>
+    <div class="card note"><span class="lab">The precise mechanics come later</span>
+      <p>This deck hasn't covered RL for LLMs / RLHF yet, so the full derivation of $R_t$ and the
+      gradient formula is deliberately left qualitative here — worth revisiting in detail once
+      that foundation is in place. The idea to hold onto for now: reward = teacher-relative
+      quality of what follows, and the gradient just does ordinary policy-gradient credit
+      assignment with that reward.</p></div>
+  </div>
+</section>
+
+<!-- ============ THREE ENGINEERING FIXES ============ -->
+<section class="slide">
+  <h2>Three problems, three fixes</h2>
+  <div class="body">
+    <p>Plain policy gradient on this reward is unstable in practice. The paper identifies three
+    specific failure modes and a fix for each — the mechanics are RL-specific and worth returning
+    to once RL for LLMs is covered properly; the ideas themselves are simple:</p>
+    <div class="cols3">
+      <div class="tile"><h4>High variance</h4>
+        <p>Early-token errors compound across a whole sampled sentence. Fix: compute the
+        immediate next-step quality exactly (summed over the vocabulary) instead of estimating
+        it from one noisy rollout.</p></div>
+      <div class="tile"><h4>Reward hacking</h4>
+        <p>Sampling purely from the student can find degenerate text (repeated phrases) that the
+        teacher scores well. Fix: sample from a mix of teacher and student, so training rarely
+        wanders into those degenerate regions in the first place.</p></div>
+      <div class="tile"><h4>Length bias</h4>
+        <p>Summing reward over more remaining tokens mechanically favors short or empty
+        responses. Fix: normalize the reward by how many tokens remain, so it reflects average
+        quality, not raw length.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TRAINING ALGORITHM ============ -->
+<section class="slide">
+  <h2>Training MiniLLM: two phases</h2>
+  <div class="body">
+    <ol>
+      <li><strong>Phase 1 — SFT initialization.</strong> Fine-tune the student on the labeled
+      instruction-response dataset $\mathcal{D}$, standard supervised training. This gives policy
+      gradient a reasonable starting point instead of a random one.</li>
+      <li><strong>Phase 2 — MiniLLM refinement.</strong> Continue training with the combined
+      gradient from the three fixes above (single-step + teacher-mixed + length-normalized),
+      alongside a language-modeling loss on a separate pretraining corpus $\mathcal{D}_{\text{PT}}$
+      to preserve the student's general capabilities.</li>
+    </ol>
+    <p>The overall pipeline mirrors RLHF: an SFT phase followed by a policy-optimization phase —
+    except the reward here comes directly from the teacher's own output distribution, not a
+    separately-trained reward model.</p>
+  </div>
+</section>
+
+<!-- ============ EXPERIMENTAL SETUP ============ -->
+<section class="slide">
+  <h2>Experimental setup</h2>
+  <div class="body">
+    <p>Instruction-following as the task — models learn to produce a response given an
+    instruction, evaluated with Rouge-L against ground truth, human judgment, and GPT-4 feedback.</p>
+    <div class="cols">
+      <div class="tile"><h4>Teacher / student pairs</h4>
+        <p>GPT-2-1.5B → GPT-2 125M/340M/760M<br>
+        GPT-J 6B / OPT 13B → OPT 1.3B/2.7B/6.7B<br>
+        LLaMA 13B → LLaMA 7B</p></div>
+      <div class="tile"><h4>Data &amp; evaluation</h4>
+        <p>Trained on databricks-dolly-15K (~12.5K examples). Evaluated on 5 instruction-following
+        sets: Dolly, SelfInst, Vicuna, S-NI, UnNI.</p></div>
+    </div>
+    <p>Baselines: <strong>SFT w/o KD</strong> (no distillation at all), <strong>KD</strong>
+    (word-level, forward KLD), <strong>SeqKD</strong> (sequence-level, trains directly on
+    teacher-generated text).</p>
+  </div>
+</section>
+
+<!-- ============ FIGURE 1: HEADLINE RESULT ============ -->
+<section class="slide">
+  <h2>Does it work? The headline result</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/fig1_headline.png" alt="MiniLLM vs SeqKD Rouge-L across three model families and sizes"></div>
+    <p>Average Rouge-L vs. student size, three independent teacher/student families. MiniLLM
+    (solid) beats SeqKD (dashed) at every size tested, and the gap holds as student capacity
+    scales from 100M to 6.7B — approaching, and at the largest sizes nearly matching, the
+    teacher's own score (dashed grey line).</p>
+  </div>
+</section>
+
+<!-- ============ TABLE 1: MAIN RESULTS ============ -->
+<section class="slide">
+  <h2>The full results table</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/table1_results.png" alt="Rouge-L results table across GPT-2, OPT, LLaMA families and all baselines"></div>
+    <p>MiniLLM is the best or tied-best student almost everywhere, across every family and every
+    size. On several datasets (Vicuna, S-NI, UnNI) it even exceeds the teacher's own score —
+    attributed to <strong>exposure bias</strong>: the teacher was fine-tuned with plain
+    teacher-forcing, which itself has a training/inference mismatch that policy-gradient training
+    doesn't share (next slide).</p>
+  </div>
+</section>
+
+<!-- ============ FIGURE 6: EXPOSURE BIAS ============ -->
+<section class="slide">
+  <h2>Lower exposure bias</h2>
+  <div class="body">
+    <div class="fig"><img src="images/fig6_exposure_bias.png" alt="excess accumulated error (ExAccErr) vs generation length"></div>
+    <p>Teacher-forced training only ever sees ground-truth prefixes, never its own mistakes — at
+    free-run inference, small errors compound as generation gets longer (exposure bias). MiniLLM
+    trains on the student's <em>own</em> generated rollouts (reverse KLD samples $y\sim q_\theta$),
+    so it already sees, and corrects for, its own mistakes during training — the excess error
+    (ExAccErr) stops growing past ~150 tokens, while the baselines keep drifting.</p>
+  </div>
+</section>
+
+<!-- ============ TABLE 2: CALIBRATION ============ -->
+<section class="slide">
+  <h2>Better calibration</h2>
+  <div class="body">
+    <div class="fig"><img src="images/table2_calibration.png" alt="ECE and accuracy scores on SST2 and BoolQ"></div>
+    <p>Expected Calibration Error (ECE) — how well a model's confidence matches its actual
+    accuracy — on two zero-shot classification tasks. Forward-KLD baselines (KD, SeqKD) are
+    dramatically worse calibrated than the teacher; MiniLLM narrows that gap substantially,
+    consistent with reverse KLD avoiding the void-region overconfidence forward KLD introduces.</p>
+  </div>
+</section>
+
+<!-- ============ FIGURE 4: HUMAN EVAL ============ -->
+<section class="slide">
+  <h2>Human preference</h2>
+  <div class="body">
+    <div class="fig"><img src="images/fig4_human_eval.png" alt="human evaluation: MiniLLM wins, ties, loses against each baseline"></div>
+    <p>Head-to-head human comparisons, LLaMA-7B student vs. LLaMA-13B teacher. MiniLLM wins
+    outright against every baseline more often than it loses, and even against the
+    <strong>teacher itself</strong> it's competitive — wins or ties in roughly two-thirds of
+    comparisons.</p>
+  </div>
+</section>
+
+<!-- ============ FIGURE 5: SCALING WITH TEACHER SIZE ============ -->
+<section class="slide">
+  <h2>Bigger teachers make better students</h2>
+  <div class="body">
+    <div class="fig"><img src="images/fig5_scaling_teacher.png" alt="MiniLLM Rouge-L vs teacher parameter count"></div>
+    <p>Fix the student (GPT-2-125M) and grow only the teacher. Prior work has found this doesn't
+    always help — a bigger teacher can even hurt naive distillation. MiniLLM instead improves
+    <em>monotonically</em> with teacher size, while SeqKD stays flat — reverse KLD keeps
+    extracting more signal from a stronger teacher instead of just inheriting its blind spots.</p>
+  </div>
+</section>
+
+<!-- ============ FIGURE 7: LENGTH-BASED PERFORMANCE ============ -->
+<section class="slide">
+  <h2>The advantage grows with response length</h2>
+  <div class="body">
+    <div class="fig"><img src="images/fig7_length_perf.png" alt="Rouge-L improvement over SFT by ground-truth response length"></div>
+    <p>For short expected responses ($\le5$ tokens) the output space is small enough that any
+    method covers it — forward and reverse KLD perform similarly. For longer responses, the
+    teacher's true distribution has far more modes than a small student can represent, and that's
+    exactly where MiniLLM's margin over standard KD widens the most.</p>
+  </div>
+</section>
+
+<!-- ============ TABLE 3: GENERATION DIVERSITY ============ -->
+<section class="slide">
+  <h2>Does mode-seeking hurt diversity?</h2>
+  <div class="body">
+    <p>Reverse KLD is mode-seeking by design — a natural worry is that it makes generations
+    repetitive. Measured directly with distinct-4-grams (Dist-4, higher = more diverse
+    vocabulary) and language-modeling loss on held-out text:</p>
+    <div class="fig"><img src="images/table3_diversity.png" alt="distinct 4-grams and language modeling loss, LLaMA family"></div>
+    <p>MiniLLM's Dist-4 and loss stay close to the teacher's and the other baselines' — mode-seeking
+    within one response does not collapse diversity <em>across</em> different prompts or
+    different sampling seeds.</p>
+  </div>
+</section>
+
+<!-- ============ TABLE 4 + FIGURE 8: ABLATIONS ============ -->
+<section class="slide">
+  <h2>Ablations: does every fix earn its place?</h2>
+  <div class="body">
+    <div class="cols">
+      <div class="fig"><img src="images/table4_ablation.png" alt="validation and test Rouge-L with each stabilization strategy removed"></div>
+      <div class="fig"><img src="images/fig8_reward_hacking.png" alt="reverse KLD during training with each strategy removed"></div>
+    </div>
+    <p>Removing <strong>teacher-mixed sampling</strong> hurts the most (27.4→17.4 validation
+    Rouge-L) — without it, reverse KLD still goes down during training (right plot, orange), but
+    the model is reward-hacking: learning short, repeated, degenerate strings the teacher
+    happens to score well, not real quality. Single-step decomposition mainly reduces variance
+    (smoother curves, higher final scores) rather than changing the endpoint qualitatively.</p>
+  </div>
+</section>
+
+<!-- ============ TABLE 9: CASE STUDY ============ -->
+<section class="slide">
+  <h2>What the outputs actually look like</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/table9_case1.png" alt="case study: instruction-following responses from each method"></div>
+    <p>MiniLLM produces the most complete, correctly-formatted answer — a full bulleted list of
+    valid substitutions. Without teacher-mixed sampling, the same architecture degenerates into
+    a near-empty response ("We to know") — a direct, visible instance of the reward hacking the
+    ablation on the previous slide measured numerically.</p>
+  </div>
+</section>
+
+<!-- ============ READING LIST ============ -->
+<section class="slide">
+  <h2>Reading list</h2>
+  <div class="body">
+    <ul>
+      <li><a href="https://openreview.net/pdf?id=5h0qf7IBZZ" target="_blank">Gu, Dong, Wei
+      &amp; Huang, <em>MiniLLM: Knowledge Distillation of Large Language Models</em></a> —
+      ICLR 2024, the source for every figure and result in this deck.</li>
+      <li><a href="https://arxiv.org/abs/1503.02531" target="_blank">Hinton, Vinyals &amp; Dean,
+      <em>Distilling the Knowledge in a Neural Network</em></a> — the original knowledge
+      distillation paper.</li>
+      <li><a href="https://arxiv.org/abs/1511.05101" target="_blank">Huszár, <em>How (not) to
+      train your generative model</em></a> — forward vs. reverse KL and mode-covering/seeking
+      behavior in generative modeling.</li>
+      <li><a href="https://arxiv.org/abs/2203.02155" target="_blank">Ouyang et al., <em>Training
+      Language Models to Follow Instructions with Human Feedback</em></a> — the RLHF pipeline
+      MiniLLM's two-phase training mirrors.</li>
+      <li><a href="https://arxiv.org/abs/1606.07947" target="_blank">Kim &amp; Rush, <em>Sequence-Level
+      Knowledge Distillation</em></a> — the original SeqKD paper.</li>
+      <li><a href="https://arxiv.org/abs/2306.13649" target="_blank">Agarwal et al., <em>On-Policy
+      Distillation of Language Models</em></a> — trains the student on its own generated
+      sequences, graded by the teacher.</li>
+      <li><a href="https://github.com/microsoft/LMOps/tree/main/minillm" target="_blank">Official
+      MiniLLM code, data, and model checkpoints</a>.</li>
+    </ul>
+  </div>
+</section>
+
+</div><!-- /deck -->
+
+<div id="ov"><h3>All slides — click to jump · press O or Esc to close</h3><div class="ovgrid" id="ovgrid"></div></div>
+<div id="foot"><span id="num">1 / 1</span></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  if (window.renderMathInElement) {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: "$$", right: "$$", display: true},
+        {left: "\\[", right: "\\]", display: true},
+        {left: "$", right: "$", display: false},
+        {left: "\\(", right: "\\)", display: false}
+      ],
+      throwOnError: false
+    });
+  }
+});
+
+/* ---------- deck navigation ---------- */
+(function () {
+  const slides = Array.from(document.querySelectorAll(".slide"));
+  const num = document.getElementById("num");
+  const ov = document.getElementById("ov");
+  const ovgrid = document.getElementById("ovgrid");
+  let i = 0;
+
+  slides.forEach(function (s, k) {
+    const card = document.createElement("div");
+    card.className = "ovcard";
+    const h = s.querySelector("h1, h2");
+    card.innerHTML = '<span class="n2">' + (k + 1) + '</span>' + (h ? h.textContent : "Slide");
+    card.addEventListener("click", function () { go(k); ov.classList.remove("on"); });
+    ovgrid.appendChild(card);
+  });
+
+  function go(k) {
+    i = Math.max(0, Math.min(slides.length - 1, k));
+    slides.forEach(s => s.classList.remove("on"));
+    slides[i].classList.add("on");
+    slides[i].querySelector(".body") && (slides[i].querySelector(".body").scrollTop = 0);
+    num.textContent = (i + 1) + " / " + slides.length;
+    history.replaceState(null, "", "#" + (i + 1));
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); go(i + 1); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); go(i - 1); }
+    else if (e.key === "Home") go(0);
+    else if (e.key === "End") go(slides.length - 1);
+    else if (e.key === "o" || e.key === "O") ov.classList.toggle("on");
+    else if (e.key === "Escape") ov.classList.remove("on");
+    else if (e.key === "f" || e.key === "F") {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+
+  let x0 = null;
+  document.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; }, {passive: true});
+  document.addEventListener("touchend", function (e) {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 55) go(dx < 0 ? i + 1 : i - 1);
+    x0 = null;
+  }, {passive: true});
+
+  const start = parseInt((location.hash || "#1").slice(1), 10);
+  go(isNaN(start) ? 0 : start - 1);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Decoding & Sampling Strategies for LLMs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<style>
+/* ===== Solarized Light — fixed palette, do not change per-deck ===== */
+:root{
+  --base3:#fdf6e3; --base2:#eee8d5; --base1:#93a1a1; --base0:#839496;
+  --base00:#657b83; --base01:#586e75; --base02:#073642; --base03:#002b36;
+  --yellow:#b58900; --orange:#cb4b16; --red:#dc322f; --magenta:#d33682;
+  --violet:#6c71c4; --blue:#268bd2; --cyan:#2aa198; --green:#859900;
+  --rule:rgba(147,161,161,.42);
+  --serif:"IBM Plex Serif",Georgia,serif;
+  --sans:"IBM Plex Sans Condensed","IBM Plex Sans",Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --u:clamp(13px,1.42vw,22px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--base3)}
+body{font-family:var(--serif);color:var(--base01);font-size:var(--u);line-height:1.5;
+  -webkit-font-smoothing:antialiased}
+
+/* ---------- deck ---------- */
+#deck{position:relative;height:100vh;width:100vw}
+.slide{position:absolute;inset:0;display:none;flex-direction:column;
+  padding:5vh 6vw 6vh;overflow:hidden}
+.slide.on{display:flex}
+@media (prefers-reduced-motion:no-preference){
+  .slide.on{animation:fade .3s ease both}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+}
+
+/* ---------- typography ---------- */
+h1{font-family:var(--sans);font-weight:700;font-size:3.4em;line-height:.98;letter-spacing:-.02em;
+  color:var(--base03);margin:0 0 .2em}
+h2{font-family:var(--sans);font-weight:700;font-size:1.85em;line-height:1.06;letter-spacing:-.015em;
+  color:var(--base03);margin:0 0 .8em;flex:0 0 auto}
+h2 .accent{color:var(--blue)}
+.body{flex:1;min-height:0;overflow:auto;padding-right:.4em}
+p{margin:0 0 .8em}
+strong{color:var(--base03);font-weight:600}
+.big{font-size:1.2em;line-height:1.4}
+ul,ol{margin:0 0 .9em;padding-left:1.25em}
+li{margin:.42em 0}
+ul li::marker{color:var(--blue)}
+ol li::marker{color:var(--orange);font-family:var(--mono);font-size:.85em}
+code{font-family:var(--mono);font-size:.86em;background:var(--base2);padding:.06em .32em;border-radius:3px;color:var(--base02)}
+a{color:var(--blue);text-decoration:none;border-bottom:1px solid rgba(38,139,210,.4)}
+em.t{font-style:normal;font-weight:600;color:var(--violet)}
+
+/* ---------- layout helpers ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:2.4em;align-items:start}
+.cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5em}
+.stack{display:flex;flex-direction:column;gap:.8em}
+
+/* ---------- cards & tiles ---------- */
+.card{background:var(--base2);border-left:3px solid var(--c,var(--base1));
+  padding:.85em 1em;border-radius:0 4px 4px 0}
+.card .lab{font-family:var(--sans);font-size:.6em;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--c,var(--base00));display:block;margin-bottom:.35em}
+.card p:last-child,.card ul:last-child{margin-bottom:0}
+.key{--c:var(--magenta)} .int{--c:var(--cyan)} .warn{--c:var(--red)}
+.math{--c:var(--violet)} .ex{--c:var(--green)} .note{--c:var(--yellow)} .q{--c:var(--blue)}
+
+.tile{border:1px solid var(--rule);border-radius:5px;padding:.9em 1em;background:var(--base3)}
+.tile h4{font-family:var(--sans);font-size:.78em;font-weight:600;color:var(--base03);
+  margin:0 0 .3em;letter-spacing:.02em}
+.tile p{font-size:.86em;margin:0;color:var(--base00)}
+
+/* ---------- tables ---------- */
+table{border-collapse:collapse;width:100%;font-family:var(--sans);font-size:.82em}
+th{text-align:left;font-size:.72em;letter-spacing:.1em;text-transform:uppercase;color:var(--base00);
+  border-bottom:1.5px solid var(--base02);padding:.4em .6em;font-weight:600}
+td{padding:.42em .6em;border-bottom:1px solid var(--rule);vertical-align:top}
+tr.hl td{background:var(--base2);color:var(--base03)}
+td.pruned{color:var(--base1);text-decoration:line-through}
+
+/* ---------- math ---------- */
+.katex{color:var(--base02)}
+.katex-display{margin:.7em 0!important;overflow-x:auto;overflow-y:hidden}
+.eq{background:var(--base2);border-radius:5px;padding:.35em 1em;margin:.7em 0}
+.eq.hero{border:1px solid var(--rule);background:var(--base3)}
+
+/* ---------- figures ---------- */
+.fig{display:flex;justify-content:center;align-items:center;margin:.5em 0}
+.fig img{max-width:100%;max-height:52vh;object-fit:contain}
+.fig.tight img{max-height:38vh}
+.fig.wide img{max-height:62vh}
+
+/* ---------- chrome: bare page counter only ---------- */
+#foot{position:fixed;right:6vw;bottom:2vh;font-family:var(--mono);font-size:.62em;
+  color:var(--base1);z-index:10}
+
+/* ---------- title slide ---------- */
+.slide.title{justify-content:center}
+.titlemeta{margin-top:1.3em}
+.titlemeta .author{display:block;font-family:var(--sans);font-weight:600;font-size:1.4em;color:var(--base02)}
+.titlemeta .affil{display:block;font-family:var(--sans);font-size:1.05em;color:var(--base00);margin-top:.25em}
+
+/* ---------- overview mode ---------- */
+#ov{position:fixed;inset:0;background:rgba(253,246,227,.97);z-index:30;display:none;
+  overflow:auto;padding:3vh 4vw}
+#ov.on{display:block}
+#ov h3{font-family:var(--sans);font-size:1em;color:var(--base03);margin:0 0 1em;letter-spacing:.02em}
+.ovgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.6em}
+.ovcard{border:1px solid var(--rule);border-radius:4px;padding:.6em .7em;cursor:pointer;
+  background:var(--base3);font-family:var(--sans);font-size:.72em;line-height:1.3}
+.ovcard:hover{border-color:var(--blue);background:var(--base2)}
+.ovcard .n2{font-family:var(--mono);font-size:.85em;color:var(--orange);display:block}
+
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+@media (max-width:760px){
+  .cols,.cols3{grid-template-columns:1fr;gap:1em}
+  .slide{padding:3vh 5vw 6vh}
+  h1{font-size:2.4em}
+}
+
+/* ---------- print / PDF export: one slide per page, native vector output ---------- */
+@media print{
+  @page{size:1920px 1080px;margin:0}
+  :root{--u:22px}
+  html,body{height:auto;overflow:visible}
+  #deck{position:static;height:auto;width:1920px}
+  .slide{position:static !important;display:flex !important;width:1920px;height:1080px;
+    padding:54px 115.2px 64.8px;animation:none !important;break-after:page;page-break-after:always}
+  .slide:last-of-type{break-after:auto;page-break-after:auto}
+  .slide .body{overflow:visible}
+  .cols{grid-template-columns:1fr 1fr !important}
+  .cols3{grid-template-columns:repeat(3,1fr) !important}
+  #foot,#ov{display:none !important}
+}
+</style>
+</head>
+<body>
+
+<div id="deck">
+
+<!-- ============ TITLE ============ -->
+<section class="slide title">
+  <h1>Decoding &amp; Sampling<br>Strategies for LLMs</h1>
+  <div class="titlemeta"><span class="author">Dhruv Kumar</span><span class="affil">BITS Pilani</span></div>
+</section>
+
+<!-- ============ THE DECODING PROBLEM ============ -->
+<section class="slide">
+  <h2>From a distribution to a token: the decoding problem</h2>
+  <div class="body">
+    <p>At every step, an LLM produces a full probability distribution over its <strong>entire
+    vocabulary</strong> for what comes next, given everything generated so far:</p>
+    <div class="eq hero">$$q_\theta(v \mid y_{&lt;t}, x),\qquad v \in V$$</div>
+    <p>$x$ — the prompt; $y_{&lt;t}$ — tokens generated so far; $V$ — the vocabulary; $q_\theta$ —
+    the model's predicted probability for each candidate token $v$.</p>
+    <p><strong>Decoding</strong> is the rule that turns this distribution into one actual token
+    $y_t$, every step, until a full response is built. The model never chooses a word directly —
+    it only ever hands over a distribution. Everything in this deck is a different answer to the
+    same question: given this distribution, which token do we actually output?</p>
+  </div>
+</section>
+
+<!-- ============ GREEDY: DEFINITION ============ -->
+<section class="slide">
+  <h2>Greedy decoding</h2>
+  <div class="body">
+    <p>The simplest possible rule: at every step, output whichever token the model currently
+    thinks is most likely.</p>
+    <div class="eq hero">$$y_t = \arg\max_{v \in V} q_\theta(v \mid y_{&lt;t}, x)$$</div>
+    <p>Repeat for $t=1,2,\dots$ until an end-of-sequence token is produced or a maximum length is
+    reached. No randomness, no lookahead — purely the single best next token, every time.</p>
+  </div>
+</section>
+
+<!-- ============ GREEDY: WORKED EXAMPLE ============ -->
+<section class="slide">
+  <h2>A worked example: greedy decoding, step by step</h2>
+  <div class="body">
+    <p>Context: "The weather today is ___". Step 1's distribution:</p>
+    <table>
+      <thead><tr><th>token</th><th>bright</th><th>sunny</th><th>cold</th></tr></thead>
+      <tbody><tr><td>$q_\theta$</td><td>0.50</td><td>0.35</td><td>0.15</td></tr></tbody>
+    </table>
+    <p>Greedy picks <strong>"bright"</strong> (0.50, the highest). Step 2's distribution, now
+    conditioned on "...is bright ___":</p>
+    <table>
+      <thead><tr><th>token</th><th>outside</th><th>today</th><th>again</th></tr></thead>
+      <tbody><tr><td>$q_\theta$</td><td>0.50</td><td>0.30</td><td>0.20</td></tr></tbody>
+    </table>
+    <p>Greedy picks <strong>"outside"</strong> (0.50). Final sequence: <strong>"bright
+    outside"</strong>, with overall probability $0.50\times0.50=0.25$.</p>
+  </div>
+</section>
+
+<!-- ============ FIGURE: REAL GREEDY TRACE ============ -->
+<section class="slide">
+  <h2>The same mechanics on a real model</h2>
+  <div class="body">
+    <div class="cols">
+      <div class="fig"><img style="max-height:78vh" src="images/fig_greedy_tree.png" alt="Greedy decoding trace for GPT-2 on the prompt 'I have a dream', showing the token and its probability chosen at each of six steps: of (15.20%), being (9.68%), a (30.59%), doctor (2.86%), . (22.93%)."></div>
+      <div class="stack">
+        <p>GPT-2, prompted with "I have a dream," greedily decoded one token at a time. Each
+        circle is the token greedy picked at that step, colored by how confident the model was
+        (green = high probability, red = low).</p>
+        <p>Notice how often the "best available" token still has a fairly low probability —
+        15.20% for "of," just 2.86% for "doctor." Greedy always takes the top of the list, even
+        when the list itself is unconfident.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ GREEDY: WHY IT FAILS ============ -->
+<section class="slide">
+  <h2>Why greedy decoding is myopic</h2>
+  <div class="body">
+    <p>Greedy only ever asks "what's best <em>right now</em>?" — never "what leads to the best
+    <em>overall</em> sequence?" Extend the weather example with one more branch at step 1:</p>
+    <table>
+      <thead><tr><th>step 1</th><th>$q_\theta$</th><th>best step 2 given this</th><th>full sequence $P$</th></tr></thead>
+      <tbody>
+        <tr class="hl"><td>bright</td><td>0.50</td><td>outside (0.50)</td><td>0.50 × 0.50 = <strong>0.25</strong></td></tr>
+        <tr><td>sunny</td><td>0.35</td><td>outside (0.95)</td><td>0.35 × 0.95 = <strong>0.3325</strong></td></tr>
+        <tr><td>cold</td><td>0.15</td><td>outside (0.60)</td><td>0.15 × 0.60 = 0.09</td></tr>
+      </tbody>
+    </table>
+    <p>"Sunny" only looked second-best at step 1 — but every continuation of it is far more
+    certain ("of course it's sunny outside"). The truly best sequence, <strong>"sunny
+    outside"</strong> at 0.3325, is one greedy can never reach: it locked in "bright" before ever
+    seeing step 2.</p>
+  </div>
+</section>
+
+<!-- ============ GREEDY: REPETITION ============ -->
+<section class="slide">
+  <h2>Greedy also gets stuck in loops</h2>
+  <div class="body">
+    <p>Holtzman et al. (2020) measured what happens once a phrase repeats: the probability of
+    repeating it <em>again</em> keeps climbing.</p>
+    <div class="card warn"><span class="lab">A positive feedback loop</span>
+      <p>"The probability of a repeated phrase increases with each repetition... we found this
+      effect to hold for the vast majority of phrases we tested." Once a maximization-based
+      decoder (greedy, or beam search) repeats a phrase, that same phrase becomes the single most
+      likely continuation again — and again — trapping the model in a loop it can never
+      escape by always taking the top choice.</p></div>
+    <p>This is why purely-greedy generation on open-ended prompts often degrades into "I don't
+    know. I don't know. I don't know...".</p>
+  </div>
+</section>
+
+<!-- ============ BEAM SEARCH: DEFINITION ============ -->
+<section class="slide">
+  <h2>Beam search</h2>
+  <div class="body">
+    <p>Instead of keeping only the single best partial sequence, keep the $B$ best ones — the
+    <strong>beam width</strong> — and expand all of them at every step:</p>
+    <ol>
+      <li>Start with one empty sequence.</li>
+      <li>Expand every kept sequence by every possible next token; score each resulting candidate
+      by its total sequence probability (or log-probability, to avoid tiny products underflowing).</li>
+      <li>Keep only the top $B$ candidates; discard the rest.</li>
+      <li>Repeat until every kept sequence ends, then return the highest-scoring one.</li>
+    </ol>
+    <p>Setting $B=1$ reduces beam search exactly to greedy decoding — there is only ever one
+    sequence to keep.</p>
+  </div>
+</section>
+
+<!-- ============ BEAM SEARCH: WORKED EXAMPLE ============ -->
+<section class="slide">
+  <h2>A worked example: beam search, step by step</h2>
+  <div class="body">
+    <p>Same prompt, beam width $B=2$. Step 1: keep the top 2 of 3 tokens, prune the rest.</p>
+    <table>
+      <thead><tr><th>token</th><th>bright</th><th>sunny</th><th>cold</th></tr></thead>
+      <tbody><tr><td>$q_\theta$</td><td>0.50 <em>kept</em></td><td>0.35 <em>kept</em></td><td class="pruned">0.15 pruned</td></tr></tbody>
+    </table>
+    <p>Step 2: expand both kept beams (using the same per-token distributions as before), then
+    keep only the top 2 of all 6 resulting candidates:</p>
+    <table>
+      <thead><tr><th>candidate sequence</th><th>$P$</th><th></th></tr></thead>
+      <tbody>
+        <tr class="hl"><td>sunny outside</td><td>0.35×0.95 = 0.3325</td><td>kept</td></tr>
+        <tr class="hl"><td>bright outside</td><td>0.50×0.50 = 0.2500</td><td>kept</td></tr>
+        <tr><td class="pruned">bright today</td><td class="pruned">0.1500</td><td class="pruned">pruned</td></tr>
+        <tr><td class="pruned">bright again</td><td class="pruned">0.1000</td><td class="pruned">pruned</td></tr>
+        <tr><td class="pruned">sunny today</td><td class="pruned">0.0105</td><td class="pruned">pruned</td></tr>
+        <tr><td class="pruned">sunny again</td><td class="pruned">0.0070</td><td class="pruned">pruned</td></tr>
+      </tbody>
+    </table>
+    <p>Final answer: <strong>"sunny outside"</strong> (0.3325) — beam search recovers exactly the
+    sequence greedy decoding missed, by keeping "sunny" alive long enough to see how good its
+    continuation was.</p>
+  </div>
+</section>
+
+<!-- ============ LENGTH NORMALIZATION ============ -->
+<section class="slide">
+  <h2>Length normalization</h2>
+  <div class="body">
+    <p>Every extra token multiplies in another probability $\le 1$, so raw sequence probability
+    always shrinks with length — a plain sum of log-probabilities unfairly penalizes longer
+    candidates just for having more tokens. Wu et al. (2016, Google's NMT system) score each beam
+    candidate $Y$ instead with:</p>
+    <div class="eq hero">$$s(Y) = \frac{\log P(Y)}{lp(Y)}, \qquad lp(Y) = \frac{(5+|Y|)^\alpha}{(5+1)^\alpha}$$</div>
+    <p>$|Y|$ — the number of tokens in $Y$; $\alpha \in (0,1)$ — strength of the length penalty
+    (the paper reports $\alpha\in[0.6,0.7]$ working best); $lp(Y)$ grows with length, so dividing
+    by it discounts the raw penalty for being long.</p>
+    <table>
+      <thead><tr><th>candidate</th><th>tokens</th><th>$\log P$</th><th>$lp(Y)$, $\alpha=0.6$</th><th>$s(Y)$</th></tr></thead>
+      <tbody>
+        <tr><td>A: two 0.60-probability tokens</td><td>2</td><td>&minus;1.0217</td><td>1.0969</td><td><strong>&minus;0.9314</strong></td></tr>
+        <tr><td>B: four 0.75-probability tokens</td><td>4</td><td>&minus;1.1507</td><td>1.2754</td><td>&minus;0.9022</td></tr>
+      </tbody>
+    </table>
+    <p>Raw log-probability prefers A ($-1.0217 &gt; -1.1507$) purely because it's shorter — even
+    though B is more confident on <em>every single token</em> (0.75 vs. 0.60). The
+    length-normalized score correctly flips the preference to B ($-0.9022 &gt; -0.9314$).</p>
+  </div>
+</section>
+
+<!-- ============ BEAM SEARCH: LIMITATIONS ============ -->
+<section class="slide">
+  <h2>Beam search isn't a cure for open-ended generation</h2>
+  <div class="body">
+    <p>Beam search finds a <em>higher-probability</em> sequence than greedy — but higher
+    probability is not the same as higher quality. Holtzman et al. (2020) found beam search text
+    is often just as repetitive as greedy, and additionally tends toward generic, bland phrasing:
+    maximizing probability pulls toward whatever is <em>safest</em>, not what a person would
+    actually write.</p>
+    <div class="card note"><span class="lab">Where beam search shines vs. where it doesn't</span>
+      <p>Tasks with one (or a few) essentially "correct" output — translation, summarization,
+      code — reward finding the single best sequence, and beam search is standard there.
+      Open-ended generation — chat, stories, brainstorming — has many equally valid continuations;
+      relentlessly maximizing probability actively hurts it.</p></div>
+  </div>
+</section>
+
+<!-- ============ SAMPLING: THE ALTERNATIVE ============ -->
+<section class="slide">
+  <h2>Sampling: stop maximizing, start drawing at random</h2>
+  <div class="body">
+    <p>Instead of always taking the top of the distribution, treat $q_\theta(\cdot\mid y_{&lt;t},x)$
+    as an actual probability distribution and draw the next token randomly from it:</p>
+    <div class="eq hero">$$y_t \sim q_\theta(\cdot \mid y_{&lt;t}, x)$$</div>
+    <p>A token with probability 0.05 is chosen roughly 1 time in 20, not never. This immediately
+    breaks the repetition feedback loop (a repeated phrase no longer <em>has</em> to win every
+    time) and produces different output on every run — the point of every method on the
+    remaining slides is <em>controlling</em> this randomness so it helps rather than hurts.</p>
+  </div>
+</section>
+
+<!-- ============ TEMPERATURE ============ -->
+<section class="slide">
+  <h2>Temperature: reshaping confidence before sampling</h2>
+  <div class="body">
+    <p>Rescale the logits before the softmax, with temperature $T$:</p>
+    <div class="eq hero">$$q_i = \frac{\exp(z_i/T)}{\sum_j \exp(z_j/T)}$$</div>
+    <p>$z_i$ — the model's raw logit for token $i$; $T=1$ is the ordinary softmax; $T&lt;1$ sharpens
+    the distribution toward the top token; $T&gt;1$ flattens it, giving the rest of the vocabulary
+    more of a chance.</p>
+    <p>Context: "Paris is the capital of ___", logits $[3.0, 0.5, 0.3, 0.0, -0.5, -1.5]$:</p>
+    <table>
+      <thead><tr><th>$T$</th><th>France</th><th>Europe</th><th>the</th><th>a</th><th>country</th><th>Spain</th></tr></thead>
+      <tbody>
+        <tr><td>0.5</td><td>0.9854</td><td>0.0066</td><td>0.0045</td><td>0.0024</td><td>0.0009</td><td>0.0001</td></tr>
+        <tr class="hl"><td>1.0</td><td>0.8062</td><td>0.0662</td><td>0.0542</td><td>0.0401</td><td>0.0243</td><td>0.0090</td></tr>
+        <tr><td>2.0</td><td>0.4883</td><td>0.1399</td><td>0.1266</td><td>0.1089</td><td>0.0848</td><td>0.0515</td></tr>
+      </tbody>
+    </table>
+    <p>At $T=0.5$ "France" is nearly certain (98.5%); at $T=2.0$ the other five tokens together
+    have over half the probability mass. Temperature never changes the <em>ranking</em> of
+    tokens — only how sharply the distribution favors the top of it.</p>
+  </div>
+</section>
+
+<!-- ============ TOP-K SAMPLING ============ -->
+<section class="slide">
+  <h2>Top-k sampling</h2>
+  <div class="body">
+    <p>Fan, Lewis &amp; Dauphin (2018) propose truncating the tail before sampling: keep only the
+    $k$ highest-probability tokens, renormalize just those, and sample from what's left.</p>
+    <div class="eq hero">$$V^{(k)} = \{k\text{ highest-probability tokens}\},\qquad q'_v=\frac{q_\theta(v)}{\sum_{u\in V^{(k)}} q_\theta(u)}\ \text{for }v\in V^{(k)}$$</div>
+    <p>Same "capital of" distribution, $k=3$:</p>
+    <table>
+      <thead><tr><th>token</th><th>France</th><th>Europe</th><th>the</th></tr></thead>
+      <tbody>
+        <tr><td>original $q_\theta$</td><td>0.8062</td><td>0.0662</td><td>0.0542</td></tr>
+        <tr class="hl"><td>renormalized $q'$</td><td>0.8701</td><td>0.0714</td><td>0.0585</td></tr>
+      </tbody>
+    </table>
+    <p>"a," "country," and "Spain" are discarded entirely (probability set to zero), and the
+    remaining three are rescaled to sum to 1 again.</p>
+  </div>
+</section>
+
+<!-- ============ TOP-P / NUCLEUS SAMPLING ============ -->
+<section class="slide">
+  <h2>Top-p (nucleus) sampling</h2>
+  <div class="body">
+    <p>Holtzman et al. (2020) truncate by cumulative probability instead of by count. The
+    <strong>nucleus</strong> $V^{(p)}$ is the smallest set of tokens whose probabilities sum to at
+    least $p$:</p>
+    <div class="eq hero">$$V^{(p)} = \text{smallest set s.t. } \sum_{v\in V^{(p)}} q_\theta(v) \ge p,
+    \qquad q'_v = \begin{cases}q_\theta(v)/p' & v\in V^{(p)}\\ 0 & \text{otherwise}\end{cases}$$</div>
+    <p>$p' = \sum_{v\in V^{(p)}} q_\theta(v)$, the actual cumulative probability reached. Same
+    distribution, $p=0.90$: sort by probability, accumulate until the running sum passes 0.90.</p>
+    <table>
+      <thead><tr><th>token</th><th>France</th><th>Europe</th><th>the</th><th>a</th></tr></thead>
+      <tbody>
+        <tr><td>$q_\theta$</td><td>0.8062</td><td>0.0662</td><td>0.0542</td><td class="pruned">0.0401</td></tr>
+        <tr><td>cumulative</td><td>0.8062</td><td>0.8724</td><td><strong>0.9266</strong> ≥ 0.90</td><td class="pruned">stop here</td></tr>
+        <tr class="hl"><td>renormalized $q'$</td><td>0.8701</td><td>0.0714</td><td>0.0585</td><td class="pruned">0.0000</td></tr>
+      </tbody>
+    </table>
+    <p>The nucleus happens to be the same three tokens as top-k here — the next slide shows a
+    distribution where that stops being true.</p>
+  </div>
+</section>
+
+<!-- ============ TOP-K VS TOP-P: WHY IT MATTERS ============ -->
+<section class="slide">
+  <h2>Why a fixed $k$ can fail where $p$ doesn't</h2>
+  <div class="body">
+    <p>Try both methods on a second, much flatter distribution — "My favorite color is ___":</p>
+    <table>
+      <thead><tr><th>token</th><th>blue</th><th>red</th><th>green</th><th>yellow</th><th>purple</th><th>orange</th></tr></thead>
+      <tbody><tr><td>$q_\theta$</td><td>0.2181</td><td>0.1974</td><td>0.1786</td><td>0.1616</td><td>0.1462</td><td>0.0980</td></tr></tbody>
+    </table>
+    <table>
+      <thead><tr><th></th><th>peaked ("capital of")</th><th>flat ("favorite color")</th></tr></thead>
+      <tbody>
+        <tr><td><strong>top-k, k=3</strong></td><td>France, Europe, the</td>
+        <td>blue, red, green — <span style="color:var(--red)">arbitrarily cuts off yellow (0.1616), almost as likely as green (0.1786)</span></td></tr>
+        <tr><td><strong>top-p, p=0.90</strong></td><td>France, Europe, the</td>
+        <td>blue, red, green, yellow, purple — <span style="color:var(--green)">keeps 5 tokens, since no single one dominates</span></td></tr>
+      </tbody>
+    </table>
+    <p>Top-k always keeps exactly 3 tokens, whether the distribution is confident or not. Top-p's
+    nucleus <strong>adapts its size</strong> to the shape of the distribution: small when the
+    model is sure, large when it's genuinely unsure — exactly the flat-vs-peaked problem Holtzman
+    et al. identify as top-k's weakness.</p>
+  </div>
+</section>
+
+<!-- ============ MIN-P SAMPLING ============ -->
+<section class="slide">
+  <h2>Min-p sampling</h2>
+  <div class="body">
+    <p>Nguyen et al. (2024) scale the cutoff by the top token's own probability, rather than fixing
+    it in advance:</p>
+    <div class="eq hero">$$p_{\max}=\max_{v\in V} q_\theta(v), \qquad p_{\text{scaled}} = p_{\text{base}}\times p_{\max},
+    \qquad V^{\min} = \{v : q_\theta(v) \ge p_{\text{scaled}}\}$$</div>
+    <p>$p_{\text{base}}\in(0,1]$ — a fixed hyperparameter, typically 0.05–0.1; the actual threshold
+    $p_{\text{scaled}}$ rises and falls automatically with the model's own confidence $p_{\max}$.</p>
+    <table>
+      <thead><tr><th>distribution</th><th>$p_{\max}$</th><th>$p_{\text{scaled}}=0.10\times p_{\max}$</th><th>tokens kept</th></tr></thead>
+      <tbody>
+        <tr><td>peaked</td><td>0.8062</td><td>0.0806</td><td>France <em>only</em></td></tr>
+        <tr><td>flat</td><td>0.2181</td><td>0.0218</td><td>all 6 tokens</td></tr>
+      </tbody>
+    </table>
+    <p>When the model is very confident, min-p's threshold rises with it and prunes aggressively —
+    here down to a single token. When the model is unsure, the threshold stays low and nearly
+    everything plausible survives.</p>
+  </div>
+</section>
+
+<!-- ============ THREE-WAY COMPARISON ============ -->
+<section class="slide">
+  <h2>Three truncation rules, side by side</h2>
+  <div class="body">
+    <table>
+      <thead><tr><th></th><th>rule</th><th>on the peaked distribution</th><th>on the flat distribution</th></tr></thead>
+      <tbody>
+        <tr><td><strong>top-k</strong></td><td>always keep exactly $k$</td><td>3 tokens (fine here)</td><td>3 tokens (cuts off 2 nearly-as-likely ones)</td></tr>
+        <tr><td><strong>top-p</strong></td><td>keep until cumulative $\ge p$</td><td>3 tokens</td><td>5 tokens (adapts to the flatness)</td></tr>
+        <tr><td><strong>min-p</strong></td><td>keep while $q_\theta\ge p_{\text{base}}\!\times\! p_{\max}$</td><td>1 token (very aggressive when sure)</td><td>6 tokens (very permissive when unsure)</td></tr>
+      </tbody>
+    </table>
+    <p>All three exist for the same reason: a single fixed number of tokens is the wrong knob to
+    turn, because how many tokens are actually plausible changes at every single step. Top-p and
+    min-p each adapt to that in a different way — top-p from the shape of the cumulative curve,
+    min-p from the model's own peak confidence.</p>
+  </div>
+</section>
+
+<!-- ============ REPETITION PENALTY ============ -->
+<section class="slide">
+  <h2>Repetition penalty</h2>
+  <div class="body">
+    <p>Keskar et al. (2019, CTRL) penalize tokens the model already used, directly at the logit
+    level, before the softmax:</p>
+    <div class="eq hero">$$q_i = \frac{\exp\!\big(z_i / (T\cdot I_i)\big)}{\sum_j \exp\!\big(z_j / (T\cdot I_j)\big)},
+    \qquad I_i = \begin{cases}\theta & i \text{ already generated}\\ 1 & \text{otherwise}\end{cases}$$</div>
+    <p>$\theta&gt;1$ — the penalty strength; dividing an already-used token's logit by $\theta$
+    before the softmax pulls its probability down without touching any other token directly.</p>
+    <table>
+      <thead><tr><th>token</th><th>the</th><th>cat <em>(already used)</em></th><th>sat</th><th>again</th></tr></thead>
+      <tbody>
+        <tr><td>logit</td><td>1.2</td><td>0.8</td><td>2.0</td><td>0.3</td></tr>
+        <tr><td>logit after $\div\theta{=}1.5$</td><td>1.2</td><td>0.5333</td><td>2.0</td><td>0.3</td></tr>
+        <tr><td>$P$ before penalty</td><td>0.2324</td><td>0.1558</td><td>0.5173</td><td>0.0945</td></tr>
+        <tr class="hl"><td>$P$ after penalty</td><td>0.2412</td><td>0.1238</td><td>0.5369</td><td>0.0981</td></tr>
+      </tbody>
+    </table>
+    <p>"cat" drops from 15.58% to 12.38%, and every other token's share rises slightly to
+    compensate — a direct, tunable nudge away from repeating what's already been said.</p>
+  </div>
+</section>
+
+<!-- ============ RELATED STRATEGIES ============ -->
+<section class="slide">
+  <h2>Further decoding &amp; sampling strategies</h2>
+  <div class="body">
+    <p>The methods above cover the standard toolkit; several others target the same problems from
+    different angles:</p>
+    <div class="cols">
+      <div class="tile"><h4>Typical sampling</h4>
+        <p>Meister et al. (2022) keep tokens whose information content is close to the
+        distribution's own conditional entropy — neither surprising nor overly predictable —
+        rather than just the highest-probability ones.</p></div>
+      <div class="tile"><h4>Contrastive search</h4>
+        <p>Su et al. (2022) pick the next token by balancing model confidence against how similar
+        its representation is to recently generated tokens, directly discouraging near-repeats.</p></div>
+    </div>
+    <div class="cols" style="margin-top:1em">
+      <div class="tile"><h4>Mirostat</h4>
+        <p>Basu et al. (2021) adaptively tune the truncation threshold every step to hold the
+        generated text's perplexity near a chosen target value, avoiding both repetitive
+        ("bored") and incoherent ("confused") extremes.</p></div>
+      <div class="tile"><h4>Combining methods</h4>
+        <p>In practice, temperature, top-k, and top-p are commonly applied together in sequence —
+        reshape with temperature, truncate the tail with top-k and/or top-p, then sample from
+        what remains.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WHICH STRATEGY FOR WHICH TASK ============ -->
+<section class="slide">
+  <h2>Which strategy for which task?</h2>
+  <div class="body">
+    <table>
+      <thead><tr><th>task has...</th><th>examples</th><th>typical choice</th></tr></thead>
+      <tbody>
+        <tr><td>one (or few) correct outputs</td><td>translation, summarization, code</td><td>beam search, often with length normalization</td></tr>
+        <tr><td>many equally valid outputs</td><td>chat, stories, brainstorming</td><td>temperature + top-k and/or top-p (or min-p)</td></tr>
+        <tr><td>need for exact reproducibility</td><td>debugging, evaluation runs</td><td>greedy decoding (deterministic)</td></tr>
+      </tbody>
+    </table>
+    <p>There's no single best decoding strategy for every situation — the right choice depends on
+    whether the task rewards finding <em>the</em> best sequence, or benefits from the variety that
+    only sampling can provide.</p>
+  </div>
+</section>
+
+<!-- ============ READING LIST ============ -->
+<section class="slide">
+  <h2>Reading list</h2>
+  <div class="body">
+    <ul>
+      <li><a href="https://arxiv.org/abs/1904.09751" target="_blank">Holtzman, Buys, Du, Forbes
+      &amp; Choi, <em>The Curious Case of Neural Text Degeneration</em></a> — ICLR 2020, nucleus
+      (top-p) sampling and why maximization-based decoding degenerates.</li>
+      <li><a href="https://arxiv.org/abs/1805.04833" target="_blank">Fan, Lewis &amp; Dauphin,
+      <em>Hierarchical Neural Story Generation</em></a> — ACL 2018, introduces top-k sampling.</li>
+      <li><a href="https://arxiv.org/abs/1609.08144" target="_blank">Wu et al., <em>Google's Neural
+      Machine Translation System</em></a> — the beam search length-normalization formula used in
+      this deck.</li>
+      <li><a href="https://arxiv.org/abs/2407.01082" target="_blank">Nguyen et al., <em>Turning Up
+      the Heat: Min-p Sampling for Creative and Coherent LLM Outputs</em></a> — 2024.</li>
+      <li><a href="https://arxiv.org/abs/2202.00666" target="_blank">Meister, Pimentel, Wiher &amp;
+      Cotterell, <em>Locally Typical Sampling</em></a> — TACL 2023.</li>
+      <li><a href="https://arxiv.org/abs/1909.05858" target="_blank">Keskar, McCann, Varshney, Xiong
+      &amp; Socher, <em>CTRL: A Conditional Transformer Language Model for Controllable
+      Generation</em></a> — 2019, the repetition penalty used in this deck.</li>
+      <li><a href="https://arxiv.org/abs/2202.06417" target="_blank">Su et al., <em>A Contrastive
+      Framework for Neural Text Generation</em></a> — NeurIPS 2022, contrastive search.</li>
+      <li><a href="https://arxiv.org/abs/2007.14966" target="_blank">Basu, Ramachandran, Keskar
+      &amp; Varshney, <em>Mirostat</em></a> — ICLR 2021, perplexity-controlled decoding.</li>
+      <li><a href="https://huggingface.co/blog/how-to-generate" target="_blank">von Platen, <em>How
+      to generate text: using different decoding methods for language generation</em></a> —
+      Hugging Face blog.</li>
+      <li><a href="https://huggingface.co/blog/mlabonne/decoding-strategies" target="_blank">Labonne,
+      <em>Decoding Strategies in Large Language Models</em></a> — Hugging Face blog; source of the
+      real GPT-2 greedy-decoding figure in this deck.</li>
+    </ul>
+  </div>
+</section>
+
+</div><!-- /deck -->
+
+<div id="ov"><h3>All slides — click to jump · press O or Esc to close</h3><div class="ovgrid" id="ovgrid"></div></div>
+<div id="foot"><span id="num">1 / 1</span></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  if (window.renderMathInElement) {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: "$$", right: "$$", display: true},
+        {left: "\\[", right: "\\]", display: true},
+        {left: "$", right: "$", display: false},
+        {left: "\\(", right: "\\)", display: false}
+      ],
+      throwOnError: false
+    });
+  }
+});
+
+/* ---------- deck navigation ---------- */
+(function () {
+  const slides = Array.from(document.querySelectorAll(".slide"));
+  const num = document.getElementById("num");
+  const ov = document.getElementById("ov");
+  const ovgrid = document.getElementById("ovgrid");
+  let i = 0;
+
+  slides.forEach(function (s, k) {
+    const card = document.createElement("div");
+    card.className = "ovcard";
+    const h = s.querySelector("h1, h2");
+    card.innerHTML = '<span class="n2">' + (k + 1) + '</span>' + (h ? h.textContent : "Slide");
+    card.addEventListener("click", function () { go(k); ov.classList.remove("on"); });
+    ovgrid.appendChild(card);
+  });
+
+  function go(k) {
+    i = Math.max(0, Math.min(slides.length - 1, k));
+    slides.forEach(s => s.classList.remove("on"));
+    slides[i].classList.add("on");
+    slides[i].querySelector(".body") && (slides[i].querySelector(".body").scrollTop = 0);
+    num.textContent = (i + 1) + " / " + slides.length;
+    history.replaceState(null, "", "#" + (i + 1));
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); go(i + 1); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); go(i - 1); }
+    else if (e.key === "Home") go(0);
+    else if (e.key === "End") go(slides.length - 1);
+    else if (e.key === "o" || e.key === "O") ov.classList.toggle("on");
+    else if (e.key === "Escape") ov.classList.remove("on");
+    else if (e.key === "f" || e.key === "F") {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+
+  let x0 = null;
+  document.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; }, {passive: true});
+  document.addEventListener("touchend", function (e) {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 55) go(dx < 0 ? i + 1 : i - 1);
+    x0 = null;
+  }, {passive: true});
+
+  const start = parseInt((location.hash || "#1").slice(1), 10);
+  go(isNaN(start) ? 0 : start - 1);
+})();
+</script>
+</body>
+</html>
