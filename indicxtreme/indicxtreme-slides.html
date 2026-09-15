@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IndicXTREME: Dataset, Annotation &amp; Benchmarking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<style>
+/* ===== Solarized Light — fixed palette, do not change per-deck ===== */
+:root{
+  --base3:#fdf6e3; --base2:#eee8d5; --base1:#93a1a1; --base0:#839496;
+  --base00:#657b83; --base01:#586e75; --base02:#073642; --base03:#002b36;
+  --yellow:#b58900; --orange:#cb4b16; --red:#dc322f; --magenta:#d33682;
+  --violet:#6c71c4; --blue:#268bd2; --cyan:#2aa198; --green:#859900;
+  --rule:rgba(147,161,161,.42);
+  --serif:"IBM Plex Serif",Georgia,serif;
+  --sans:"IBM Plex Sans Condensed","IBM Plex Sans",Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --u:clamp(13px,1.42vw,22px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--base3)}
+body{font-family:var(--serif);color:var(--base01);font-size:var(--u);line-height:1.5;
+  -webkit-font-smoothing:antialiased}
+
+/* ---------- deck ---------- */
+#deck{position:relative;height:100vh;width:100vw}
+.slide{position:absolute;inset:0;display:none;flex-direction:column;
+  padding:5vh 6vw 6vh;overflow:hidden}
+.slide.on{display:flex}
+@media (prefers-reduced-motion:no-preference){
+  .slide.on{animation:fade .3s ease both}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+}
+
+/* ---------- typography ---------- */
+h1{font-family:var(--sans);font-weight:700;font-size:3.4em;line-height:.98;letter-spacing:-.02em;
+  color:var(--base03);margin:0 0 .2em}
+h2{font-family:var(--sans);font-weight:700;font-size:1.85em;line-height:1.06;letter-spacing:-.015em;
+  color:var(--base03);margin:0 0 .8em;flex:0 0 auto}
+h2 .accent{color:var(--blue)}
+.body{flex:1;min-height:0;overflow:auto;padding-right:.4em}
+p{margin:0 0 .8em}
+strong{color:var(--base03);font-weight:600}
+.big{font-size:1.2em;line-height:1.4}
+ul,ol{margin:0 0 .9em;padding-left:1.25em}
+li{margin:.42em 0}
+ul li::marker{color:var(--blue)}
+ol li::marker{color:var(--orange);font-family:var(--mono);font-size:.85em}
+code{font-family:var(--mono);font-size:.86em;background:var(--base2);padding:.06em .32em;border-radius:3px;color:var(--base02)}
+a{color:var(--blue);text-decoration:none;border-bottom:1px solid rgba(38,139,210,.4)}
+em.t{font-style:normal;font-weight:600;color:var(--violet)}
+
+/* ---------- layout helpers ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:2.4em;align-items:start}
+.cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5em}
+.stack{display:flex;flex-direction:column;gap:.8em}
+
+/* ---------- cards & tiles ---------- */
+.card{background:var(--base2);border-left:3px solid var(--c,var(--base1));
+  padding:.85em 1em;border-radius:0 4px 4px 0}
+.card .lab{font-family:var(--sans);font-size:.6em;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--c,var(--base00));display:block;margin-bottom:.35em}
+.card p:last-child,.card ul:last-child{margin-bottom:0}
+.key{--c:var(--magenta)} .int{--c:var(--cyan)} .warn{--c:var(--red)}
+.math{--c:var(--violet)} .ex{--c:var(--green)} .note{--c:var(--yellow)} .q{--c:var(--blue)}
+
+.tile{border:1px solid var(--rule);border-radius:5px;padding:.9em 1em;background:var(--base3)}
+.tile h4{font-family:var(--sans);font-size:.78em;font-weight:600;color:var(--base03);
+  margin:0 0 .3em;letter-spacing:.02em}
+.tile p{font-size:.86em;margin:0;color:var(--base00)}
+
+/* ---------- tables ---------- */
+table{border-collapse:collapse;width:100%;font-family:var(--sans);font-size:.82em}
+th{text-align:left;font-size:.72em;letter-spacing:.1em;text-transform:uppercase;color:var(--base00);
+  border-bottom:1.5px solid var(--base02);padding:.4em .6em;font-weight:600}
+td{padding:.42em .6em;border-bottom:1px solid var(--rule);vertical-align:top}
+tr.hl td{background:var(--base2);color:var(--base03)}
+
+/* ---------- math ---------- */
+.katex{color:var(--base02)}
+.katex-display{margin:.7em 0!important;overflow-x:auto;overflow-y:hidden}
+.eq{background:var(--base2);border-radius:5px;padding:.35em 1em;margin:.7em 0}
+.eq.hero{border:1px solid var(--rule);background:var(--base3)}
+
+/* ---------- figures ---------- */
+.fig{display:flex;justify-content:center;align-items:center;margin:.5em 0}
+.fig img{max-width:100%;max-height:52vh;object-fit:contain;background:#fff;border:1px solid var(--rule)}
+.fig.tight img{max-height:38vh}
+.fig.wide img{max-height:66vh}
+
+/* ---------- chrome: bare page counter only ---------- */
+#foot{position:fixed;right:6vw;bottom:2vh;font-family:var(--mono);font-size:.62em;
+  color:var(--base1);z-index:10}
+
+/* ---------- title slide ---------- */
+.slide.title{justify-content:center}
+.titlemeta{margin-top:1.3em}
+.titlemeta .author{display:block;font-family:var(--sans);font-weight:600;font-size:1.4em;color:var(--base02)}
+.titlemeta .affil{display:block;font-family:var(--sans);font-size:1.05em;color:var(--base00);margin-top:.25em}
+
+/* ---------- overview mode ---------- */
+#ov{position:fixed;inset:0;background:rgba(253,246,227,.97);z-index:30;display:none;
+  overflow:auto;padding:3vh 4vw}
+#ov.on{display:block}
+#ov h3{font-family:var(--sans);font-size:1em;color:var(--base03);margin:0 0 1em;letter-spacing:.02em}
+.ovgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.6em}
+.ovcard{border:1px solid var(--rule);border-radius:4px;padding:.6em .7em;cursor:pointer;
+  background:var(--base3);font-family:var(--sans);font-size:.72em;line-height:1.3}
+.ovcard:hover{border-color:var(--blue);background:var(--base2)}
+.ovcard .n2{font-family:var(--mono);font-size:.85em;color:var(--orange);display:block}
+
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+@media (max-width:760px){
+  .cols,.cols3{grid-template-columns:1fr;gap:1em}
+  .slide{padding:3vh 5vw 6vh}
+  h1{font-size:2.4em}
+}
+
+/* ---------- print / PDF export: one slide per page, native vector output ---------- */
+@media print{
+  @page{size:1920px 1080px;margin:0}
+  :root{--u:22px}
+  html,body{height:auto;overflow:visible}
+  #deck{position:static;height:auto;width:1920px}
+  .slide{position:static !important;display:flex !important;width:1920px;height:1080px;
+    padding:54px 115.2px 64.8px;animation:none !important;break-after:page;page-break-after:always}
+  .slide:last-of-type{break-after:auto;page-break-after:auto}
+  .slide .body{overflow:visible}
+  .cols{grid-template-columns:1fr 1fr !important}
+  .cols3{grid-template-columns:repeat(3,1fr) !important}
+  #foot,#ov{display:none !important}
+}
+</style>
+</head>
+<body>
+
+<div id="deck">
+
+<!-- ============ TITLE ============ -->
+<section class="slide title">
+  <h1>IndicXTREME: Dataset<br>Preparation &amp; Benchmarking</h1>
+  <div class="titlemeta"><span class="author">Dhruv Kumar</span><span class="affil">BITS Pilani</span></div>
+</section>
+
+<!-- ============ WHY A DEDICATED BENCHMARK ============ -->
+<section class="slide">
+  <h2>Why Indic languages need a dedicated benchmark</h2>
+  <div class="body">
+    <p>Multilingual models promise zero-shot transfer from high- to low-resource languages. In
+    practice, Doddapaneni et al. (ACL 2023) identify three reasons this breaks down for the 22
+    languages of the Indian constitution:</p>
+    <div class="card warn"><span class="lab">1. Poor model coverage</span>
+      <p>Of the 22 scheduled languages, only 15 are supported by XLM-R — languages like Bodo,
+      Dogri, and Kashmiri are simply missing from corpora like CC-100 and mC4.</p></div>
+    <div class="card warn"><span class="lab">2. Even "supported" languages are starved</span>
+      <p>Where pretraining data does exist for a low-resource language, it is far smaller than
+      for English — the language gets a poor share of model capacity and vocabulary.</p></div>
+    <div class="card warn"><span class="lab">3. Poor benchmark coverage</span>
+      <p>In XTREME-R, only 3 of 10 tasks cover more than two Indic languages, and no task covers
+      more than seven. 15 of the 22 constitutional languages appear in <em>no</em> task at all.</p></div>
+  </div>
+</section>
+
+<!-- ============ TABLE 1 ============ -->
+<section class="slide">
+  <h2>IndicXTREME against the existing landscape</h2>
+  <div class="body">
+    <div class="fig"><img src="images/table1.png" alt="Table 1 from the IndicXTREME paper comparing XTREME, XTREME-R, XGLUE and IndicXTREME on Indic-language task count and average test instances; comparing Wikipedia, CC-100, mC4 and IndicCorp on Indic-language count, tokens, and verified source URLs; and comparing mBERT, XLM-R, MuRIL and IndicBERT on Indic/total language ratio and tokenizer fertility."></div>
+    <p>Every column tells the same story: existing multilingual resources touch Indic languages
+    only incidentally. IndicCorp is the only pretraining corpus built exclusively from
+    <strong>human-verified source URLs</strong>; IndicXTREME has by far the most evaluation sets
+    (105) of any benchmark; and IndicBERT is the only model supporting nearly all (23/24) of the
+    target languages.</p>
+  </div>
+</section>
+
+<!-- ============ SCOPE ============ -->
+<section class="slide">
+  <h2>Scope: three contributions, one goal</h2>
+  <div class="body">
+    <p>The paper targets the 22 languages of the 8th schedule of the Indian constitution, spanning
+    4 language families and spoken by over a billion people (8 among the top-20 most-spoken
+    languages globally). It contributes along three axes:</p>
+    <div class="cols3">
+      <div class="tile"><h4>IndicCorp v2</h4>
+        <p>20.9B-token monolingual pretraining corpus, 24 languages, 4 families — this lecture's
+        focus for <strong>dataset preparation</strong>.</p></div>
+      <div class="tile"><h4>IndicXTREME</h4>
+        <p>9-task, 20-language, human-supervised evaluation benchmark — this lecture's focus for
+        <strong>annotation &amp; benchmarking</strong>.</p></div>
+      <div class="tile"><h4>IndicBERT v2</h4>
+        <p>278M-parameter BERT pretrained on IndicCorp v2, evaluated on IndicXTREME — the model
+        used to demonstrate the benchmark works.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TABLE 14: LANGUAGE CLASSES ============ -->
+<section class="slide">
+  <h2>Not all Indic languages are equally resourced</h2>
+  <div class="body">
+    <p>Every language in IndicCorp is tagged with its class from Joshi et al.'s (2020) inclusion
+    taxonomy — 5 is a resource-rich <strong>"Winner,"</strong> 1 is an almost entirely
+    unresourced <strong>"Left-Behind."</strong> Of the languages newly added to IndicXTREME, nine
+    are class-1 Left-Behinds; only three are class-5 Winners.</p>
+    <div class="fig wide"><img src="images/table14.png" alt="Table 14 from the IndicXTREME paper listing, for each of the 24 IndicCorp languages, its code, name, script, language family, Joshi et al. (2020) taxonomy class from 1 to 5, and whether it is included in other pretrained multilingual models."></div>
+  </div>
+</section>
+
+<!-- ============ TABLE 2: TASK SUITE ============ -->
+<section class="slide">
+  <h2>The IndicXTREME task suite</h2>
+  <div class="body">
+    <p>9 tasks across 4 categories — 5 classification, 2 structure prediction, 1 QA, 1 retrieval.
+    Since the benchmark evaluates <strong>zero-shot</strong> transfer, only test (and where
+    possible, in-language dev) sets are built — models are always trained on English.</p>
+    <div class="fig wide"><img src="images/table2.png" alt="Table 2 from the IndicXTREME paper summarizing the nine tasks: IndicSentiment, IndicXNLI, IndicCOPA, IndicXParaphrase, M-Intent, Naamapadam, M-SlotFill, IndicQA, and FLORES, with their dev/test sizes, creation method (human-annotated or machine-translated), number of languages, metric, and domain."></div>
+    <p><strong>HA</strong> = human annotated, <strong>MT</strong> = machine translated. Of 105
+    total evaluation sets summed across languages and tasks, 52 are brand-new contributions.</p>
+  </div>
+</section>
+
+<!-- ============ CORPUS: SOURCE DISCOVERY ============ -->
+<section class="slide">
+  <h2>Building IndicCorp v2: finding sources</h2>
+  <div class="body">
+    <p>The corpus prioritizes clean, diverse text, so news articles are chosen as the primary
+    source — a deliberate departure from generic CommonCrawl dumps like CC-100 and mC4.</p>
+    <div class="card int"><span class="lab">Discovering new sources</span>
+      <p>Beyond the sources already known from IndicCorp v1, new ones are found via news
+      repositories and automatic web search: the most frequent words in a language are used as
+      search queries, and the language of the retrieved pages is inspected to identify candidate
+      source URLs.</p></div>
+    <p>This process is noisy — some retrieved URLs turn out to host offensive or
+    machine-generated content, which motivates the next step.</p>
+  </div>
+</section>
+
+<!-- ============ CORPUS: HUMAN-VERIFIED URLS ============ -->
+<section class="slide">
+  <h2>The quality gate: human-verified URLs</h2>
+  <div class="body">
+    <p>Before any crawling happens, every candidate source is checked by a person — this is the
+    step that distinguishes IndicCorp from CC-100 and mC4 in Table 1's "Verified source URLs" row.</p>
+    <div class="card key"><span class="lab">The verification task</span>
+      <p>Each annotator visits a candidate URL and confirms it is a genuine website containing
+      clean data in the language of interest. Across languages, <strong>1–33% of URLs are
+      discarded</strong> as noisy. Only the shortlisted, verified URLs are handed to the
+      open-source <code>webcorpus</code> toolkit for crawling.</p></div>
+    <p>Notice this quality gate exists even for the <em>pretraining</em> corpus — human
+    supervision in this work is not limited to the evaluation benchmark.</p>
+  </div>
+</section>
+
+<!-- ============ CORPUS: POST-PROCESSING ============ -->
+<section class="slide">
+  <h2>Post-processing the crawled dumps</h2>
+  <div class="body">
+    <p>Three automatic filters clean the crawled text before it enters the corpus:</p>
+    <div class="cols3">
+      <div class="tile"><h4>Language ID (LID)</h4>
+        <p>Paragraph-level filtering with cld3 and langdetect in parallel (cld3 misses Assamese
+        &amp; Oriya). Bodo and Dogri aren't supported by either tool, so LID filtering is
+        skipped for them.</p></div>
+      <div class="tile"><h4>Script-based cleaning</h4>
+        <p>Crawled sentences often mix in transliterations or English phrases. A sentence is
+        dropped if the fraction of characters in its native script is <strong>below 0.75</strong>.</p></div>
+      <div class="tile"><h4>Punctuation-based cleaning</h4>
+        <p>Punctuation is stripped from each sentence; if what remains is shorter than
+        <strong>10 words</strong>, the document is discarded entirely.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CORPUS: OFFENSIVE CONTENT ============ -->
+<section class="slide">
+  <h2>Filtering offensive content</h2>
+  <div class="body">
+    <p>Web-crawled Indic text is known to contain offensive material (Kreutzer et al., 2022a). Two
+    blacklists are merged to catch it:</p>
+    <div class="cols">
+      <div class="card note"><span class="lab">In-house blacklist</span>
+        <p>In-house annotators curate offensive words and phrases for 17 languages — about 90
+        words/phrases per language, including borderline terms flagged by native speakers as
+        offensive only in certain contexts.</p></div>
+      <div class="card note"><span class="lab">NLLB blacklist</span>
+        <p>A parallel, independently released list covering 209 languages (Costa-jussà et al.,
+        2022) is merged in, widening coverage beyond the 17 in-house languages.</p></div>
+    </div>
+    <p>A sentence is removed if it contains a blacklisted word, or (for phrases) if the whole
+    phrase appears verbatim. This single filter shrinks the corpus from
+    <strong>23.1B to 20.9B tokens</strong> — a 9.5% reduction, confirmed by direct computation from
+    the paper's own figures.</p>
+  </div>
+</section>
+
+<!-- ============ TABLE 3: CORPUS SCALE ============ -->
+<section class="slide">
+  <h2>IndicCorp v2: the resulting scale</h2>
+  <div class="body">
+    <div class="cols">
+      <div class="fig"><img src="images/table3.png" alt="Table 3 from the IndicXTREME paper comparing the number of tokens in millions for each language of IndicCorp v1 versus v2, with a total row showing 8789 million for v1 and 20920 million for v2."></div>
+      <div class="stack">
+        <p>The de-duplicated v2 corpus totals <strong>20.9B tokens</strong> across 24 languages —
+        <strong>2.38×</strong> the size of v1's 12-language, 8.79B-token corpus (paper rounds to
+        "2.3×"), with Hindi alone growing <strong>3.28×</strong> ("3.3×" in the paper).</p>
+        <p>Many languages — Bodo, Dogri, Konkani, Kashmiri, Maithili, Manipuri, Sanskrit, Santali,
+        Sindhi, Urdu — simply didn't exist in v1 at all (shown as "-").</p>
+        <p>The bottom 11 lowest-resource languages together still contribute only 1.08B tokens —
+        a fraction of Hindi alone.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ INDICCOPA ============ -->
+<section class="slide">
+  <h2>Creating IndicCOPA from scratch</h2>
+  <div class="body">
+    <p>COPA (Choice of Plausible Alternatives) tests causal commonsense reasoning: given a premise,
+    pick which of two alternatives is the more plausible cause or effect.</p>
+    <div class="card ex"><span class="lab">Translation with a bias guard</span>
+      <p>The English COPA test set is manually translated into 18 Indic languages. Before
+      translation, the premise and its two choices are <strong>randomized and reassigned across
+      translators</strong> — so no single translator sees a whole item and could unconsciously
+      preserve tells (like sentence length) that leak the answer. The three pieces are re-grouped
+      into complete items only after translation.</p></div>
+    <p>Fine-tuning uses the English Social IQA dataset, since COPA itself has no training split.</p>
+  </div>
+</section>
+
+<!-- ============ INDICQA: ARTICLE SELECTION ============ -->
+<section class="slide">
+  <h2>Creating IndicQA: choosing the source articles</h2>
+  <div class="body">
+    <p>IndicQA is a cloze-style reading-comprehension dataset built from scratch, with no
+    English-source translation involved anywhere in its creation.</p>
+    <ol>
+      <li>Manually collect a list of topics tied to Indic history, monuments, authors, politicians,
+      festivals, etc.</li>
+      <li>Rank topics by how many Indic-language Wikipedias carry an article on them.</li>
+      <li>Discard topics whose articles average fewer than 10 sentences.</li>
+      <li>Use the articles of the remaining, top-ranked topics as context paragraphs for QA pairs.</li>
+    </ol>
+    <p>The result: 11 languages, contexts drawn from real encyclopedic text about Indic culture —
+    not machine-translated from an English original.</p>
+  </div>
+</section>
+
+<!-- ============ INDICQA: AVOIDING LEXICAL OVERLAP ============ -->
+<section class="slide">
+  <h2>IndicQA's trick: avoiding lexical overlap</h2>
+  <div class="body">
+    <p>Annotators asked to write a question directly from a passage tend to copy a sentence and
+    prepend a "wh" word — producing questions that are trivial lexical matches. IndicQA's two-phase
+    process breaks this shortcut:</p>
+    <div class="cols">
+      <div class="card key"><span class="lab">Phase 1 — write the question</span>
+        <p>Split each context into a larger first part and a smaller second part (2–3 sentences).
+        Machine-translate <em>both</em> parts to English. An annotator writes Indic-language
+        questions from the <strong>English translation</strong> — they cannot copy a sentence they
+        never saw in Indic.</p></div>
+      <div class="card ex"><span class="lab">Phase 2 — mark the answer</span>
+        <p>A <em>different</em> annotator sees only the original Indic first part and marks answer
+        spans for the questions. Questions drawn from the withheld second part become
+        naturally <strong>unanswerable</strong> — this is exactly where the NA labels come from.</p></div>
+    </div>
+    <p>2–3 annotators per language; all annotation done on the Haystack tool.</p>
+  </div>
+</section>
+
+<!-- ============ INDICQA: GUIDELINES ============ -->
+<section class="slide">
+  <h2>IndicQA's annotation guidelines</h2>
+  <div class="body">
+    <div class="cols">
+      <div class="card note"><span class="lab">Question creation</span>
+        <ul>
+          <li>At least 2 questions per paragraph</li>
+          <li>Answer span ≤ 5 continuous words</li>
+          <li>Unambiguous even without the context</li>
+          <li>Minimize phrase overlap with the paragraph</li>
+          <li>Answer must lie in a single sentence</li>
+        </ul></div>
+      <div class="card note"><span class="lab">Answer marking</span>
+        <ul>
+          <li>Answer is a continuous span, ≤ 5 words</li>
+          <li>Never an entire sentence</li>
+          <li>Never a pronoun</li>
+          <li>If the answer string appears more than once, mark the occurrence most relevant to
+          the question</li>
+        </ul></div>
+    </div>
+    <p>Rules this specific are what keep 11 independently-annotated languages comparable.</p>
+  </div>
+</section>
+
+<!-- ============ TABLE 7: INDICQA STATS ============ -->
+<section class="slide">
+  <h2>IndicQA by the numbers</h2>
+  <div class="body">
+    <div class="fig"><img src="images/table7.png" alt="Table 7 from the IndicXTREME paper showing IndicQA statistics per language: number of questions, answerable questions, and unanswerable questions, for Assamese, Bengali, Gujarati, Hindi, Kannada, Malayalam, Marathi, Odia, Punjabi, Tamil, and Telugu, totaling 18579 questions, 13283 answerable, and 5292 unanswerable."></div>
+    <p>Across 11 languages: <strong>18,579</strong> questions, of which <strong>13,283</strong>
+    (71%) are answerable and <strong>5,292</strong> (28%) are unanswerable — the direct product of
+    the Phase 1 / Phase 2 split on the previous slides.</p>
+  </div>
+</section>
+
+<!-- ============ INDICXPARAPHRASE ============ -->
+<section class="slide">
+  <h2>Creating IndicXParaphrase</h2>
+  <div class="body">
+    <p>1001 English sentences (≥10 words) are machine-translated into 10 languages with IndicTrans;
+    annotators verify/correct each translation, then write <strong>one paraphrase and one
+    non-paraphrase</strong> per sentence — a 1001-way parallel triplet in every language.</p>
+    <div class="cols">
+      <div class="card ex"><span class="lab">Writing a paraphrase</span>
+        <p>Minimize word overlap; swap active/passive voice; use synonyms liberally; use temporal
+        phrase swapping, e.g. <em>"he fell and got hurt"</em> → <em>"he got hurt when he
+        fell."</em></p></div>
+      <div class="card warn"><span class="lab">Writing a non-paraphrase</span>
+        <p>Swap named entities, pronouns, adjectives, adverbs, e.g. <em>"John drove Jane to the
+        market"</em> → <em>"Jane drove John to the market."</em> Negation/antonyms restricted
+        unless necessary.</p></div>
+    </div>
+    <p>Unlike PAWS-X, no back-translation or noisy alignment is used to manufacture
+    non-paraphrases. 2 annotators per language; the task is run on Google Sheets.</p>
+  </div>
+</section>
+
+<!-- ============ INDICSENTIMENT ============ -->
+<section class="slide">
+  <h2>Creating IndicSentiment</h2>
+  <div class="body">
+    <p>Ordinary product reviews are one-dimensional and highly polarized, which makes sentiment
+    classification artificially easy. IndicSentiment is designed to be harder and more nuanced.</p>
+    <ol>
+      <li>Curate products from 15 popular categories on Amazon, Flipkart, and Myntra.</li>
+      <li>Ask one set of annotators to list the aspects that matter for each product (e.g., for a
+      dress: material, color, sleeves).</li>
+      <li>Ask a <em>different</em> set of annotators to write natural positive and negative reviews
+      that concentrate on one or more of those specific aspects.</li>
+      <li>Reviews are written in English first, then manually translated into 13 Indic languages —
+      a 13-way parallel dataset.</li>
+    </ol>
+    <p>2 annotators per language; done on Google Sheets; annotators are instructed to avoid
+    offensive language.</p>
+  </div>
+</section>
+
+<!-- ============ ADAPTING EXISTING DATASETS ============ -->
+<section class="slide">
+  <h2>Adapting rather than creating: the other four datasets</h2>
+  <div class="body">
+    <p>Not every task in IndicXTREME is built from scratch — some adapt existing multilingual
+    resources, still under human supervision:</p>
+    <div class="cols">
+      <div class="tile"><h4>IndicXNLI</h4>
+        <p>Aggarwal et al.'s (2022) machine-translated XNLI. Source text is transcribed speech,
+        so translations can be structurally odd — this work manually re-verifies and corrects
+        parts of the test set (ongoing, see next slide).</p></div>
+      <div class="tile"><h4>Naamapadam (NER)</h4>
+        <p>English sentence NER-tagged by an off-the-shelf model → tags projected to the Indic
+        sentence via word alignment → annotators verify and correct the projected tags (IOB2
+        format).</p></div>
+    </div>
+    <div class="cols" style="margin-top:1em">
+      <div class="tile"><h4>FLORES (retrieval)</h4>
+        <p>Already an n-way parallel, human-translated dataset (1012 sentences, 18 Indic
+        languages) — incorporated directly for sentence-retrieval evaluation.</p></div>
+      <div class="tile"><h4>MASSIVE (intent / slot-filling)</h4>
+        <p>Amazon Alexa user queries, human-annotated for 51 languages; a 7-Indic-language subset
+        is taken as-is for IndicXTREME.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TABLE 9 & 10: INDICXNLI VERIFICATION ============ -->
+<section class="slide">
+  <h2>IndicXNLI: verification as an ongoing process</h2>
+  <div class="body">
+    <div class="cols">
+      <div class="fig tight"><img src="images/table9.png" alt="Table 9 from the IndicXTREME paper showing, of the 5010 test instances per language, how many have been verified and how many corrected so far, for eleven Indic languages."></div>
+      <div class="fig tight"><img src="images/table10.png" alt="Table 10 from the IndicXTREME paper comparing IndicBERT+Samanantar scores on the original IndicXNLI test set versus the current partially human-verified version, per language, with both averaging 75.0."></div>
+    </div>
+    <p>Of 5,010 test instances per language, only a subset has been manually re-verified so far
+    (e.g. 4,000 of Hindi's, 1,142 corrected). Scores on the partially-verified set (HV*) are
+    already close to the original (Org.) — average unchanged at 75.0 — but the authors are
+    explicit that this is a live, six-month effort, not a finished dataset.</p>
+  </div>
+</section>
+
+<!-- ============ THE COMMON THREAD ============ -->
+<section class="slide">
+  <h2>The common thread: nothing is purely automatic</h2>
+  <div class="body">
+    <p>Whichever of the four creation paths a task followed — translated from scratch, built with
+    no English source at all, machine-translated then verified, or tag-projected then corrected —
+    every single evaluation set in IndicXTREME carries a human-supervision step:</p>
+    <div class="card key"><span class="lab">Directly from the paper</span>
+      <p>"We reemphasise that ALL the evaluation sets included in IndicXTREME were created with
+      human supervision. In other words, they were either translated or post-edited or created or
+      verified by humans."</p></div>
+    <p>Three tasks — NER, QA, and paraphrase detection — were created entirely from scratch, with
+    <strong>no translation from English sources</strong> at any stage.</p>
+  </div>
+</section>
+
+<!-- ============ EVALUATION PROTOCOL ============ -->
+<section class="slide">
+  <h2>The evaluation protocol: zero-shot fine-tuning</h2>
+  <div class="body">
+    <p>IndicXTREME only ships test (and some dev) sets — never Indic-language training data. This
+    forces every model into the same zero-shot recipe:</p>
+    <ol>
+      <li>Fine-tune the pretrained LM independently for each task, using <strong>English</strong>
+      training data.</li>
+      <li>Select the best configuration using the <strong>English development</strong> set.</li>
+      <li>Evaluate the chosen model directly on each Indic-language test set — no Indic data was
+      ever seen during training or model selection.</li>
+    </ol>
+    <p>Unlike most prior work, which reuses one fixed hyperparameter setting across all tasks, this
+    paper runs a <strong>task-specific</strong> grid search (learning rate, weight decay) for every
+    model, for a fair comparison.</p>
+  </div>
+</section>
+
+<!-- ============ TABLE 5: IN-LANGUAGE VS IN-FAMILY DEV ============ -->
+<section class="slide">
+  <h2>Does an in-language dev set actually help?</h2>
+  <div class="body">
+    <div class="fig"><img src="images/table5.png" alt="Table 5 from the IndicXTREME paper comparing performance when using in-language versus in-family development sets, across mBERT, XLM-R, MuRIL, and IndicBERT variants, on IndicSentiment, Naamapadam, MASSIVE Intent, and IndicXNLI, each score shown with its improvement over an English development set."></div>
+    <p>Every subscript is a gain over using an English dev set. Hindi and Tamil dev sets stand in
+    for the whole Indo-European and Dravidian families respectively — and models selected with
+    these <strong>in-family</strong> sets perform on par with those selected using true
+    <strong>in-language</strong> sets, both clearly ahead of English-only selection.</p>
+  </div>
+</section>
+
+<!-- ============ TABLE 6/8: TRANSFER LANGUAGE ============ -->
+<section class="slide">
+  <h2>Hindi is a better transfer language than English</h2>
+  <div class="body">
+    <div class="fig"><img src="images/table6.png" alt="Table 6 from the IndicXTREME paper showing transfer learning results averaged across languages: IndicBERT v2 plus Samanantar baseline, versus gold zero-shot (Hindi training data) and silver zero-shot (English training data machine-translated to Hindi) on MASSIVE Intent, Naamapadam, MASSIVE Slotfill, and IndicSentiment, IndicXNLI, IndicCOPA, IndicXParaphrase, IndicQA."></div>
+    <p>Swapping the transfer language from English to Hindi ("gold zero-shot," using Naamapadam
+    and MASSIVE's real Hindi training data) lifts NER by <strong>+3.5</strong>, Intent by
+    <strong>+3.1</strong>, and Slot-filling by <strong>+10.6</strong> points. "Silver zero-shot"
+    (machine-translating the English training set to Hindi) helps sentiment/XNLI/paraphrase
+    similarly, but <em>hurts</em> IndicCOPA and IndicQA — both tasks are unusually sensitive to
+    the small errors translation introduces.</p>
+  </div>
+</section>
+
+<!-- ============ TABLE 4: HEADLINE RESULTS ============ -->
+<section class="slide">
+  <h2>Does the benchmark distinguish good models? Yes.</h2>
+  <div class="body">
+    <div class="fig"><img src="images/table4.png" alt="Table 4 from the IndicXTREME paper showing results averaged across languages for IndicBERT v1, mBERT, XLM-R, MuRIL, v1-data, IndicBERT v2, IndicBERT v2 plus Samanantar, IndicBERT v2 plus Back-Translation, and IndicBERT-SS, across all nine IndicXTREME tasks."></div>
+    <p>The IndicBERT v2 family beats every massively-multilingual baseline (mBERT, XLM-R, MuRIL)
+    on <strong>7 of 9 tasks</strong>. The pattern holds even for the ablation trained purely on
+    IndicCorp v2 with MLM (no parallel data) — models that don't have to share capacity with
+    unrelated high-resource languages simply do better on Indic tasks.</p>
+  </div>
+</section>
+
+<!-- ============ TABLE 24: WINNERS VS LEFT-BEHINDS ============ -->
+<section class="slide">
+  <h2>The gap the benchmark exposes: Winners vs. Left-Behinds</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/table24.png" alt="Table 24 from the IndicXTREME paper showing results averaged across tasks, per language, for mBERT, XLM-R, MuRIL, v1-data, IndicBERT v2 variants, and IndicBERT-SS, across all 24 IndicCorp languages including Bodo, Kashmiri, Manipuri, Santali, and Sindhi."></div>
+    <p>Extremely low-resource languages (below the 10th percentile of Table 3) show a sharp,
+    consistent drop — e.g. on IndicCOPA, Santhali and Sindhi score 25.9% and 17.7% lower than
+    Hindi respectively. The paper attributes this to lacking pretraining data <em>plus</em> two
+    compounding effects: no shared script, and no linguistic "cousin" in the corpus to bridge
+    transfer. And even this is optimistic — IndicXTREME can only evaluate 19 of IndicCorp's 24
+    languages; five "left-behind" languages have no evaluation set at all yet.</p>
+  </div>
+</section>
+
+<!-- ============ ETHICS ============ -->
+<section class="slide">
+  <h2>Ethics and annotator practices</h2>
+  <div class="body">
+    <div class="cols">
+      <div class="card int"><span class="lab">Annotators</span>
+        <p>Paid a competitive monthly salary set by qualification, prior experience, and local
+        government norms. All were native speakers of the language they worked on, from the
+        Indian subcontinent, and were informed their annotations would be publicly released.</p></div>
+      <div class="card int"><span class="lab">Data</span>
+        <p>No personally identifying information in any annotated set. Both the annotated data and
+        the crawled corpus were checked for offensive content and discarded where found.</p></div>
+    </div>
+    <p>Code and models are released under the MIT License; the datasets under CC-0.</p>
+  </div>
+</section>
+
+<!-- ============ READING LIST ============ -->
+<section class="slide">
+  <h2>Reading list</h2>
+  <div class="body">
+    <ul>
+      <li><a href="https://aclanthology.org/2023.acl-long.693/" target="_blank">Doddapaneni et al.,
+      <em>Towards Leaving No Indic Language Behind</em></a> — ACL 2023, the source for every table
+      in this deck.</li>
+      <li><a href="https://aclanthology.org/2020.acl-main.560/" target="_blank">Joshi, Santy,
+      Budhiraja, Bali &amp; Choudhury, <em>The State and Fate of Linguistic Diversity and
+      Inclusion in the NLP World</em></a> — the "Winners" / "Left-Behinds" taxonomy.</li>
+      <li><a href="https://aclanthology.org/2020.emnlp-main.372/" target="_blank">Hu et al.,
+      <em>XTREME</em></a> and <a href="https://aclanthology.org/2021.emnlp-main.802/" target="_blank">Ruder
+      et al., <em>XTREME-R</em></a> — the multilingual benchmarks IndicXTREME responds to.</li>
+      <li><a href="https://arxiv.org/abs/2204.08776" target="_blank">Aggarwal, Gupta &amp;
+      Kunchukuttan, <em>IndicXNLI</em></a> — the machine-translated NLI set being manually
+      re-verified.</li>
+      <li><a href="https://huggingface.co/datasets/ai4bharat/naamapadam" target="_blank">Mhaske et
+      al., <em>Naamapadam</em></a> — the NER dataset built via tag projection.</li>
+      <li><a href="https://arxiv.org/abs/2207.04672" target="_blank">Costa-jussà et al., <em>No
+      Language Left Behind</em></a> — source of the 209-language offensive-word list merged into
+      IndicCorp's filter.</li>
+      <li><a href="https://arxiv.org/abs/2204.08582" target="_blank">FitzGerald et al.,
+      <em>MASSIVE</em></a> — source of the M-Intent and M-SlotFill tasks.</li>
+      <li><a href="https://github.com/AI4Bharat/IndicBERT" target="_blank">Official IndicBERT
+      code, data, and model checkpoints</a>.</li>
+    </ul>
+  </div>
+</section>
+
+</div><!-- /deck -->
+
+<div id="ov"><h3>All slides — click to jump · press O or Esc to close</h3><div class="ovgrid" id="ovgrid"></div></div>
+<div id="foot"><span id="num">1 / 1</span></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  if (window.renderMathInElement) {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: "$$", right: "$$", display: true},
+        {left: "\\[", right: "\\]", display: true},
+        {left: "$", right: "$", display: false},
+        {left: "\\(", right: "\\)", display: false}
+      ],
+      throwOnError: false
+    });
+  }
+});
+
+/* ---------- deck navigation ---------- */
+(function () {
+  const slides = Array.from(document.querySelectorAll(".slide"));
+  const num = document.getElementById("num");
+  const ov = document.getElementById("ov");
+  const ovgrid = document.getElementById("ovgrid");
+  let i = 0;
+
+  slides.forEach(function (s, k) {
+    const card = document.createElement("div");
+    card.className = "ovcard";
+    const h = s.querySelector("h1, h2");
+    card.innerHTML = '<span class="n2">' + (k + 1) + '</span>' + (h ? h.textContent : "Slide");
+    card.addEventListener("click", function () { go(k); ov.classList.remove("on"); });
+    ovgrid.appendChild(card);
+  });
+
+  function go(k) {
+    i = Math.max(0, Math.min(slides.length - 1, k));
+    slides.forEach(s => s.classList.remove("on"));
+    slides[i].classList.add("on");
+    slides[i].querySelector(".body") && (slides[i].querySelector(".body").scrollTop = 0);
+    num.textContent = (i + 1) + " / " + slides.length;
+    history.replaceState(null, "", "#" + (i + 1));
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); go(i + 1); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); go(i - 1); }
+    else if (e.key === "Home") go(0);
+    else if (e.key === "End") go(slides.length - 1);
+    else if (e.key === "o" || e.key === "O") ov.classList.toggle("on");
+    else if (e.key === "Escape") ov.classList.remove("on");
+    else if (e.key === "f" || e.key === "F") {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+
+  let x0 = null;
+  document.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; }, {passive: true});
+  document.addEventListener("touchend", function (e) {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 55) go(dx < 0 ? i + 1 : i - 1);
+    x0 = null;
+  }, {passive: true});
+
+  const start = parseInt((location.hash || "#1").slice(1), 10);
+  go(isNaN(start) ? 0 : start - 1);
+})();
+</script>
+</body>
+</html>
