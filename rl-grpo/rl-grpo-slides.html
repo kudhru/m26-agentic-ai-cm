@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RL, RLHF, RLVR &amp; GRPO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<style>
+/* ===== Solarized Light — fixed palette, do not change per-deck ===== */
+:root{
+  --base3:#fdf6e3; --base2:#eee8d5; --base1:#93a1a1; --base0:#839496;
+  --base00:#657b83; --base01:#586e75; --base02:#073642; --base03:#002b36;
+  --yellow:#b58900; --orange:#cb4b16; --red:#dc322f; --magenta:#d33682;
+  --violet:#6c71c4; --blue:#268bd2; --cyan:#2aa198; --green:#859900;
+  --rule:rgba(147,161,161,.42);
+  --serif:"IBM Plex Serif",Georgia,serif;
+  --sans:"IBM Plex Sans Condensed","IBM Plex Sans",Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --u:clamp(13px,1.42vw,22px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--base3)}
+body{font-family:var(--serif);color:var(--base01);font-size:var(--u);line-height:1.5;
+  -webkit-font-smoothing:antialiased}
+
+/* ---------- deck ---------- */
+#deck{position:relative;height:100vh;width:100vw}
+.slide{position:absolute;inset:0;display:none;flex-direction:column;
+  padding:5vh 6vw 6vh;overflow:hidden}
+.slide.on{display:flex}
+@media (prefers-reduced-motion:no-preference){
+  .slide.on{animation:fade .3s ease both}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+}
+
+/* ---------- typography ---------- */
+h1{font-family:var(--sans);font-weight:700;font-size:3.4em;line-height:.98;letter-spacing:-.02em;
+  color:var(--base03);margin:0 0 .2em}
+h2{font-family:var(--sans);font-weight:700;font-size:1.85em;line-height:1.06;letter-spacing:-.015em;
+  color:var(--base03);margin:0 0 .8em;flex:0 0 auto}
+h2 .accent{color:var(--blue)}
+.body{flex:1;min-height:0;overflow:auto;padding-right:.4em}
+p{margin:0 0 .8em}
+strong{color:var(--base03);font-weight:600}
+.big{font-size:1.2em;line-height:1.4}
+ul,ol{margin:0 0 .9em;padding-left:1.25em}
+li{margin:.42em 0}
+ul li::marker{color:var(--blue)}
+ol li::marker{color:var(--orange);font-family:var(--mono);font-size:.85em}
+code{font-family:var(--mono);font-size:.86em;background:var(--base2);padding:.06em .32em;border-radius:3px;color:var(--base02)}
+a{color:var(--blue);text-decoration:none;border-bottom:1px solid rgba(38,139,210,.4)}
+em.t{font-style:normal;font-weight:600;color:var(--violet)}
+
+/* ---------- layout helpers ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:2.4em;align-items:start}
+.cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5em}
+.stack{display:flex;flex-direction:column;gap:.8em}
+
+/* ---------- cards & tiles ---------- */
+.card{background:var(--base2);border-left:3px solid var(--c,var(--base1));
+  padding:.85em 1em;border-radius:0 4px 4px 0}
+.card .lab{font-family:var(--sans);font-size:.6em;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--c,var(--base00));display:block;margin-bottom:.35em}
+.card p:last-child,.card ul:last-child{margin-bottom:0}
+.key{--c:var(--magenta)} .int{--c:var(--cyan)} .warn{--c:var(--red)}
+.math{--c:var(--violet)} .ex{--c:var(--green)} .note{--c:var(--yellow)} .q{--c:var(--blue)}
+
+.tile{border:1px solid var(--rule);border-radius:5px;padding:.9em 1em;background:var(--base3)}
+.tile h4{font-family:var(--sans);font-size:.78em;font-weight:600;color:var(--base03);
+  margin:0 0 .3em;letter-spacing:.02em}
+.tile p{font-size:.86em;margin:0;color:var(--base00)}
+
+/* ---------- tables ---------- */
+table{border-collapse:collapse;width:100%;font-family:var(--sans);font-size:.82em}
+th{text-align:left;font-size:.72em;letter-spacing:.1em;text-transform:uppercase;color:var(--base00);
+  border-bottom:1.5px solid var(--base02);padding:.4em .6em;font-weight:600}
+td{padding:.42em .6em;border-bottom:1px solid var(--rule);vertical-align:top}
+tr.hl td{background:var(--base2);color:var(--base03)}
+
+/* ---------- math ---------- */
+.katex{color:var(--base02)}
+.katex-display{margin:.7em 0!important;overflow-x:auto;overflow-y:hidden}
+.eq{background:var(--base2);border-radius:5px;padding:.35em 1em;margin:.7em 0}
+.eq.hero{border:1px solid var(--rule);background:var(--base3)}
+
+/* ---------- figures ---------- */
+.fig{display:flex;justify-content:center;align-items:center;margin:.5em 0}
+.fig img{max-width:100%;max-height:52vh;object-fit:contain;background:#fff;border:1px solid var(--rule)}
+.fig.tight img{max-height:38vh}
+.fig.wide img{max-height:68vh}
+
+/* ---------- chrome: bare page counter only ---------- */
+#foot{position:fixed;right:6vw;bottom:2vh;font-family:var(--mono);font-size:.62em;
+  color:var(--base1);z-index:10}
+
+/* ---------- title slide ---------- */
+.slide.title{justify-content:center}
+.titlemeta{margin-top:1.3em}
+.titlemeta .author{display:block;font-family:var(--sans);font-weight:600;font-size:1.4em;color:var(--base02)}
+.titlemeta .affil{display:block;font-family:var(--sans);font-size:1.05em;color:var(--base00);margin-top:.25em}
+
+/* ---------- overview mode ---------- */
+#ov{position:fixed;inset:0;background:rgba(253,246,227,.97);z-index:30;display:none;
+  overflow:auto;padding:3vh 4vw}
+#ov.on{display:block}
+#ov h3{font-family:var(--sans);font-size:1em;color:var(--base03);margin:0 0 1em;letter-spacing:.02em}
+.ovgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.6em}
+.ovcard{border:1px solid var(--rule);border-radius:4px;padding:.6em .7em;cursor:pointer;
+  background:var(--base3);font-family:var(--sans);font-size:.72em;line-height:1.3}
+.ovcard:hover{border-color:var(--blue);background:var(--base2)}
+.ovcard .n2{font-family:var(--mono);font-size:.85em;color:var(--orange);display:block}
+
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+@media (max-width:760px){
+  .cols,.cols3{grid-template-columns:1fr;gap:1em}
+  .slide{padding:3vh 5vw 6vh}
+  h1{font-size:2.4em}
+}
+
+/* ---------- print / PDF export: one slide per page, native vector output ---------- */
+@media print{
+  @page{size:1920px 1080px;margin:0}
+  :root{--u:22px}
+  html,body{height:auto;overflow:visible}
+  #deck{position:static;height:auto;width:1920px}
+  .slide{position:static !important;display:flex !important;width:1920px;height:1080px;
+    padding:54px 115.2px 64.8px;animation:none !important;break-after:page;page-break-after:always}
+  .slide:last-of-type{break-after:auto;page-break-after:auto}
+  .slide .body{overflow:visible}
+  .cols{grid-template-columns:1fr 1fr !important}
+  .cols3{grid-template-columns:repeat(3,1fr) !important}
+  #foot,#ov{display:none !important}
+}
+</style>
+</head>
+<body>
+
+<div id="deck">
+
+<!-- ============ TITLE ============ -->
+<section class="slide title">
+  <h1>Reinforcement Learning<br>for LLMs</h1>
+  <div class="titlemeta"><span class="author">RL &middot; RLHF &middot; RLVR &middot; GRPO</span>
+  <span class="affil">Dhruv Kumar &middot; BITS Pilani</span></div>
+</section>
+
+<!-- ============ WHY RL: TWO KINDS OF SCALING ============ -->
+<section class="slide">
+  <h2>Two ways to spend compute for better reasoning</h2>
+  <div class="body">
+    <div class="fig"><img src="images/01_inference_vs_training_scaling.png" alt="Two scatter plots comparing inference-time scaling (spending more compute at inference improves benchmark accuracy) against training-time scaling (spending more compute during training improves benchmark accuracy), both on log-scale x-axes."></div>
+    <p><strong>Inference-time scaling</strong> spends more compute per generated answer (sampling,
+    voting, self-refinement). <strong>Training-time scaling</strong> spends more compute during
+    training itself — reinforcement learning is exactly this, and is this deck's focus. In
+    practice, the two are combined: RL-trained models still benefit from inference-time
+    techniques applied on top.</p>
+  </div>
+</section>
+
+<!-- ============ WHERE RL FITS IN THE PIPELINE ============ -->
+<section class="slide">
+  <h2>Where RL fits in the LLM training pipeline</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/02_pipeline_rlhf_rlvr.png" alt="Pipeline diagram: pre-trained LLM to instruction fine-tuning to reinforcement learning, which splits into reasoning training with RL with verifiable rewards (RLVR) and preference tuning with RL with human feedback (RLHF)."></div>
+    <p>RL is applied as a <strong>post-training</strong> stage, typically after instruction
+    fine-tuning. It then splits into two distinct uses: <strong>RLVR</strong> trains on answer
+    correctness for complex tasks like math or code; <strong>RLHF</strong> trains on human
+    preferences between response styles. Reasoning-focused RL can also be applied directly to a
+    base model — weaker overall, but a simpler setting for isolating what RL alone contributes
+    (this is how DeepSeek-R1-Zero was trained).</p>
+  </div>
+</section>
+
+<!-- ============ PRETRAINING VS RL OBJECTIVES ============ -->
+<section class="slide">
+  <h2>Pretraining vs. RL: different objectives</h2>
+  <div class="body">
+    <div class="cols">
+      <div class="tile"><h4>Pretraining / SFT</h4>
+        <p>Optimizes <strong>next-token prediction</strong> — build general knowledge and
+        language ability by predicting the next token given everything before it.</p></div>
+      <div class="tile"><h4>Reinforcement learning</h4>
+        <p>Optimizes <strong>sequence-level objectives</strong> — refine model behavior using a
+        signal defined over the whole generated response, such as answer correctness or human
+        preference, not any single next token.</p></div>
+    </div>
+    <p>This shift — from scoring individual tokens to scoring entire responses — is what the rest
+    of this deck unpacks concretely, through GRPO.</p>
+  </div>
+</section>
+
+<!-- ============ RLHF PIPELINE ============ -->
+<section class="slide">
+  <h2>RLHF: the original pipeline</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/03_rlhf_pipeline.png" alt="Diagram of the RLHF pipeline."></div>
+    <p>Introduced in the 2022 InstructGPT work — the key step that turned GPT-3 into the original
+    ChatGPT. Unlike pretraining and SFT, which optimize next-token prediction, RLHF optimizes the
+    model based on <strong>human preference labels</strong> over its own responses — typically via
+    a separately trained reward model that scores full responses, which the policy is then
+    updated against.</p>
+  </div>
+</section>
+
+<!-- ============ RLVR PIPELINE ============ -->
+<section class="slide">
+  <h2>From human feedback to verifiable rewards: RLVR</h2>
+  <div class="body">
+    <div class="fig"><img src="images/04_rlvr_pipeline.png" alt="Diagram of the RLVR pipeline, replacing a learned reward model with an automatic, deterministic verifier."></div>
+    <p>RLHF's reward model is itself a large, expensive-to-train LLM. <strong>RLVR</strong>
+    replaces it with an automatically verifiable, deterministic reward — e.g. checking whether a
+    math answer is correct, or whether code compiles and passes tests. DeepSeek-R1 (2025)
+    popularized this approach, achieving strong reasoning without any human preference data or
+    learned reward model. This deck focuses on math-based verification, but the same idea extends
+    directly to code verification.</p>
+  </div>
+</section>
+
+<!-- ============ WHY GRPO ============ -->
+<section class="slide">
+  <h2>The policy gradient algorithm: why GRPO, not PPO</h2>
+  <div class="body">
+    <p>RL for LLMs updates the model — called the <strong>policy</strong> — using a policy
+    gradient algorithm. Proximal Policy Optimization (PPO) is the standard choice for RLHF and
+    works for RLVR too. DeepSeek instead used a simpler algorithm for training DeepSeek-R1: Group
+    Relative Policy Optimization (<strong>GRPO</strong>), first introduced in DeepSeekMath.</p>
+    <div class="card key"><span class="lab">Why GRPO is more resource-friendly</span>
+      <p>PPO trains a separate LLM to estimate a value function. GRPO needs no such model — it
+      derives its learning signal purely from <strong>relative comparisons within a group of
+      sampled responses</strong> to the same prompt. One fewer large model to train and hold in
+      memory during RL.</p></div>
+  </div>
+</section>
+
+<!-- ============ GRPO CHEF ANALOGY ============ -->
+<section class="slide">
+  <h2>GRPO intuition: the chef analogy</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/05_grpo_chef_analogy.png" alt="An analogy diagram mapping GRPO terminology onto a chef cooking multiple dishes, tasting and comparing them, and adjusting technique based on which dishes turned out best relative to the others."></div>
+    <p>A chef (the <strong>policy</strong>) cooks several variations of a dish (<strong>rollouts</strong>,
+    also called completions) from the same recipe (<strong>prompt</strong>), tastes and scores each
+    (<strong>rewards</strong>), and adjusts technique based on which dishes did better or worse than
+    the average of the batch (<strong>advantages</strong>) — not against some fixed external
+    standard. This relative, within-group comparison is the "group relative" in GRPO.</p>
+  </div>
+</section>
+
+<!-- ============ MATH DATASET ============ -->
+<section class="slide">
+  <h2>Training data: a MATH subset</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/06_math_dataset.png" alt="Diagram describing the MATH training dataset used for GRPO, a subset excluding the MATH-500 test examples used for evaluation."></div>
+    <p>A non-overlapping training split of the MATH dataset, explicitly excluding the MATH-500
+    examples reserved for evaluation. Only the <code>problem</code> and <code>answer</code> fields
+    are used — the <code>solution</code> field is deliberately withheld, so the model must explore
+    its own solution paths rather than imitate a fixed one.</p>
+  </div>
+</section>
+
+<!-- ============ GRPO: THE FULL PICTURE ============ -->
+<section class="slide">
+  <h2>GRPO end to end: the full computation</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/07_grpo_full_worked_example.png" alt="A complete diagram of one GRPO training step: a prompt is passed to the LLM to generate four rollouts; each rollout gets a correctness-and-format reward; rewards are converted to advantages; log-probabilities are computed for each rollout; advantages and logprobs combine into a policy gradient loss; the KL loss term (computed against a reference model) is deferred to a later stage; gradients update the model weights."></div>
+    <p>One real worked example, four rollouts for the prompt "Half the value of 3x&minus;9 is
+    x+37. What is x?" The next several slides walk through exactly how each number here is
+    produced, stage by stage.</p>
+  </div>
+</section>
+
+<!-- ============ REWARDS ============ -->
+<section class="slide">
+  <h2>Stage 1&ndash;2: rewards from a verifier</h2>
+  <div class="body">
+    <p>Each rollout is scored by an automatic, deterministic verifier — the core idea of RLVR.
+    Here the reward is <strong>correctness</strong>, with an implicit <strong>format</strong>
+    requirement: a reward of 1.0 is given only if the final answer appears inside
+    <code>\boxed{}</code> and is correct; otherwise the reward is 0.0.</p>
+    <table>
+      <thead><tr><th>rollout</th><th>reward</th></tr></thead>
+      <tbody>
+        <tr><td>"\boxed{83}"</td><td>1.0</td></tr>
+        <tr><td>"&hellip;The correct answer is \boxed{83}"</td><td>1.0</td></tr>
+        <tr><td>"&hellip;The final answer is 83" <em>(not boxed)</em></td><td>0.0</td></tr>
+        <tr><td>"&hellip;We get \boxed{38}" <em>(wrong answer)</em></td><td>0.0</td></tr>
+      </tbody>
+    </table>
+    <p>DeepSeek-R1's authors also tried scoring intermediate reasoning steps with a process reward
+    model — this was unsuccessful, and they found it better to train on final-answer correctness
+    alone, with no intermediate rewards.</p>
+  </div>
+</section>
+
+<!-- ============ ADVANTAGES: EQUATION ============ -->
+<section class="slide">
+  <h2>Stage 3: turning rewards into advantages</h2>
+  <div class="body">
+    <p>The "group relative" step: each rollout's reward is normalized against the mean and spread
+    of rewards <em>within its own group</em> (the rollouts sampled for the same prompt):</p>
+    <div class="eq hero">$$\text{advantage}_i = \frac{r_i - \mu_r}{\sigma_r + \epsilon}$$</div>
+    <p>$r_i$ — reward of the $i$-th rollout; $\mu_r$ — mean reward across the group; $\sigma_r$ —
+    standard deviation of rewards across the group; $\epsilon$ — a small constant preventing
+    division by zero.</p>
+    <div class="cols">
+      <div class="card key"><span class="lab">Intuition: grading on a curve</span>
+        <p>Some prompts are easy (most rollouts already correct) and some are hard (most wrong) —
+        a raw reward of 1.0 alone doesn't say whether a rollout was impressive. Subtracting the
+        group mean asks a sharper question: <em>did this rollout beat its siblings on the very
+        same problem?</em> Dividing by the group's spread then puts every prompt's signal on a
+        common scale, so one unusually spread-out group can't dominate training just because its
+        raw rewards happened to vary more.</p></div>
+      <div class="card note"><span class="lab">A built-in stopping signal</span>
+        <p>If every rollout in a group gets the same reward — all correct, or all wrong — then
+        $r_i - \mu_r = 0$ for every $i$. The model receives <strong>no update</strong> in that
+        step. This is a feature: once every sampled answer is already correct, there is nothing
+        left to learn from that prompt.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ADVANTAGES: VERIFIED NUMBERS ============ -->
+<section class="slide">
+  <h2>Verified: rewards &rarr; advantages</h2>
+  <div class="body">
+    <table>
+      <thead><tr><th>rollout</th><th>reward $r_i$</th><th>advantage</th></tr></thead>
+      <tbody>
+        <tr><td>"\boxed{83}"</td><td>1.0</td><td>0.8659</td></tr>
+        <tr><td>"&hellip;The correct answer is \boxed{83}"</td><td>1.0</td><td>0.8659</td></tr>
+        <tr><td>"&hellip;The final answer is 83"</td><td>0.0</td><td>&minus;0.8659</td></tr>
+        <tr><td>"&hellip;We get \boxed{38}"</td><td>0.0</td><td>&minus;0.8659</td></tr>
+      </tbody>
+    </table>
+    <p>$\mu_r = 0.5$; the <strong>sample</strong> standard deviation ($\div (N{-}1)$, not $\div N$)
+    gives $\sigma_r = 0.5774$, so $(1.0-0.5)/0.5774 = 0.8659$ — confirmed by direct computation,
+    matching the figure exactly. Note some GRPO variants (e.g. Dr. GRPO) argue against dividing by
+    $\sigma_r$ at all, since it can overweight low-variance groups.</p>
+  </div>
+</section>
+
+<!-- ============ SEQUENCE LOG-PROBABILITY ============ -->
+<section class="slide">
+  <h2>Stage 4: scoring rollouts with log-probabilities</h2>
+  <div class="body">
+    <p>A familiar quantity, the average per-token log-probability of the answer:</p>
+    <div class="eq hero">$$\frac{1}{T}\sum_{t=1}^{T}\log p_W(y_t \mid y_{&lt;t}, x)$$</div>
+    <p>$y_1,\dots,y_T$ — tokens of the generated response, length $T$; $y_{&lt;t}$ — tokens generated
+    so far; $x$ — the input prompt; $W$ — the model's weight parameters. Averaging over $T$
+    length-normalizes the score, which is standard practice for comparing answers of different
+    length.</p>
+    <div class="card warn"><span class="lab">GRPO does not use this averaged form</span>
+      <p>GRPO assigns one reward and one advantage to an entire rollout — to scale the gradient
+      correctly, the log-probability must reflect the likelihood of the <strong>full
+      sequence</strong>, obtained by <em>summing</em>, not averaging, the per-token
+      log-probabilities. Averaging here would implicitly rescale the learning signal by response
+      length and distort the update.</p></div>
+  </div>
+</section>
+
+<!-- ============ LOGITS TO LOGPROBS ============ -->
+<section class="slide">
+  <h2>Where a per-token log-probability comes from</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/10_logits_to_logprobs.png" alt="Diagram showing the LLM producing logits for the next token; softmax converting logits to probabilities; log-softmax converting logits directly to log-probabilities; the largest logit corresponds to the largest probability and the largest log-probability; the selected token ID is mapped back to text."></div>
+    <p>At each generation step, the model outputs one logit per vocabulary token. <code>torch.log_softmax(logits)</code>
+    gives the log-probabilities directly (equivalent to, but more numerically stable than,
+    <code>torch.log(torch.softmax(logits))</code>). The sequence-level log-probability from the
+    previous slide is just the sum of these values, one per generated token.</p>
+  </div>
+</section>
+
+<!-- ============ POLICY GRADIENT LOSS ============ -->
+<section class="slide">
+  <h2>Stage 5: the GRPO policy gradient loss</h2>
+  <div class="body">
+    <div class="eq hero">$$\mathcal{L}_{\mathrm{PG}} = -\frac{1}{N}\sum_{i=1}^{N} A_i \sum_{t=1}^{T_i}\log p_W\!\left(y_t^{(i)} \mid y_{&lt;t}^{(i)}, x^{(i)}\right)$$</div>
+    <p>$N$ — number of rollouts in the batch; $y_1^{(i)},\dots,y_{T_i}^{(i)}$ — tokens of the
+    $i$-th rollout; $x^{(i)}$ — its prompt; $p_W$ — the policy (student model), parameterized by
+    weights $W$; $A_i$ — the advantage of the $i$-th rollout. The inner sum is exactly the
+    sequence-level log-probability from two slides ago; the outer average combines advantages and
+    log-probabilities across all rollouts in the batch.</p>
+    <div class="card note"><span class="lab">Two implementation details</span>
+      <p>$A_i$ is <strong>detached</strong> — it is a fixed target, and gradients flow only through
+      the log-probabilities. The loss carries a <strong>negative</strong> sign because PyTorch
+      optimizers minimize by default, while this objective should be maximized.</p></div>
+  </div>
+</section>
+
+<!-- ============ INTUITION: WHY ADVANTAGE x LOGPROB ============ -->
+<section class="slide">
+  <h2>Intuition: why advantage &times; log-probability?</h2>
+  <div class="body">
+    <p>This product is not arbitrary — it comes from asking how to increase expected reward when
+    the only thing we control is a probability distribution we can sample from, but not
+    differentiate through directly (sampling a token is not a differentiable operation):</p>
+    <div class="eq hero">$$\nabla_W\,\mathbb{E}_{y\sim p_W}[A(y)] \;=\; \mathbb{E}_{y\sim p_W}\big[A(y)\,\nabla_W\log p_W(y)\big]$$</div>
+    <p>This identity (the "score function" or REINFORCE trick) turns a gradient of an expectation
+    into an expectation of <em>reward times the gradient of a log-probability</em> — something we
+    <em>can</em> compute. GRPO's loss is a Monte Carlo estimate of the right-hand side, using the
+    $N$ sampled rollouts as samples from $p_W$ and their advantages $A_i$ standing in for $A(y)$.</p>
+    <div class="card key"><span class="lab">Reading the sign: reinforce, or suppress</span>
+      <p>Think of $\log p_W(y_i)$ as a dial gradient descent can turn for each rollout. If
+      $A_i&gt;0$ (better than the group average), the update turns the dial <strong>up</strong> —
+      that exact response becomes more likely next time. If $A_i&lt;0$, the dial turns
+      <strong>down</strong> — less likely. The size of $|A_i|$ sets how hard the dial is turned.
+      Concretely, in this batch: "\boxed{83}" ($A=+0.8659$) gets pushed toward a less negative
+      logprob than its current &minus;7.9243; "\boxed{38}" ($A=-0.8659$, the wrong answer) gets
+      pushed toward a more negative logprob than its current &minus;23.3677. This is literally the
+      "reinforcement" in reinforcement learning — strengthen what worked, weaken what didn't, with
+      no target sequence to imitate, only a relative comparison.</p></div>
+  </div>
+</section>
+
+<!-- ============ VERIFIED POLICY GRADIENT LOSS ============ -->
+<section class="slide">
+  <h2>Verified: the full loss for this batch</h2>
+  <div class="body">
+    <table>
+      <thead><tr><th>rollout</th><th>advantage $A_i$</th><th>sequence logprob</th></tr></thead>
+      <tbody>
+        <tr><td>"\boxed{83}"</td><td>0.8659</td><td>&minus;7.9243</td></tr>
+        <tr><td>"&hellip;correct answer is \boxed{83}"</td><td>0.8659</td><td>&minus;20.1546</td></tr>
+        <tr><td>"&hellip;final answer is 83"</td><td>&minus;0.8659</td><td>&minus;16.6130</td></tr>
+        <tr><td>"&hellip;We get \boxed{38}"</td><td>&minus;0.8659</td><td>&minus;23.3677</td></tr>
+      </tbody>
+    </table>
+    <p>$\mathcal L_{\mathrm{PG}} = -\tfrac{1}{4}\sum_i A_i \cdot \text{logprob}_i = -2.5764$ —
+    confirmed by direct computation, matching the figure. Stage 6 backpropagates this loss and
+    updates the model weights, exactly like any other PyTorch training step.</p>
+  </div>
+</section>
+
+<!-- ============ GRPO TRAINING LOOP ============ -->
+<section class="slide">
+  <h2>The GRPO training loop</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/08_grpo_training_loop.png" alt="Flowchart of the full GRPO training loop: initialize model and optimizer; for each training step, reset gradients, run the GRPO stages to compute loss, backpropagate, update weights, then optionally log metrics and save a checkpoint."></div>
+    <p>Only the loss computation (purple) is specific to GRPO — resetting gradients, the backward
+    pass, and the weight update are standard PyTorch training-loop operations, identical to
+    training any other neural network.</p>
+  </div>
+</section>
+
+<!-- ============ CH7 ROADMAP ============ -->
+<section class="slide">
+  <h2>Beyond the basics: stabilizing GRPO</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/09_ch07_roadmap.png" alt="Roadmap diagram showing the progression from the basic GRPO pipeline (RLVR, training loop, evaluation) to a set of improvements: plotting and analyzing basic training metrics, tracking more advanced metrics, adding clipped policy ratios, adding a KL loss term, adding a format reward, and additional GRPO tips and tricks."></div>
+    <p>The GRPO pipeline just covered is a working but simplified algorithm. The rest of this deck
+    covers the improvements that make it more stable and effective in practice — better
+    monitoring, clipped policy ratios, a KL regularization term, and an explicit format reward.</p>
+  </div>
+</section>
+
+<!-- ============ ADVANTAGE STD AS A SIGNAL ============ -->
+<section class="slide">
+  <h2>Tracking training health: the advantage standard deviation</h2>
+  <div class="body">
+    <p>By construction, the <strong>mean</strong> advantage across a group is always exactly 0 —
+    tracking it is mostly a sanity check that the normalization code is correct. The
+    <strong>standard deviation</strong> of the advantages is the genuinely informative signal:</p>
+    <div class="cols3">
+      <div class="tile"><h4>std &asymp; 1</h4>
+        <p>A well-scaled gradient signal — healthy, stable updates.</p></div>
+      <div class="tile"><h4>std &laquo; 1</h4>
+        <p>A vanishing signal — often happens once rewards collapse to all-same values.</p></div>
+      <div class="tile"><h4>std &raquo; 1</h4>
+        <p>Overly spiky updates that can destabilize training.</p></div>
+    </div>
+    <p>Best read alongside the average reward: a reward average near 1.0 looks alarming (vanishing
+    signal) but is actually good news — it means the model is already getting everything right.</p>
+  </div>
+</section>
+
+<!-- ============ ENTROPY CONCEPT ============ -->
+<section class="slide">
+  <h2>Tracking training health: entropy</h2>
+  <div class="body">
+    <p>Entropy measures how uncertain the model is when producing the next token.</p>
+    <div class="cols">
+      <div class="card int"><span class="lab">High entropy</span>
+        <p>Probability mass spread over many tokens — good for exploration, but too high means
+        the model is close to random.</p></div>
+      <div class="card warn"><span class="lab">Low entropy</span>
+        <p>Almost all mass on one token — more deterministic, but very low entropy can signal
+        collapse: the model repeating the same or near-identical outputs.</p></div>
+    </div>
+    <div class="card note"><span class="lab">Rule of thumb (7-token vocabulary example)</span>
+      <p><strong>&asymp;0&ndash;0.5</strong>: one token dominates, near-deterministic.
+      <strong>&asymp;1&ndash;2</strong>: mass shared among a few tokens, typical during stable
+      training. <strong>&#8811; 2</strong> (approaching $\log(7)=1.9459$): highly uncertain,
+      close to random.</p></div>
+  </div>
+</section>
+
+<!-- ============ ENTROPY COMPUTATION ============ -->
+<section class="slide">
+  <h2>Computing entropy from logits</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/11_entropy_computation.png" alt="Diagram: starting from logits for one generated token, compute softmax probabilities and log-softmax log-probabilities, multiply them elementwise to get p times log(p), then sum to get the entropy, here 1.37 for a 7-token toy vocabulary."></div>
+    <p>$H = -\sum_v p_v \log p_v$ — probabilities and log-probabilities are multiplied elementwise,
+    then summed (with a sign flip). In GRPO, the per-token entropy is averaged over every answer
+    token in a rollout to get one entropy value per rollout, tracked over training just like the
+    reward average.</p>
+  </div>
+</section>
+
+<!-- ============ CLIPPED RATIO: MOTIVATION ============ -->
+<section class="slide">
+  <h2>Stabilizing updates: the clipped policy ratio</h2>
+  <div class="body">
+    <p>The clipped policy ratio measures how much the current policy differs from an earlier
+    version of itself, by comparing sequence log-probabilities computed <strong>before</strong> an
+    update step ("old") against those computed <strong>after</strong> it ("new") — borrowed
+    directly from PPO (Schulman et al., 2017).</p>
+    <div class="eq hero">$$\text{ratio} = \exp\big(\text{logprob}_{\text{new}} - \text{logprob}_{\text{old}}\big),\qquad
+    \text{clipped ratio} = \text{clamp}(\text{ratio},\,1-\epsilon,\,1+\epsilon)$$</div>
+    <p>The advantage is then scaled by this (clipped) ratio instead of being used directly,
+    limiting how much any single rollout can move the policy in one update. DeepSeek-R1 used
+    $\epsilon=10$ (very weak clipping); other RL pipelines commonly use a much tighter
+    $\epsilon=0.1$.</p>
+    <div class="card key"><span class="lab">Intuition: don't bet everything on one lucky sample</span>
+      <p>A group has only a handful of rollouts — often just 4&ndash;8. By pure chance, one of them
+      can end up looking dramatically more likely under the updated policy than it did under the
+      old one. Left unchecked, that single noisy sample could dominate the entire update.
+      Clipping acts like a seatbelt: a good rollout can still pull the policy toward it, but no
+      single sample is allowed to pull it too hard in one step.</p></div>
+  </div>
+</section>
+
+<!-- ============ CLIPPED RATIO: WORKED EXAMPLE ============ -->
+<section class="slide">
+  <h2>Verified: the clipped ratio in action</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/12_clipped_ratio_worked_example.png" alt="Worked example computing the ratio and clipped ratio for four rollouts: new and old logprobs, the exponentiated difference giving the ratio, and the clipped ratio bounded to the range -9 to 11 given clip_eps=10."></div>
+    <p>The first rollout's ratio of 20.09 gets clamped down to 11.0 — a case where the updated
+    model became dramatically more confident in that rollout than the reference version was,
+    exactly the kind of large, destabilizing jump clipping exists to contain.</p>
+  </div>
+</section>
+
+<!-- ============ POLICY RATIO VARIANTS ============ -->
+<section class="slide">
+  <h2>Token-level vs. sequence-level ratios across papers</h2>
+  <div class="body">
+    <p>Different GRPO variants disagree on whether the policy ratio should be computed per token
+    or per full sequence:</p>
+    <table>
+      <thead><tr><th>paper</th><th>level</th><th>notation</th></tr></thead>
+      <tbody>
+        <tr><td>DeepSeekMath GRPO (2024)</td><td>Token</td><td>$r_{i,t}(\theta)=\pi_\theta(o_{i,t}\mid q,o_{i,&lt;t})\,/\,\pi_{\theta_{\text{old}}}(o_{i,t}\mid q,o_{i,&lt;t})$</td></tr>
+        <tr><td>DeepSeek-R1 GRPO (2025)</td><td>Sequence</td><td>$r_i(\theta)=\pi_\theta(o_i\mid q)\,/\,\pi_{\theta_{\text{old}}}(o_i\mid q)$</td></tr>
+        <tr><td>DAPO (2025)</td><td>Token</td><td>$r_{i,t}(\theta)=\pi_\theta(o_{i,t}\mid q,o_{i,&lt;t})\,/\,\pi_{\theta_{\text{old}}}(o_{i,t}\mid q,o_{i,&lt;t})$</td></tr>
+        <tr><td>GSPO (2025)</td><td>Sequence</td><td>$s_i(\theta)=\big(\pi_\theta(y_i\mid x)\,/\,\pi_{\theta_{\text{old}}}(y_i\mid x)\big)^{1/|y_i|}$</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ KL TERM: MOTIVATION ============ -->
+<section class="slide">
+  <h2>Controlling drift with a KL term</h2>
+  <div class="body">
+    <p>The Kullback&ndash;Leibler (KL) divergence measures how far the current policy has drifted
+    from a fixed <strong>reference policy</strong> — the original model at the start of training.
+    Adding it to the loss acts as a regularizer, discouraging updates that boost reward while also
+    sharply increasing divergence from the reference.</p>
+    <div class="cols">
+      <div class="card key"><span class="lab">Intuition: an anchor, not a leash</span>
+        <p>Chasing reward with no constraint can lead a policy to degenerate strategies that score
+        well on a narrow verifier while wrecking its general fluency and coherence — a form of
+        reward hacking. The KL term keeps the policy tethered to a version of itself that could
+        still write ordinary, coherent text, trading some reward-chasing freedom for protection
+        against drifting into gibberish.</p></div>
+      <div class="card note"><span class="lab">Related to, but different from, clipping</span>
+        <p>Clipped ratios bound the size of a single update <em>step</em>. The KL term instead
+        penalizes long-term <em>drift</em> across many steps — the two address complementary
+        risks. In DeepSeek-R1, the reference model itself is periodically refreshed, every 400
+        steps, to the most recent policy.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ KL TERM: WORKED EXAMPLE ============ -->
+<section class="slide">
+  <h2>Verified: computing the KL loss term</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/13_kl_loss_worked_example.png" alt="Worked example computing a KL loss term: for each rollout, logprobs under the current policy and under a fixed reference model are computed on the same tokens; the KL term sums differences between them; the total loss is the policy gradient loss plus the KL loss term."></div>
+    <p>$\text{kl\_loss} = \text{kl\_coeff}\times\text{mean}(\text{logprob}_{\text{new}} - \text{logprob}_{\text{ref}})$,
+    computed on the exact same generated tokens under both models. The total loss is simply the
+    policy gradient loss plus this KL term: here, $-2.5764 + (-0.0075) = -2.5839$.</p>
+  </div>
+</section>
+
+<!-- ============ WHY KL CAN DESTABILIZE ============ -->
+<section class="slide">
+  <h2>Why the KL term can backfire</h2>
+  <div class="body">
+    <p>Adding a naive KL term to real GRPO training caused the run to collapse shortly after step
+    50 — the model started outputting non-sensical text and random tokens. Two compounding
+    causes:</p>
+    <div class="cols">
+      <div class="card warn"><span class="lab">1. It scales with sequence length</span>
+        <p>The KL term is computed on <em>summed</em> log-probabilities, so longer responses
+        automatically produce a larger-magnitude KL term — incentivizing ever-longer outputs and
+        destabilizing training.</p></div>
+      <div class="card warn"><span class="lab">2. It can become the only gradient</span>
+        <p>Once rewards collapse to all-zero, advantages are all zero and the policy gradient loss
+        vanishes entirely — leaving the KL term as the sole remaining signal, which then pushes
+        the model toward near-uniform, effectively random output.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ KL: PRACTICAL RECOMMENDATION ============ -->
+<section class="slide">
+  <h2>The common recommendation: skip KL for math RL</h2>
+  <div class="body">
+    <p>Several possible fixes exist — length-normalizing the KL and policy-ratio terms, lowering
+    <code>kl_coeff</code>, reweighting the KL term via importance sampling, or adding a small
+    format reward so advantages don't collapse to exactly zero.</p>
+    <div class="card key"><span class="lab">But the more common fix: drop it entirely</span>
+      <p>Multiple independent lines of work — <strong>Dr. GRPO</strong>, <strong>Olmo 3</strong>,
+      and <strong>DeepSeek V3.2</strong> — report training better <em>without</em> a KL term when
+      training on math data. This also simplifies the implementation and removes the need to keep
+      an extra copy of the reference model in memory during training.</p></div>
+  </div>
+</section>
+
+<!-- ============ FORMAT REWARD ============ -->
+<section class="slide">
+  <h2>Adding an explicit format reward</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/14_format_reward_think_tags.png" alt="Diagram comparing a correctness-only reward against a total reward that adds a format reward checking whether the model correctly uses opening and closing think tags to separate its reasoning from its final answer."></div>
+    <p>DeepSeek-R1 and Qwen3 use <code>&lt;think&gt;&lt;/think&gt;</code> tags to separate
+    intermediate reasoning from the final answer. A simple <strong>format reward</strong> checks
+    whether both tags appear, in the right order, and returns 1.0 if so, else 0.0 — the
+    <strong>total reward</strong> is the sum of the correctness reward and this format reward.
+    Intuitively, this is reward shaping: like giving partial credit for showing work in the right
+    place, it nudges the model toward a useful structure while the correctness reward keeps doing
+    the heavy lifting on actually solving the problem.</p>
+  </div>
+</section>
+
+<!-- ============ FORMAT REWARD PITFALL ============ -->
+<section class="slide">
+  <h2>A pitfall: over-rewarding format over correctness</h2>
+  <div class="body">
+    <p>In practice, adding a format reward improved training initially, but performance degraded
+    after about 100 steps — correlated with the model producing shorter responses. One
+    explanation: the model was already earning substantial reward just from following the
+    <code>&lt;think&gt;</code> format, and stopped focusing enough on actually being correct.</p>
+    <div class="card ex"><span class="lab">Two fixes</span>
+      <p>Reduce the format reward's weight relative to the correctness reward (e.g. from 1.0 down
+      to 0.1). Or make the format reward <strong>conditional</strong> on correctness —
+      <code>format_reward *= rlvr_reward</code> — so following the format only pays off when the
+      final answer is also right.</p></div>
+  </div>
+</section>
+
+<!-- ============ MORE TRICKS ============ -->
+<section class="slide">
+  <h2>Further GRPO refinements</h2>
+  <div class="body">
+    <p>In the months after DeepSeek-R1, many further modifications to GRPO were proposed to
+    improve stability and performance:</p>
+    <ul>
+      <li><strong>Zero gradient-signal filtering</strong> &amp; <strong>active sampling</strong>
+      &amp; <strong>token-level loss</strong> &amp; <strong>clip-higher</strong> (DAPO)</li>
+      <li><strong>No KL loss</strong> (DAPO; Dr. GRPO) and <strong>no std normalization</strong>
+      of advantages (Dr. GRPO)</li>
+      <li><strong>Truncated importance sampling</strong> for off-policy correction (Yao et al.)</li>
+      <li><strong>Domain-specific KL strengths</strong> (zero for math), <strong>reweighted
+      KL</strong>, and <strong>off-policy sequence masking</strong> (DeepSeek V3.2)</li>
+      <li><strong>Sequence-level importance sampling and clipping</strong> (GSPO); <strong>clipping
+      importance weights rather than token updates</strong> (CISPO)</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ READING LIST ============ -->
+<section class="slide">
+  <h2>Reading list</h2>
+  <div class="body">
+    <ul>
+      <li><a href="https://github.com/rasbt/reasoning-from-scratch/blob/main/ch06/01_main-chapter-code/ch06_main.ipynb" target="_blank">Raschka, <em>Build a Reasoning Model (From Scratch)</em>, Chapter 6</a> —
+      the source for this deck's RL/RLHF/RLVR intro and the full GRPO worked example.</li>
+      <li><a href="https://github.com/rasbt/reasoning-from-scratch/blob/main/ch07/01_main-chapter-code/ch07_main.ipynb" target="_blank">Raschka, <em>Build a Reasoning Model (From Scratch)</em>, Chapter 7</a> —
+      metrics tracking, clipped ratios, KL term, and format rewards.</li>
+      <li><a href="https://arxiv.org/abs/2402.03300" target="_blank">Shao et al., <em>DeepSeekMath</em></a> — introduces GRPO.</li>
+      <li><a href="https://arxiv.org/abs/2501.12948" target="_blank">DeepSeek-AI, <em>DeepSeek-R1</em></a> — RLVR with GRPO at scale.</li>
+      <li><a href="https://arxiv.org/pdf/1707.06347" target="_blank">Schulman et al., <em>Proximal
+      Policy Optimization Algorithms</em></a> — source of the clipped-ratio objective.</li>
+      <li><a href="https://arxiv.org/abs/2503.14476" target="_blank">Yu et al., <em>DAPO</em></a>
+      and <a href="https://arxiv.org/abs/2503.20783" target="_blank">Liu et al., <em>Dr.
+      GRPO</em></a> — stability-focused GRPO variants.</li>
+      <li><a href="https://arxiv.org/abs/2507.18071" target="_blank">Zheng et al.,
+      <em>GSPO</em></a> and <a href="https://arxiv.org/abs/2506.13585" target="_blank">MiniMax et
+      al., <em>CISPO</em></a> — sequence-level importance sampling variants.</li>
+      <li><a href="https://magazine.sebastianraschka.com/p/the-state-of-llm-reasoning-model-training" target="_blank">Raschka,
+      <em>The State of Reinforcement Learning for LLM Reasoning</em></a> — a detailed PPO vs. GRPO
+      comparison.</li>
+    </ul>
+  </div>
+</section>
+
+</div><!-- /deck -->
+
+<div id="ov"><h3>All slides — click to jump · press O or Esc to close</h3><div class="ovgrid" id="ovgrid"></div></div>
+<div id="foot"><span id="num">1 / 1</span></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  if (window.renderMathInElement) {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: "$$", right: "$$", display: true},
+        {left: "\\[", right: "\\]", display: true},
+        {left: "$", right: "$", display: false},
+        {left: "\\(", right: "\\)", display: false}
+      ],
+      throwOnError: false
+    });
+  }
+});
+
+/* ---------- deck navigation ---------- */
+(function () {
+  const slides = Array.from(document.querySelectorAll(".slide"));
+  const num = document.getElementById("num");
+  const ov = document.getElementById("ov");
+  const ovgrid = document.getElementById("ovgrid");
+  let i = 0;
+
+  slides.forEach(function (s, k) {
+    const card = document.createElement("div");
+    card.className = "ovcard";
+    const h = s.querySelector("h1, h2");
+    card.innerHTML = '<span class="n2">' + (k + 1) + '</span>' + (h ? h.textContent : "Slide");
+    card.addEventListener("click", function () { go(k); ov.classList.remove("on"); });
+    ovgrid.appendChild(card);
+  });
+
+  function go(k) {
+    i = Math.max(0, Math.min(slides.length - 1, k));
+    slides.forEach(s => s.classList.remove("on"));
+    slides[i].classList.add("on");
+    slides[i].querySelector(".body") && (slides[i].querySelector(".body").scrollTop = 0);
+    num.textContent = (i + 1) + " / " + slides.length;
+    history.replaceState(null, "", "#" + (i + 1));
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); go(i + 1); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); go(i - 1); }
+    else if (e.key === "Home") go(0);
+    else if (e.key === "End") go(slides.length - 1);
+    else if (e.key === "o" || e.key === "O") ov.classList.toggle("on");
+    else if (e.key === "Escape") ov.classList.remove("on");
+    else if (e.key === "f" || e.key === "F") {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+
+  let x0 = null;
+  document.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; }, {passive: true});
+  document.addEventListener("touchend", function (e) {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 55) go(dx < 0 ? i + 1 : i - 1);
+    x0 = null;
+  }, {passive: true});
+
+  const start = parseInt((location.hash || "#1").slice(1), 10);
+  go(isNaN(start) ? 0 : start - 1);
+})();
+</script>
+</body>
+</html>
