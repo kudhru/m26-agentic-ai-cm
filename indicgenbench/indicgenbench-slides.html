@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IndicGenBench: Dataset Preparation &amp; Benchmarking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<style>
+/* ===== Solarized Light — fixed palette, do not change per-deck ===== */
+:root{
+  --base3:#fdf6e3; --base2:#eee8d5; --base1:#93a1a1; --base0:#839496;
+  --base00:#657b83; --base01:#586e75; --base02:#073642; --base03:#002b36;
+  --yellow:#b58900; --orange:#cb4b16; --red:#dc322f; --magenta:#d33682;
+  --violet:#6c71c4; --blue:#268bd2; --cyan:#2aa198; --green:#859900;
+  --rule:rgba(147,161,161,.42);
+  --serif:"IBM Plex Serif",Georgia,serif;
+  --sans:"IBM Plex Sans Condensed","IBM Plex Sans",Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --u:clamp(13px,1.42vw,22px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--base3)}
+body{font-family:var(--serif);color:var(--base01);font-size:var(--u);line-height:1.5;
+  -webkit-font-smoothing:antialiased}
+
+/* ---------- deck ---------- */
+#deck{position:relative;height:100vh;width:100vw}
+.slide{position:absolute;inset:0;display:none;flex-direction:column;
+  padding:5vh 6vw 6vh;overflow:hidden}
+.slide.on{display:flex}
+@media (prefers-reduced-motion:no-preference){
+  .slide.on{animation:fade .3s ease both}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+}
+
+/* ---------- typography ---------- */
+h1{font-family:var(--sans);font-weight:700;font-size:3.4em;line-height:.98;letter-spacing:-.02em;
+  color:var(--base03);margin:0 0 .2em}
+h2{font-family:var(--sans);font-weight:700;font-size:1.85em;line-height:1.06;letter-spacing:-.015em;
+  color:var(--base03);margin:0 0 .8em;flex:0 0 auto}
+h2 .accent{color:var(--blue)}
+.body{flex:1;min-height:0;overflow:auto;padding-right:.4em}
+p{margin:0 0 .8em}
+strong{color:var(--base03);font-weight:600}
+.big{font-size:1.2em;line-height:1.4}
+ul,ol{margin:0 0 .9em;padding-left:1.25em}
+li{margin:.42em 0}
+ul li::marker{color:var(--blue)}
+ol li::marker{color:var(--orange);font-family:var(--mono);font-size:.85em}
+code{font-family:var(--mono);font-size:.86em;background:var(--base2);padding:.06em .32em;border-radius:3px;color:var(--base02)}
+a{color:var(--blue);text-decoration:none;border-bottom:1px solid rgba(38,139,210,.4)}
+em.t{font-style:normal;font-weight:600;color:var(--violet)}
+
+/* ---------- layout helpers ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:2.4em;align-items:start}
+.cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5em}
+.stack{display:flex;flex-direction:column;gap:.8em}
+
+/* ---------- cards & tiles ---------- */
+.card{background:var(--base2);border-left:3px solid var(--c,var(--base1));
+  padding:.85em 1em;border-radius:0 4px 4px 0}
+.card .lab{font-family:var(--sans);font-size:.6em;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--c,var(--base00));display:block;margin-bottom:.35em}
+.card p:last-child,.card ul:last-child{margin-bottom:0}
+.key{--c:var(--magenta)} .int{--c:var(--cyan)} .warn{--c:var(--red)}
+.math{--c:var(--violet)} .ex{--c:var(--green)} .note{--c:var(--yellow)} .q{--c:var(--blue)}
+
+.tile{border:1px solid var(--rule);border-radius:5px;padding:.9em 1em;background:var(--base3)}
+.tile h4{font-family:var(--sans);font-size:.78em;font-weight:600;color:var(--base03);
+  margin:0 0 .3em;letter-spacing:.02em}
+.tile p{font-size:.86em;margin:0;color:var(--base00)}
+
+/* ---------- tables ---------- */
+table{border-collapse:collapse;width:100%;font-family:var(--sans);font-size:.82em}
+th{text-align:left;font-size:.72em;letter-spacing:.1em;text-transform:uppercase;color:var(--base00);
+  border-bottom:1.5px solid var(--base02);padding:.4em .6em;font-weight:600}
+td{padding:.42em .6em;border-bottom:1px solid var(--rule);vertical-align:top}
+tr.hl td{background:var(--base2);color:var(--base03)}
+
+/* ---------- math ---------- */
+.katex{color:var(--base02)}
+.katex-display{margin:.7em 0!important;overflow-x:auto;overflow-y:hidden}
+.eq{background:var(--base2);border-radius:5px;padding:.35em 1em;margin:.7em 0}
+.eq.hero{border:1px solid var(--rule);background:var(--base3)}
+
+/* ---------- figures ---------- */
+.fig{display:flex;justify-content:center;align-items:center;margin:.5em 0}
+.fig img{max-width:100%;max-height:52vh;object-fit:contain;background:#fff;border:1px solid var(--rule)}
+.fig.tight img{max-height:38vh}
+.fig.wide img{max-height:66vh}
+
+/* ---------- chrome: bare page counter only ---------- */
+#foot{position:fixed;right:6vw;bottom:2vh;font-family:var(--mono);font-size:.62em;
+  color:var(--base1);z-index:10}
+
+/* ---------- title slide ---------- */
+.slide.title{justify-content:center}
+.titlemeta{margin-top:1.3em}
+.titlemeta .author{display:block;font-family:var(--sans);font-weight:600;font-size:1.4em;color:var(--base02)}
+.titlemeta .affil{display:block;font-family:var(--sans);font-size:1.05em;color:var(--base00);margin-top:.25em}
+
+/* ---------- overview mode ---------- */
+#ov{position:fixed;inset:0;background:rgba(253,246,227,.97);z-index:30;display:none;
+  overflow:auto;padding:3vh 4vw}
+#ov.on{display:block}
+#ov h3{font-family:var(--sans);font-size:1em;color:var(--base03);margin:0 0 1em;letter-spacing:.02em}
+.ovgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.6em}
+.ovcard{border:1px solid var(--rule);border-radius:4px;padding:.6em .7em;cursor:pointer;
+  background:var(--base3);font-family:var(--sans);font-size:.72em;line-height:1.3}
+.ovcard:hover{border-color:var(--blue);background:var(--base2)}
+.ovcard .n2{font-family:var(--mono);font-size:.85em;color:var(--orange);display:block}
+
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+@media (max-width:760px){
+  .cols,.cols3{grid-template-columns:1fr;gap:1em}
+  .slide{padding:3vh 5vw 6vh}
+  h1{font-size:2.4em}
+}
+
+/* ---------- print / PDF export: one slide per page, native vector output ---------- */
+@media print{
+  @page{size:1920px 1080px;margin:0}
+  :root{--u:22px}
+  html,body{height:auto;overflow:visible}
+  #deck{position:static;height:auto;width:1920px}
+  .slide{position:static !important;display:flex !important;width:1920px;height:1080px;
+    padding:54px 115.2px 64.8px;animation:none !important;break-after:page;page-break-after:always}
+  .slide:last-of-type{break-after:auto;page-break-after:auto}
+  .slide .body{overflow:visible}
+  .cols{grid-template-columns:1fr 1fr !important}
+  .cols3{grid-template-columns:repeat(3,1fr) !important}
+  #foot,#ov{display:none !important}
+}
+</style>
+</head>
+<body>
+
+<div id="deck">
+
+<!-- ============ TITLE ============ -->
+<section class="slide title">
+  <h1>IndicGenBench: Dataset<br>Preparation &amp; Benchmarking</h1>
+  <div class="titlemeta"><span class="author">Dhruv Kumar</span><span class="affil">BITS Pilani</span></div>
+</section>
+
+<!-- ============ FIGURE 1: THE GAP ============ -->
+<section class="slide">
+  <h2>The gap this benchmark exists to measure</h2>
+  <div class="body">
+    <div class="cols">
+      <div class="fig"><img src="images/fig1_radar.png" alt="Radar chart from the IndicGenBench paper showing PaLM-L's performance on English (star markers, far from center) versus its and other LLMs' performance on Indic languages (much closer to center) across five tasks: Cross-lingual Summarization, Machine Translation, Multilingual QA, Cross-lingual QA (XORQA-IN-XX and XORQA-IN-EN)."></div>
+      <div class="stack">
+        <p>Singh et al. (ACL 2024) built IndicGenBench to make this gap impossible to miss: on
+        every one of five <strong>generation</strong> tasks, even the best model (PaLM-2-L, orange)
+        scores far below its own English performance (blue stars).</p>
+        <p>Unlike IndicXTREME's classification/NLU focus, this benchmark targets the tasks users
+        actually interact with — <strong>summarizing, translating, and answering questions</strong>
+        in their own language.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCOPE: LANGUAGE CLASSES ============ -->
+<section class="slide">
+  <h2>Scope: 29 languages, 3 resource tiers</h2>
+  <div class="body">
+    <div class="cols">
+      <div class="fig wide"><img src="images/table7_lang_classes.png" alt="Table 7 from the IndicGenBench paper listing all 29 languages plus English, with code, script, language family, and resource tier (higher, medium, or low), color-coded green/yellow/pink."></div>
+      <div class="stack">
+        <p>29 Indic languages, 13 scripts, 4 families — classified into <strong>Higher (9)</strong>,
+        <strong>Medium (7)</strong>, and <strong>Low (13)</strong> resource tiers, based on web-text
+        availability and Joshi et al.'s (2020) taxonomy.</p>
+        <p>Even the "higher" tier is modest by global standards: Hindi has ~160K Wikipedia
+        articles versus 6.6M+ for English — the paper is explicit that "higher" here means
+        higher <em>relative to other Indic languages</em>, not high-resource in any absolute sense.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE FIVE TASKS ============ -->
+<section class="slide">
+  <h2>Five generation tasks, real examples</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/table1_tasks.png" alt="Table 1 from the IndicGenBench paper showing one real example from each of the five tasks with their native-script inputs and outputs: CrossSum-IN in Hindi, FLORES-IN in Konkani, XQuAD-IN in Punjabi, XorQA-IN-XX in Telugu, and XorQA-IN-EN in Santali, with language counts and dataset sizes."></div>
+    <p>Cross-lingual summarization, machine translation, multilingual QA, and two flavors of
+    cross-lingual QA — each with genuine dev/test data collected specifically for this benchmark,
+    plus a small training set released for every task except FLORES-IN.</p>
+  </div>
+</section>
+
+<!-- ============ WHY EXTEND EXISTING BENCHMARKS ============ -->
+<section class="slide">
+  <h2>Why translate existing benchmarks, not build from scratch?</h2>
+  <div class="body">
+    <p>Every IndicGenBench dataset starts from an existing <strong>English</strong>-source
+    benchmark — CrossSum, FLORES-200, XQuAD, XOR-TyDi — and adds professional human translations
+    into Indic languages. The paper gives three explicit reasons:</p>
+    <div class="card int"><span class="lab">1. Multi-way parallel data</span>
+      <p>Translating the same source examples into every language lets researchers separate
+      <em>task knowledge</em> from <em>language understanding</em>, and directly measure
+      cross-lingual generalization.</p></div>
+    <div class="card int"><span class="lab">2. No clean source text exists</span>
+      <p>For many low-resource languages, there's no clean knowledge corpus (e.g. Wikipedia) to
+      draw fresh source material from — translation sidesteps a data-acquisition problem that
+      creating from scratch cannot.</p></div>
+    <div class="card int"><span class="lab">3. Inherit existing quality control</span>
+      <p>By only translating into the target languages, the benchmark leverages all the design
+      and quality-control work that already went into the source benchmarks.</p></div>
+  </div>
+</section>
+
+<!-- ============ ANNOTATORS ============ -->
+<section class="slide">
+  <h2>Who did the translating</h2>
+  <div class="body">
+    <p>Annotators were professional data labelers — contractors at the authors' organization and
+    via a vendor — paid competitive rates compliant with applicable labor laws and prevailing
+    market rates in each region.</p>
+    <div class="card warn"><span class="lab">A 5.7× pay range across languages</span>
+      <p>Pay rates varied by language, from <strong>USD 2.80/hour for Pashto</strong> to
+      <strong>USD 15.90/hour for Tibetan</strong> — reflecting local market rates rather than a
+      single global rate, a detail worth noticing when comparing annotation practices across
+      benchmarks.</p></div>
+  </div>
+</section>
+
+<!-- ============ CREATING CROSSSUM-IN ============ -->
+<section class="slide">
+  <h2>Creating CrossSum-IN</h2>
+  <div class="body">
+    <p>Source: CrossSum (Bhattacharjee et al., 2023), itself derived from XL-Sum — BBC news
+    articles in one language paired with summaries in another.</p>
+    <ol>
+      <li>Sample 700 English article-summary pairs (100 train, 100 dev, 500 test).</li>
+      <li>For the 9 target languages CrossSum <em>already</em> covers, resample 100/100/500 from
+      the existing data instead — keeping every language's dataset the same size.</li>
+      <li>For the remaining 20 languages, ask human translators to translate the English summary
+      into the target language.</li>
+    </ol>
+    <p>700 examples × 29 languages = <strong>20,300</strong> examples total — confirmed by direct
+    computation from the paper's own per-language and language-count figures.</p>
+  </div>
+</section>
+
+<!-- ============ EXAMPLE: CROSSSUM-IN ============ -->
+<section class="slide">
+  <h2>A CrossSum-IN example</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/ex_crosssum.png" alt="A real CrossSum-IN example from the IndicGenBench paper: an English BBC article about NASA delaying the InSight Mars mission launch due to a seismometer problem, paired with its Hindi summary, with matching phrases color-coded between the article and the summary."></div>
+    <p>The color-coded spans show the alignment CrossSum was built on: "Nasa," "problem," "launch,"
+    "spacecraft," and "scheduled" in the English article each map to their counterpart in the Hindi
+    summary — the model's job is to produce this kind of faithful, compressed summary directly in
+    the target language, never via an intermediate English summary.</p>
+  </div>
+</section>
+
+<!-- ============ CREATING FLORES-IN ============ -->
+<section class="slide">
+  <h2>Creating FLORES-IN</h2>
+  <div class="body">
+    <p>Source: FLORES-200 (NLLB-Team et al., 2022) — human-annotated, multi-way parallel MT data,
+    already covering 22 of the 29 target languages.</p>
+    <div class="card ex"><span class="lab">Reuse where possible, translate where not</span>
+      <p>FLORES-200 splits into dev (997), devtest (1012), and a non-public test (992) set. All
+      997 dev + 1012 devtest sentences are used, giving <strong>2,009</strong> sentences per
+      language. For the remaining 7 new languages, the same sentences are freshly translated by
+      humans.</p></div>
+    <p>2,009 × 29 languages = <strong>58,261</strong> ≈ 58.2k examples — matches the paper.
+    FLORES-IN is the only task with no training split.</p>
+  </div>
+</section>
+
+<!-- ============ EXAMPLE: FLORES-IN ============ -->
+<section class="slide">
+  <h2>A FLORES-IN example</h2>
+  <div class="body">
+    <div class="fig"><img src="images/ex_flores.png" alt="A real FLORES-IN example from the IndicGenBench paper: the English sentence 'She gained critical acclaim during her time in Atlanta and was recognized for innovative urban education' translated into Konkani."></div>
+    <p>Plain sentence-level translation — no context, no question, just source sentence in, target
+    sentence out. This same English sentence has a translation like this one in every one of the
+    29 languages, which is exactly what makes FLORES-IN <em>n-way parallel</em>: every language's
+    output is directly comparable, because they all started from the identical source sentence.</p>
+  </div>
+</section>
+
+<!-- ============ CREATING XQUAD-IN ============ -->
+<section class="slide">
+  <h2>Creating XQuAD-IN</h2>
+  <div class="body">
+    <p>Source: XQuAD (Artetxe et al., 2020), itself derived from SQuAD — an English Wikipedia
+    passage paired with multiple question-answer pairs, where answers are short spans.</p>
+    <ol>
+      <li>Reuse XQuAD's existing 240 passages / 1,190 QA pairs (already human-translated into 10
+      higher-resource languages, Hindi being the only Indic one) as the test set.</li>
+      <li>Additionally select 20 passages / 100 QA pairs from SQuAD's own training set, <em>and</em>
+      another 20 passages / 100 QA pairs from its dev set, to build a train and dev split.</li>
+      <li>Collect professional human translations of all 280 passages / 1,390 QA pairs into 12
+      Indic languages.</li>
+    </ol>
+    <p>280 × 12 = <strong>3,360</strong> ≈ 3.3k passages; 1,390 × 12 = <strong>16,680</strong> ≈
+    16.6k QA pairs — matches the paper exactly.</p>
+  </div>
+</section>
+
+<!-- ============ EXAMPLE: XQUAD-IN ============ -->
+<section class="slide">
+  <h2>An XQuAD-IN example: "multilingual" means everything matches</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/ex_xquad.png" alt="A real XQuAD-IN example from the IndicGenBench paper: a Punjabi question about the purpose of Operation Galaxy, a Punjabi context passage translated from the original English Wikipedia text, and a Punjabi answer span extracted from that context."></div>
+    <p>Question, context passage, and answer are all in <strong>Punjabi</strong> — the same
+    language throughout. That's the defining feature of "multilingual" reading comprehension here:
+    the model reads and answers entirely within one language at a time, just repeated across 12
+    languages. Contrast this with the next task.</p>
+  </div>
+</section>
+
+<!-- ============ CREATING XORQA-IN: THE TWO-STAGE TRICK ============ -->
+<section class="slide">
+  <h2>Creating XorQA-IN: a two-stage translation</h2>
+  <div class="body">
+    <p>Source: XOR-TyDi (Asai et al., 2021) — a non-English question paired with an
+    <strong>English</strong> evidence passage and answer, designed for cross-lingual retrieval.
+    It covers only two Indic languages: Bengali (302 examples) and Telugu (237).</p>
+    <div class="card key"><span class="lab">Stage 1 — normalize through English</span>
+      <p>Translators first convert the original Bengali/Telugu question into <strong>English</strong>.</p></div>
+    <div class="card ex"><span class="lab">Stage 2 — fan out to every target language</span>
+      <p>That English question is then translated into <em>all</em> target languages, and
+      separately, the English answer is translated into each target language too.</p></div>
+    <p>Routing every language through a common English pivot — rather than translating pairwise
+    between 28 languages — is what makes this scale to a benchmark this size at all.</p>
+  </div>
+</section>
+
+<!-- ============ XORQA-IN-XX VS EN ============ -->
+<section class="slide">
+  <h2>Two tasks from one translation effort</h2>
+  <div class="body">
+    <p>The Stage-2 translations (question and answer, both now available in every target language)
+    are recombined into two distinct evaluation tasks:</p>
+    <table>
+      <thead><tr><th>Task</th><th>Question</th><th>Passage</th><th>Answer</th><th>Tests</th></tr></thead>
+      <tbody>
+        <tr><td><strong>XorQA-IN-EN</strong></td><td>target language</td><td>English</td><td>English</td><td>cross-lingual retrieval, matching the original XOR-TyDi setup</td></tr>
+        <tr><td><strong>XorQA-IN-XX</strong></td><td>target language</td><td>English</td><td>target language</td><td>generating the answer in the <em>same</em> language as the question</td></tr>
+      </tbody>
+    </table>
+    <p>Same underlying data, two different generation demands on the model — one English-answer
+    task inherited from the source dataset, one same-language-answer task that's new.</p>
+  </div>
+</section>
+
+<!-- ============ EXAMPLE: XORQA-IN ============ -->
+<section class="slide">
+  <h2>An XorQA-IN example: "cross-lingual" means the passage doesn't match</h2>
+  <div class="body">
+    <div class="fig"><img src="images/ex_xorqa_xx.png" alt="A real XorQA-IN-XX example from the IndicGenBench paper: a Telugu question about who was Prime Minister of India in 1989, an English context passage about Rajiv Gandhi, and a Telugu-language answer."></div>
+    <div class="fig" style="margin-top:.6em"><img src="images/ex_xorqa_en.png" alt="A real XorQA-IN-EN example from the IndicGenBench paper: a Santali question about Tibet's post-1912 government, an English context passage, and an English-language answer."></div>
+    <p>In both variants the question is asked in the target language but the evidence passage stays
+    in <strong>English</strong> — the model must cross languages to find the answer at all. Only the
+    output language differs: XorQA-IN-XX answers back in Telugu, XorQA-IN-EN answers in English.</p>
+  </div>
+</section>
+
+<!-- ============ LANGUAGE COVERAGE ============ -->
+<section class="slide">
+  <h2>Not every language is in every task</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/table9_coverage.png" alt="Table 9 from the IndicGenBench paper: a checkmark matrix showing which of the 29 languages have data in each of the five tasks — CrossSum-IN and FLORES-IN cover all 29, XQuAD-IN covers only 11 (higher plus a few medium), XorQA-IN-XX and XorQA-IN-EN cover 28 (all but Nepali)."></div>
+    <p>CrossSum-IN and FLORES-IN reach all 29 languages. XQuAD-IN — constrained by which languages
+    already had XQuAD translations plus the 3 medium-resource languages selected for extension —
+    covers only 11. XorQA-IN's two tasks reach 28 (Nepali was not translated).</p>
+  </div>
+</section>
+
+<!-- ============ EVALUATION METRICS ============ -->
+<section class="slide">
+  <h2>Choosing evaluation metrics that work for low-resource text</h2>
+  <div class="body">
+    <div class="cols">
+      <div class="card math"><span class="lab">ChrF — summarization &amp; translation</span>
+        <p>Character-level F-score (Popović, 2015), used for CrossSum-IN and FLORES-IN. Token-level
+        metrics like ROUGE and BLEU are unreliable for low-resource languages (Bapna et al., 2022) —
+        tokenization itself is often the weak link, so scoring on characters instead sidesteps it.</p></div>
+      <div class="card math"><span class="lab">Token-F1 — question answering</span>
+        <p>SQuAD-style token-overlap F1, used for XQuAD-IN and both XorQA-IN tasks — kept
+        consistent with the rest of the QA literature these benchmarks are drawn from.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TABLE 2: HEADLINE RESULTS ============ -->
+<section class="slide">
+  <h2>Does the benchmark distinguish good models? Yes.</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/table2_results.png" alt="Table 2 from the IndicGenBench paper: one-shot performance across model sizes for LLaMA, BLOOM, BLOOMZ, Gemma, GPT-3.5, GPT-4, and PaLM-2 families, plus English performance for GPT-4 and PaLM-2-L for comparison, across all five tasks."></div>
+    <p>Larger models within a family consistently do better. PaLM-2-L wins on 4 of 5 tasks;
+    open-source LLaMA lags badly (even LLaMA-65B underperforms the smallest PaLM-2-XXS); and
+    BLOOMZ — instruction-tuned, broad multilingual pretraining — wins 3 of 5 tasks outright. Every
+    model, even the best, trails its own English performance by 20+ points.</p>
+  </div>
+</section>
+
+<!-- ============ TABLE 3: RESOURCE CATEGORY ============ -->
+<section class="slide">
+  <h2>The drop-off by resource tier — and an asymmetry</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/table3_resource_cat.png" alt="Table 3 from the IndicGenBench paper showing one-shot performance split by High, Medium, and Low resource categories for LLaMA-65B, Gemma-7B-IT, BLOOMZ-7B, GPT-4, and PaLM-2-L, across all five tasks including both directions of FLORES-IN."></div>
+    <p>Performance drops from High to Medium to Low resource languages across every task. But look
+    at FLORES-IN's two directions for PaLM-2-L: English→target drops sharply (56.9→41.9), while
+    target→English barely moves (68.2→62.6). <strong>Current LLMs are far better at understanding
+    low-resource languages than at generating them.</strong></p>
+  </div>
+</section>
+
+<!-- ============ TABLE 4: IN-CONTEXT SHOTS ============ -->
+<section class="slide">
+  <h2>More in-context examples help — up to a point</h2>
+  <div class="body">
+    <div class="cols">
+      <div class="fig"><img src="images/table4_incontext.png" alt="Table 4 from the IndicGenBench paper showing performance on FLORES-IN and XorQA-IN-XX as the number of in-context exemplars increases from 0 to 5, for LLaMA-7B/13B/65B and PaLM-2-XXS/XS/S/L."></div>
+      <div class="stack">
+        <p>Every model family improves monotonically as more in-context examples are added — the
+        biggest jump is almost always from 0 to 1 shot (e.g. PaLM-2-XXS on FLORES-IN: 0.8 → 24.0).</p>
+        <p>This sets up the next question: how many shots actually <em>fit</em>, once tokenizer
+        fertility eats into the context budget?</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TABLE 5: TRANSFER LANGUAGE ============ -->
+<section class="slide">
+  <h2>Hindi exemplars beat English exemplars</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/table5_transfer_lang.png" alt="Table 5 from the IndicGenBench paper comparing performance when the one-shot in-context exemplar is given in English, Hindi, or the test instance's own language, for PaLM-2-XXS/XS/S/L across CrossSum-IN, XQuAD-IN, XorQA-IN-XX, and XorQA-IN-EN, split by resource tier."></div>
+    <p>Prompting order is consistent everywhere: <strong>test language &gt; Hindi &gt; English</strong>
+    — exactly the order of linguistic relatedness to the test language. For smaller models, Hindi
+    exemplars come extremely close to (sometimes beat) exemplars in the test language itself.</p>
+  </div>
+</section>
+
+<!-- ============ TABLE 6: FINE-TUNING VS FEW-SHOT ============ -->
+<section class="slide">
+  <h2>Fine-tuning vs. few-shot prompting</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/table6_finetuning.png" alt="Table 6 from the IndicGenBench paper comparing fine-tuned mT5 and PaLM-2 models against few-shot-prompted PaLM-2 models, across CrossSum-IN, XQuAD-IN, XorQA-IN-XX, and XorQA-IN-EN, split by resource tier, with the best PaLM-2 number highlighted."></div>
+    <p>mT5 (older, but purpose-built for short-span generation) beats PaLM-2 on QA tasks even when
+    fine-tuned; PaLM-2 wins on the longer-form CrossSum-IN. For QA, few-shot prompting on PaLM-2-XS
+    already matches or beats fine-tuning it — for <strong>long-form generation</strong>, fine-tuning
+    still wins outright, the one task where extra training data clearly pays off.</p>
+  </div>
+</section>
+
+<!-- ============ FIGURE 2: TOKENIZER FERTILITY ============ -->
+<section class="slide">
+  <h2>The tokenizer itself disadvantages some languages</h2>
+  <div class="body">
+    <div class="cols">
+      <div class="fig"><img src="images/fig2_fertility.png" alt="Bar chart from the IndicGenBench paper showing OpenAI BPE tokenizer fertility (average sub-words per word) for every language in IndicGenBench, ranging from 1.2 for English up to 19.9 for Tibetan, color-coded by script."></div>
+      <div class="stack">
+        <p><strong>Fertility</strong> = average number of sub-word tokens a word gets split into.
+        English sits near 1; Pashto is lowest among Indic languages at 4.1; Tibetan is highest at
+        <strong>19.9</strong> — a word in Tibetan costs roughly 20× the tokens of the same word in
+        English.</p>
+        <p>Higher fertility means the same text eats more of the model's fixed context window —
+        purely a tokenizer artifact, not a reflection of anything about the language itself.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FIGURE 3: CONTEXT WINDOW ============ -->
+<section class="slide">
+  <h2>What high fertility costs in practice</h2>
+  <div class="body">
+    <div class="cols">
+      <div class="fig"><img src="images/fig3_context_window.png" alt="Line chart from the IndicGenBench paper showing the percentage of the XQuAD-IN test set that fits in a 1920-token context as the number of in-context examples increases, for English, Gujarati, Hindi, Marathi, Assamese, Oriya, and Punjabi."></div>
+      <div class="stack">
+        <p>At a fixed 1920-token budget, English still fits 5 in-context examples for over 80% of
+        its test set. Oriya and Punjabi — high-fertility languages — fall to <strong>near 0%</strong>
+        by just 2–3 examples.</p>
+        <p>Combined with the previous slide, this directly explains the low-resource performance
+        gap on the in-context-shots slide: it isn't only that models understand these languages
+        less well — they also get to see fewer worked examples before answering.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TABLE 8: AIRAVATA ============ -->
+<section class="slide">
+  <h2>What a single-language-tuned model buys you</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/table8_airavata.png" alt="Table 8 from the IndicGenBench paper comparing Airavata, an Indic LLM pretrained and fine-tuned primarily on Hindi and English, against LLaMA and BLOOMZ, across all five tasks, for English, Hindi, Bengali, Punjabi, Assamese, Manipuri, and Santali."></div>
+    <p>Airavata is fine-tuned almost exclusively on Hindi and English. It clearly beats LLaMA on
+    Hindi — but its performance on every <em>other</em> Indic language (Bengali, Punjabi, Assamese,
+    Manipuri, Santali) is much worse than BLOOMZ, a broad-coverage multilingual model. Specializing
+    in one Indic language does not transfer to the rest.</p>
+  </div>
+</section>
+
+<!-- ============ QUALITATIVE: HALLUCINATION ============ -->
+<section class="slide">
+  <h2>Qualitative analysis: hallucination</h2>
+  <div class="body">
+    <p>The authors manually reviewed 20 PaLM-2-L predictions each, on CrossSum-IN and FLORES-IN,
+    across five languages, with native speakers. In cross-lingual summarization, the model
+    regularly invents details absent from the source article:</p>
+    <div class="fig"><img src="images/fig4a_hallucination.png" alt="Real example from the IndicGenBench paper: a Haryanvi summarization prompt about a White Garden memorial for Princess Diana, where the model's Haryanvi output (highlighted in red) hallucinates that Prince William and Harry personally opened the new garden — a claim not present anywhere in the source article."></div>
+  </div>
+</section>
+
+<!-- ============ QUALITATIVE: RELATED LANGUAGE ============ -->
+<section class="slide">
+  <h2>Qualitative analysis: bleeding into a related language</h2>
+  <div class="body">
+    <p>Awadhi, Haryanvi, and Chhattisgarhi are all related to Hindi and share its Devanagari script.
+    Translating into them, the model frequently mixes in Hindi words and produces incorrectly
+    inflected verb forms — errors highlighted in red below, against the human ground truth in blue:</p>
+    <div class="fig"><img src="images/fig5a_related_lang.png" alt="Real examples from the IndicGenBench paper: Awadhi and Chhattisgarhi translation outputs where the model substitutes Hindi words and incorrect verb inflections (red) in place of the correct Awadhi/Chhattisgarhi forms (blue), shown against the ground-truth translations."></div>
+  </div>
+</section>
+
+<!-- ============ QUALITATIVE: POLYSEMY & OMISSION ============ -->
+<section class="slide">
+  <h2>Qualitative analysis: polysemy and missing information</h2>
+  <div class="body">
+    <p>In machine translation, the model sometimes commits to the wrong sense of an ambiguous
+    English word, or simply drops information present in the source sentence:</p>
+    <div class="fig"><img src="images/fig5b_polysemy.png" alt="Real examples from the IndicGenBench paper: a Konkani translation where the model translates both instances of the polysemous word 'hearing' (a court hearing vs. listening) using the wrong sense, and an Assamese translation that omits the phrase 'to shop' entirely from the output."></div>
+    <p>In the Konkani example, "hearing" means a court hearing the first time and "listening" the
+    second — the model picks the "listening" sense for both. In the Assamese example, "to shop" is
+    simply absent from the translation.</p>
+  </div>
+</section>
+
+<!-- ============ LICENSING ============ -->
+<section class="slide">
+  <h2>Dataset licensing</h2>
+  <div class="body">
+    <p>In compliance with the licenses of the original source datasets, IndicGenBench's evaluation
+    data is released under three different licenses depending on lineage:</p>
+    <table>
+      <thead><tr><th>Task</th><th>License</th><th>Inherited from</th></tr></thead>
+      <tbody>
+        <tr><td>XQuAD-IN, FLORES-IN</td><td>CC BY-SA 4.0</td><td>XQuAD, FLORES-200</td></tr>
+        <tr><td>CrossSum-IN</td><td>CC BY-NC-SA 4.0</td><td>CrossSum</td></tr>
+        <tr><td>XorQA-IN (both tasks)</td><td>MIT</td><td>XOR-TyDi</td></tr>
+      </tbody>
+    </table>
+    <p>Building on existing benchmarks means inheriting their licensing constraints too — one more
+    consequence of the translation-based approach from earlier in this deck.</p>
+  </div>
+</section>
+
+<!-- ============ READING LIST ============ -->
+<section class="slide">
+  <h2>Reading list</h2>
+  <div class="body">
+    <ul>
+      <li><a href="https://aclanthology.org/2024.acl-long.595/" target="_blank">Singh, Gupta,
+      Bharadwaj, Tewari &amp; Talukdar, <em>IndicGenBench: A Multilingual Benchmark to Evaluate
+      Generation Capabilities of LLMs on Indic Languages</em></a> — ACL 2024, the source for every
+      table and figure in this deck.</li>
+      <li><a href="https://aclanthology.org/2023.acl-long.143/" target="_blank">Bhattacharjee et al.,
+      <em>CrossSum</em></a> — the cross-lingual summarization dataset CrossSum-IN extends.</li>
+      <li><a href="https://arxiv.org/abs/2207.04672" target="_blank">NLLB-Team et al., <em>No
+      Language Left Behind</em></a> — source of FLORES-200, extended into FLORES-IN.</li>
+      <li><a href="https://aclanthology.org/2020.acl-main.421/" target="_blank">Artetxe, Ruder
+      &amp; Yogatama, <em>On the Cross-lingual Transferability of Monolingual
+      Representations</em></a> — introduces XQuAD, extended into XQuAD-IN.</li>
+      <li><a href="https://aclanthology.org/2021.naacl-main.46/" target="_blank">Asai, Kasai,
+      Clark, Lee, Choi &amp; Hajishirzi, <em>XOR QA</em></a> — source of XOR-TyDi, extended into
+      XorQA-IN.</li>
+      <li><a href="https://aclanthology.org/2023.acl-long.693/" target="_blank">Doddapaneni et al.,
+      <em>IndicXTREME</em></a> — the companion NLU/classification benchmark covered in the
+      previous lecture.</li>
+      <li><a href="https://github.com/google-research-datasets/indic-gen-bench" target="_blank">Official
+      IndicGenBench data and code</a>.</li>
+    </ul>
+  </div>
+</section>
+
+</div><!-- /deck -->
+
+<div id="ov"><h3>All slides — click to jump · press O or Esc to close</h3><div class="ovgrid" id="ovgrid"></div></div>
+<div id="foot"><span id="num">1 / 1</span></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  if (window.renderMathInElement) {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: "$$", right: "$$", display: true},
+        {left: "\\[", right: "\\]", display: true},
+        {left: "$", right: "$", display: false},
+        {left: "\\(", right: "\\)", display: false}
+      ],
+      throwOnError: false
+    });
+  }
+});
+
+/* ---------- deck navigation ---------- */
+(function () {
+  const slides = Array.from(document.querySelectorAll(".slide"));
+  const num = document.getElementById("num");
+  const ov = document.getElementById("ov");
+  const ovgrid = document.getElementById("ovgrid");
+  let i = 0;
+
+  slides.forEach(function (s, k) {
+    const card = document.createElement("div");
+    card.className = "ovcard";
+    const h = s.querySelector("h1, h2");
+    card.innerHTML = '<span class="n2">' + (k + 1) + '</span>' + (h ? h.textContent : "Slide");
+    card.addEventListener("click", function () { go(k); ov.classList.remove("on"); });
+    ovgrid.appendChild(card);
+  });
+
+  function go(k) {
+    i = Math.max(0, Math.min(slides.length - 1, k));
+    slides.forEach(s => s.classList.remove("on"));
+    slides[i].classList.add("on");
+    slides[i].querySelector(".body") && (slides[i].querySelector(".body").scrollTop = 0);
+    num.textContent = (i + 1) + " / " + slides.length;
+    history.replaceState(null, "", "#" + (i + 1));
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); go(i + 1); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); go(i - 1); }
+    else if (e.key === "Home") go(0);
+    else if (e.key === "End") go(slides.length - 1);
+    else if (e.key === "o" || e.key === "O") ov.classList.toggle("on");
+    else if (e.key === "Escape") ov.classList.remove("on");
+    else if (e.key === "f" || e.key === "F") {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+
+  let x0 = null;
+  document.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; }, {passive: true});
+  document.addEventListener("touchend", function (e) {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 55) go(dx < 0 ? i + 1 : i - 1);
+    x0 = null;
+  }, {passive: true});
+
+  const start = parseInt((location.hash || "#1").slice(1), 10);
+  go(isNaN(start) ? 0 : start - 1);
+})();
+</script>
+</body>
+</html>
