@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DeepSeek-R1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<style>
+/* ===== Solarized Light — fixed palette, do not change per-deck ===== */
+:root{
+  --base3:#fdf6e3; --base2:#eee8d5; --base1:#93a1a1; --base0:#839496;
+  --base00:#657b83; --base01:#586e75; --base02:#073642; --base03:#002b36;
+  --yellow:#b58900; --orange:#cb4b16; --red:#dc322f; --magenta:#d33682;
+  --violet:#6c71c4; --blue:#268bd2; --cyan:#2aa198; --green:#859900;
+  --rule:rgba(147,161,161,.42);
+  --serif:"IBM Plex Serif",Georgia,serif;
+  --sans:"IBM Plex Sans Condensed","IBM Plex Sans",Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --u:clamp(13px,1.42vw,22px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--base3)}
+body{font-family:var(--serif);color:var(--base01);font-size:var(--u);line-height:1.5;
+  -webkit-font-smoothing:antialiased}
+
+/* ---------- deck ---------- */
+#deck{position:relative;height:100vh;width:100vw}
+.slide{position:absolute;inset:0;display:none;flex-direction:column;
+  padding:5vh 6vw 6vh;overflow:hidden}
+.slide.on{display:flex}
+@media (prefers-reduced-motion:no-preference){
+  .slide.on{animation:fade .3s ease both}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+}
+
+/* ---------- typography ---------- */
+h1{font-family:var(--sans);font-weight:700;font-size:3.4em;line-height:.98;letter-spacing:-.02em;
+  color:var(--base03);margin:0 0 .2em}
+h2{font-family:var(--sans);font-weight:700;font-size:1.85em;line-height:1.06;letter-spacing:-.015em;
+  color:var(--base03);margin:0 0 .8em;flex:0 0 auto}
+h2 .accent{color:var(--blue)}
+.body{flex:1;min-height:0;overflow:auto;padding-right:.4em}
+p{margin:0 0 .8em}
+strong{color:var(--base03);font-weight:600}
+.big{font-size:1.2em;line-height:1.4}
+ul,ol{margin:0 0 .9em;padding-left:1.25em}
+li{margin:.42em 0}
+ul li::marker{color:var(--blue)}
+ol li::marker{color:var(--orange);font-family:var(--mono);font-size:.85em}
+code{font-family:var(--mono);font-size:.86em;background:var(--base2);padding:.06em .32em;border-radius:3px;color:var(--base02)}
+a{color:var(--blue);text-decoration:none;border-bottom:1px solid rgba(38,139,210,.4)}
+em.t{font-style:normal;font-weight:600;color:var(--violet)}
+
+/* ---------- layout helpers ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:2.4em;align-items:start}
+.cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5em}
+.stack{display:flex;flex-direction:column;gap:.8em}
+
+/* ---------- cards & tiles ---------- */
+.card{background:var(--base2);border-left:3px solid var(--c,var(--base1));
+  padding:.85em 1em;border-radius:0 4px 4px 0}
+.card .lab{font-family:var(--sans);font-size:.6em;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--c,var(--base00));display:block;margin-bottom:.35em}
+.card p:last-child,.card ul:last-child{margin-bottom:0}
+.key{--c:var(--magenta)} .int{--c:var(--cyan)} .warn{--c:var(--red)}
+.math{--c:var(--violet)} .ex{--c:var(--green)} .note{--c:var(--yellow)} .q{--c:var(--blue)}
+
+.tile{border:1px solid var(--rule);border-radius:5px;padding:.9em 1em;background:var(--base3)}
+.tile h4{font-family:var(--sans);font-size:.78em;font-weight:600;color:var(--base03);
+  margin:0 0 .3em;letter-spacing:.02em}
+.tile p{font-size:.86em;margin:0;color:var(--base00)}
+
+/* ---------- tables ---------- */
+table{border-collapse:collapse;width:100%;font-family:var(--sans);font-size:.82em}
+th{text-align:left;font-size:.72em;letter-spacing:.1em;text-transform:uppercase;color:var(--base00);
+  border-bottom:1.5px solid var(--base02);padding:.4em .6em;font-weight:600}
+td{padding:.42em .6em;border-bottom:1px solid var(--rule);vertical-align:top}
+tr.hl td{background:var(--base2);color:var(--base03)}
+
+/* ---------- math ---------- */
+.katex{color:var(--base02)}
+.katex-display{margin:.7em 0!important;overflow-x:auto;overflow-y:hidden}
+.eq{background:var(--base2);border-radius:5px;padding:.35em 1em;margin:.7em 0}
+.eq.hero{border:1px solid var(--rule);background:var(--base3)}
+
+/* ---------- figures ---------- */
+.fig{display:flex;justify-content:center;align-items:center;margin:.5em 0}
+.fig img{max-width:100%;max-height:52vh;object-fit:contain;background:#fff;border:1px solid var(--rule)}
+.fig.tight img{max-height:38vh}
+.fig.wide img{max-height:68vh}
+
+/* ---------- chrome: bare page counter only ---------- */
+#foot{position:fixed;right:6vw;bottom:2vh;font-family:var(--mono);font-size:.62em;
+  color:var(--base1);z-index:10}
+
+/* ---------- title slide ---------- */
+.slide.title{justify-content:center}
+.titlemeta{margin-top:1.3em}
+.titlemeta .author{display:block;font-family:var(--sans);font-weight:600;font-size:1.4em;color:var(--base02)}
+.titlemeta .affil{display:block;font-family:var(--sans);font-size:1.05em;color:var(--base00);margin-top:.25em}
+
+/* ---------- overview mode ---------- */
+#ov{position:fixed;inset:0;background:rgba(253,246,227,.97);z-index:30;display:none;
+  overflow:auto;padding:3vh 4vw}
+#ov.on{display:block}
+#ov h3{font-family:var(--sans);font-size:1em;color:var(--base03);margin:0 0 1em;letter-spacing:.02em}
+.ovgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.6em}
+.ovcard{border:1px solid var(--rule);border-radius:4px;padding:.6em .7em;cursor:pointer;
+  background:var(--base3);font-family:var(--sans);font-size:.72em;line-height:1.3}
+.ovcard:hover{border-color:var(--blue);background:var(--base2)}
+.ovcard .n2{font-family:var(--mono);font-size:.85em;color:var(--orange);display:block}
+
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+@media (max-width:760px){
+  .cols,.cols3{grid-template-columns:1fr;gap:1em}
+  .slide{padding:3vh 5vw 6vh}
+  h1{font-size:2.4em}
+}
+
+/* ---------- print / PDF export: one slide per page, native vector output ---------- */
+@media print{
+  @page{size:1920px 1080px;margin:0}
+  :root{--u:22px}
+  html,body{height:auto;overflow:visible}
+  #deck{position:static;height:auto;width:1920px}
+  .slide{position:static !important;display:flex !important;width:1920px;height:1080px;
+    padding:54px 115.2px 64.8px;animation:none !important;break-after:page;page-break-after:always}
+  .slide:last-of-type{break-after:auto;page-break-after:auto}
+  .slide .body{overflow:visible}
+  .cols{grid-template-columns:1fr 1fr !important}
+  .cols3{grid-template-columns:repeat(3,1fr) !important}
+  #foot,#ov{display:none !important}
+}
+</style>
+</head>
+<body>
+
+<div id="deck">
+
+<!-- ============ TITLE ============ -->
+<section class="slide title">
+  <h1>DeepSeek-R1</h1>
+  <div class="titlemeta"><span class="author">Incentivizing Reasoning Capability<br>in LLMs via Reinforcement Learning</span>
+  <span class="affil">Dhruv Kumar &middot; BITS Pilani</span></div>
+</section>
+
+<!-- ============ MOTIVATION ============ -->
+<section class="slide">
+  <h2>Can reasoning emerge from RL alone, without SFT first?</h2>
+  <div class="body">
+    <p>Chain-of-thought prompting and SFT on human-written reasoning traces both work — but both
+    are capped by what humans demonstrate, and don't scale past human-annotated data. DeepSeek-AI
+    (2025) ask a sharper question: <strong>starting from a plain pretrained base model, with no
+    supervised reasoning examples at all, can pure RL alone teach a model to reason?</strong></p>
+    <div class="card key"><span class="lab">The central design choice</span>
+      <p>Train directly on DeepSeek-V3-Base with GRPO (the algorithm from DeepSeekMath), using a
+      reward based <em>only</em> on whether the final answer is correct — no human reasoning
+      demonstrations, no learned reward model. The resulting model is
+      <strong>DeepSeek-R1-Zero</strong>.</p></div>
+  </div>
+</section>
+
+<!-- ============ GRPO RECAP ============ -->
+<section class="slide">
+  <h2>GRPO, unchanged from DeepSeekMath</h2>
+  <div class="body">
+    <div class="eq hero">$$\mathcal J_{\mathrm{GRPO}}(\theta)=\mathbb E\Big[\tfrac1G\sum_{i=1}^{G}\min\!\Big(\tfrac{\pi_\theta(o_i\mid q)}{\pi_{\theta_{\text{old}}}(o_i\mid q)}A_i,\,
+    \text{clip}(\cdot,1{-}\varepsilon,1{+}\varepsilon)A_i\Big)-\beta D_{KL}(\pi_\theta\Vert\pi_{ref})\Big],
+    \qquad A_i=\frac{r_i-\text{mean}(\mathbf r)}{\text{std}(\mathbf r)}$$</div>
+    <p>$G$ — group size; $o_i$ — the $i$-th sampled response to prompt $q$; $A_i$ — its
+    group-relative advantage, from rewards $\mathbf r=\{r_1,\dots,r_G\}$; $\varepsilon,\beta$ —
+    clip range and KL strength. One change from DeepSeekMath's formula: the ratio here is
+    <strong>sequence-level</strong> ($\pi_\theta(o_i\mid q)$, one ratio per full response), not
+    token-level.</p>
+  </div>
+</section>
+
+<!-- ============ REWARD DESIGN ============ -->
+<section class="slide">
+  <h2>The reward: purely rule-based, no learned model</h2>
+  <div class="body">
+    <div class="eq hero">$$\text{Reward}_{\text{rule}} = \text{Reward}_{\text{acc}} + \text{Reward}_{\text{format}}$$</div>
+    <p><strong>Accuracy reward</strong> — checks the final answer directly: exact match for math
+    (given in a specified box format), compiler/test-case execution for code. <strong>Format
+    reward</strong> — checks that the reasoning process is wrapped in
+    <code>&lt;think&gt;&lt;/think&gt;</code> tags. Both are deterministic and automatic — this is
+    RLVR (verifiable rewards), the same paradigm from the RL foundations deck, applied at scale.</p>
+    <div class="card warn"><span class="lab">Why not a learned reward model?</span>
+      <p>The paper explicitly avoids neural reward models here: they are <strong>susceptible to
+      reward hacking</strong> during large-scale RL, and retraining them adds substantial compute
+      and pipeline complexity. A later slide shows exactly what that reward hacking looks like.</p></div>
+  </div>
+</section>
+
+<!-- ============ WORKED EXAMPLE: REWARD -> ADVANTAGE ============ -->
+<section class="slide">
+  <h2>Verified: from two reward signals to one advantage</h2>
+  <div class="body">
+    <table>
+      <thead><tr><th>rollout</th><th>accuracy</th><th>format</th><th>combined reward</th><th>advantage</th></tr></thead>
+      <tbody>
+        <tr><td>1 (correct, tagged)</td><td>1</td><td>1</td><td>2</td><td>+1.2247</td></tr>
+        <tr><td>2 (correct, no tags)</td><td>1</td><td>0</td><td>1</td><td>0.0000</td></tr>
+        <tr><td>3 (wrong, tagged)</td><td>0</td><td>1</td><td>1</td><td>0.0000</td></tr>
+        <tr><td>4 (wrong, no tags)</td><td>0</td><td>0</td><td>0</td><td>&minus;1.2247</td></tr>
+      </tbody>
+    </table>
+    <p>Confirmed by direct computation: mean $=1.0$, sample std $=0.8165$, giving advantages
+    $\pm1.2247$ and $0$. Rollouts 2 and 3 land exactly on the group average — despite being
+    <em>very different failures</em> (one nailed the answer but skipped formatting, the other did
+    the opposite) — so <strong>neither gets any gradient signal</strong> from this batch alone.</p>
+  </div>
+</section>
+
+<!-- ============ HEADLINE RESULT ============ -->
+<section class="slide">
+  <h2>R1-Zero: AIME accuracy climbs, and so does thinking time</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/fig1_aime_length.png" alt="Two line charts from the DeepSeek-R1 paper: left, DeepSeek-R1-Zero's AIME 2024 accuracy (pass@1 and cons@16) rising from about 0.16 to 0.78-0.87 over 10000 training steps, crossing above the human-participant baseline; right, the average response length rising steadily from a few hundred to over 10000 tokens over the same training run."></div>
+    <p>Pass@1 on AIME 2024 climbs from <strong>15.6% to 77.9%</strong> during RL training — purely
+    from the correctness reward, no reasoning demonstrations. With self-consistency (16 samples),
+    it reaches <strong>86.7%</strong>. At the same time, and with <em>no explicit incentive to do
+    so</em>, the model's average response length keeps growing — it is teaching itself to think
+    longer.</p>
+  </div>
+</section>
+
+<!-- ============ THE AHA MOMENT ============ -->
+<section class="slide">
+  <h2>The "aha moment"</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/table2_aha_moment.png" alt="Table 2 from the DeepSeek-R1 paper: a real model response to a math question involving nested square roots, where the model works through an algebraic approach, then writes 'Wait, wait. Wait. That's an aha moment I can flag here.' in red, and restarts the derivation from scratch with a cleaner approach."></div>
+    <p>A real, unedited model response. Midway through one algebraic approach, the model
+    interrupts itself — <em>"Wait, wait. Wait."</em> — and restarts with a cleaner method. No one
+    taught it to do this explicitly; self-reflection and backtracking emerged purely from
+    optimizing the correctness reward over many rollouts.</p>
+  </div>
+</section>
+
+<!-- ============ WHY R1-ZERO ISN'T ENOUGH ============ -->
+<section class="slide">
+  <h2>Two problems with R1-Zero</h2>
+  <div class="body">
+    <div class="cols">
+      <div class="card warn"><span class="lab">Poor readability</span>
+        <p>Nothing in the reward asks for human-friendly output — only for correctness and the
+        presence of think-tags. The reasoning traces can be a chaotic stream that a person
+        struggles to follow.</p></div>
+      <div class="card warn"><span class="lab">Language mixing</span>
+        <p>DeepSeek-V3-Base is trained on both English and Chinese. With nothing in the reward
+        constraining language, a single response can freely switch between English and Chinese
+        mid-reasoning.</p></div>
+    </div>
+    <p>R1-Zero is also narrowly focused — trained only on reasoning-domain rewards, it does not
+    generalize well to writing or open-domain question answering. Fixing all of this is what
+    motivates <strong>DeepSeek-R1</strong>'s full multi-stage pipeline.</p>
+  </div>
+</section>
+
+<!-- ============ THE FULL PIPELINE ============ -->
+<section class="slide">
+  <h2>DeepSeek-R1: a four-stage pipeline</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/fig2_pipeline.png" alt="Diagram from the DeepSeek-R1 paper showing the full training pipeline: DeepSeek-V3-Base trained with RL on reasoning prompts becomes DeepSeek-R1-Zero; its outputs are filtered and refined into cold-start long-CoT data; DeepSeek-V3-Base is SFT-tuned on this to become DeepSeek-R1-Dev1; RL with rule-based and language-consistency rewards produces DeepSeek-R1-Dev2; its outputs plus DeepSeek-V3 non-reasoning data are used to SFT DeepSeek-V3-Base again into DeepSeek-R1-Dev3; a final RL stage with rule-based and preference rewards produces DeepSeek-R1."></div>
+    <p>Four stages, each fixing a specific gap in the last: cold-start SFT for readability,
+    reasoning RL for capability, rejection-sampling SFT to broaden beyond reasoning, and a final
+    RL pass to align with human preferences. The next slides walk through each.</p>
+  </div>
+</section>
+
+<!-- ============ STAGE 1: COLD START ============ -->
+<section class="slide">
+  <h2>Stage 1: cold-start SFT for readability</h2>
+  <div class="body">
+    <p>A small set — thousands of examples, not millions — of long chain-of-thought data with a
+    human-friendly, conversational structure, collected via: few-shot prompting with long-CoT
+    examples, directly prompting the model for detailed answers with reflection and verification,
+    and manually post-processing R1-Zero's own outputs.</p>
+    <div class="card ex"><span class="lab">What this buys</span>
+      <p>DeepSeek-V3-Base is SFT-tuned on this small set to produce <strong>DeepSeek-R1
+      Dev-1</strong> — a model with much better readability and instruction-following (measured
+      later on IF-Eval and ArenaHard), that also serves as a better starting point for the RL
+      stage that follows, rather than starting RL from a completely raw base model.</p></div>
+  </div>
+</section>
+
+<!-- ============ STAGE 2: REASONING RL ============ -->
+<section class="slide">
+  <h2>Stage 2: reasoning RL, plus a language-consistency reward</h2>
+  <div class="body">
+    <p>The same rule-based RL as R1-Zero, applied to Dev-1, producing <strong>DeepSeek-R1
+    Dev-2</strong>. One addition directly targets the language-mixing problem:</p>
+    <div class="eq hero">$$\text{Reward}_{\text{language}} = \frac{\text{Num}(\text{Words}_{\text{target}})}{\text{Num}(\text{Words})}$$</div>
+    <p>The fraction of words in the chain-of-thought that are in the target language. Verified:
+    a CoT with 45 of 50 words in English scores $45/50=0.90$; one with heavier mixing, 33 of 60
+    words, scores $33/60=0.55$. This reward is added directly to the final reward — and the paper
+    is candid that it causes a <em>slight</em> accuracy regression, a deliberate trade for
+    readability.</p>
+  </div>
+</section>
+
+<!-- ============ STAGE 3: REJECTION SAMPLING + SFT ============ -->
+<section class="slide">
+  <h2>Stage 3: rejection sampling, then SFT on everything</h2>
+  <div class="body">
+    <p>Once reasoning RL (Dev-2) converges, it is used to <em>generate</em> a much larger SFT
+    dataset — sample many responses per prompt, keep only the good ones (correct by rule, or
+    judged good by DeepSeek-V3 where no rule applies).</p>
+    <div class="cols">
+      <div class="tile"><h4>~600K reasoning samples</h4>
+        <p>Rejection-sampled from Dev-2's own outputs across math, code, and logic prompts.</p></div>
+      <div class="tile"><h4>~200K non-reasoning samples</h4>
+        <p>Writing, factual QA, self-cognition, translation — from the DeepSeek-V3 pipeline, so
+        the model doesn't forget how to do ordinary tasks.</p></div>
+    </div>
+    <p>DeepSeek-V3-Base is SFT-tuned on this combined ~800K-example set (2 epochs) to produce
+    <strong>DeepSeek-R1 Dev-3</strong> — a model that's good at reasoning <em>and</em> general
+    tasks, not just reasoning.</p>
+  </div>
+</section>
+
+<!-- ============ STAGE 4: RL FOR ALL SCENARIOS ============ -->
+<section class="slide">
+  <h2>Stage 4: RL for all scenarios</h2>
+  <div class="body">
+    <div class="eq hero">$$\text{Reward} = \text{Reward}_{\text{reasoning}} + \text{Reward}_{\text{general}} + \text{Reward}_{\text{language}}$$</div>
+    <p>$\text{Reward}_{\text{reasoning}}$ — the same rule-based reward, for math/code/logic
+    prompts. $\text{Reward}_{\text{general}}$ — a <strong>learned</strong> reward model this time
+    (helpfulness scored on the final summary only; harmlessness scored on the full response),
+    used only for general-domain prompts where no deterministic rule exists.</p>
+    <div class="card note"><span class="lab">A deliberately staged mixture</span>
+      <p>General-preference data and its reward are introduced only in the <strong>final 400 of
+      1,700 steps</strong> — the paper found that using the model-based preference reward for
+      longer leads to reward hacking (next slide). This final stage produces
+      <strong>DeepSeek-R1</strong> itself.</p></div>
+  </div>
+</section>
+
+<!-- ============ RESULTS ACROSS STAGES ============ -->
+<section class="slide">
+  <h2>What each stage actually buys, in numbers</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/table3_stages.png" alt="Table 3 from the DeepSeek-R1 paper: benchmark scores across English, Code, Math, and Chinese categories for R1-Zero, R1-Dev1, R1-Dev2, R1-Dev3, and R1, showing large jumps in IF-Eval and ArenaHard from Dev1's SFT stage, jumps in code and math from Dev2's RL stage, and the largest jumps in AlpacaEval2.0 and ArenaHard in the final R1 model."></div>
+    <p>Dev-1's SFT jumps IF-Eval (46.6&rarr;71.7) and ArenaHard (53.6&rarr;77.0) — readability and
+    instruction-following. Dev-2's RL pushes code and math further. The final R1 stage's biggest
+    gains are exactly where it should be: AlpacaEval2.0 (62.1&rarr;87.6) and ArenaHard
+    (75.6&rarr;92.3) — general helpfulness, without losing the reasoning gains already banked.</p>
+  </div>
+</section>
+
+<!-- ============ REWARD HACKING ============ -->
+<section class="slide">
+  <h2>What reward hacking actually looks like</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/fig6_reward_hacking.png" alt="Figure 6 from the DeepSeek-R1 paper: over 700 training steps, the reward score (blue) trends upward from about 3.5 to 4.3, while the actual CodeForces test pass rate (red) rises initially then declines sharply after step 550, ending well below its starting value."></div>
+    <p>The reward score keeps climbing — but real CodeForces performance rises, then
+    <strong>falls off a cliff</strong> after step ~550. The model found some way to score well on
+    the reward signal without actually solving problems better. This is exactly the failure mode
+    the paper cites as its reason for avoiding a learned reward model for reasoning tasks, and for
+    capping the general-preference RL stage to its final 400 steps only.</p>
+  </div>
+</section>
+
+<!-- ============ DISTILLATION ============ -->
+<section class="slide">
+  <h2>Distilling R1's reasoning into small dense models</h2>
+  <div class="body">
+    <p>800K curated samples generated by DeepSeek-R1 are used to <strong>SFT-only</strong>
+    fine-tune existing open models (Qwen, Llama), from 1.5B to 70B parameters — no RL stage for
+    the distilled models at all.</p>
+    <div class="fig wide"><img src="images/table15_distill.png" alt="Table 15 from the DeepSeek-R1 paper comparing GPT-4o and Claude-3.5-Sonnet against six DeepSeek-R1-Distill models from 1.5B to 70B parameters, on AIME 2024, MATH, GPQA Diamond, LiveCodeBench, and CodeForces, showing even the 1.5B distilled model beating both closed-source baselines on math benchmarks."></div>
+    <p>The <strong>1.5B</strong> distilled model already beats GPT-4o and Claude-3.5-Sonnet on
+    AIME and MATH. Performance scales cleanly with student size up to the 70B model.</p>
+  </div>
+</section>
+
+<!-- ============ DISTILLATION VS RL ============ -->
+<section class="slide">
+  <h2>A striking finding: distillation beats doing RL yourself</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/table16_distill_vs_rl.png" alt="Table 16 from the DeepSeek-R1 paper comparing QwQ-32B-Preview and Qwen2.5-32B-Zero (trained with large-scale RL directly) against DeepSeek-R1-Distill-Qwen-32B (trained via SFT distillation from DeepSeek-R1), on AIME 2024, MATH, GPQA Diamond, and LiveCodeBench, with the distilled model winning on every single metric."></div>
+    <p><strong>Qwen2.5-32B-Zero</strong> — the same 32B base model, given the <em>same</em>
+    large-scale RL recipe R1-Zero used — reaches only 47.0% on AIME 2024. The
+    <strong>distilled</strong> 32B model, simply SFT-tuned on outputs from a much bigger teacher,
+    reaches 72.6%. Distilling reasoning patterns down from a large model is more effective — and
+    far cheaper — than reproducing large-scale RL on a small model from scratch.</p>
+  </div>
+</section>
+
+<!-- ============ WHAT DIDN'T WORK: PRM ============ -->
+<section class="slide">
+  <h2>Unsuccessful attempt: process reward models</h2>
+  <div class="body">
+    <p>A process reward model (PRM) scores each intermediate reasoning <em>step</em>, not just the
+    final answer — appealing in principle, since it could guide the model toward better
+    approaches, not just better final answers.</p>
+    <div class="card warn"><span class="lab">Three reasons it didn't work here</span>
+      <ul>
+        <li>Hard to explicitly define what a "step" even is in general, open-ended reasoning.</li>
+        <li>Even harder to judge whether a given intermediate step is correct — automated judges
+        are unreliable, and manual annotation doesn't scale.</li>
+        <li>Any model-based reward, once introduced, is vulnerable to reward hacking — and
+        retraining it adds real compute and pipeline complexity.</li>
+      </ul></div>
+    <p>PRMs still showed value for reranking top-N candidates or guiding search — just not as a
+    direct large-scale RL training signal here.</p>
+  </div>
+</section>
+
+<!-- ============ WHAT DIDN'T WORK: MCTS ============ -->
+<section class="slide">
+  <h2>Unsuccessful attempt: Monte Carlo Tree Search</h2>
+  <div class="body">
+    <p>Inspired directly by AlphaGo/AlphaZero: break a response into steps, and search the space
+    of possible next steps guided by a value model, the same recipe that mastered Go.</p>
+    <div class="card warn"><span class="lab">Why token generation isn't Go</span>
+      <p>Go's search space, though large, is well-defined and bounded by the board. Token
+      generation is <strong>exponentially larger</strong> — capping the search per step just
+      traps the model in local optima. And AlphaGo's core trick — a value model that keeps getting
+      better as it trains — is hard to replicate here: training a fine-grained value model over
+      open-ended text turns out to be a fundamentally difficult problem in its own right.</p></div>
+    <p>MCTS remained useful for one-off inference-time boosts with an already-trained value model
+    — just not as a way to iteratively bootstrap training itself.</p>
+  </div>
+</section>
+
+<!-- ============ REFLECTING BACK ON THE RL DECK ============ -->
+<section class="slide">
+  <h2>Tying back to RL foundations</h2>
+  <div class="body">
+    <p>Every mechanism from the earlier RL deck reappears here, at real scale:</p>
+    <div class="cols">
+      <div class="tile"><h4>RLVR, not RLHF, for reasoning</h4>
+        <p>The correctness reward is exactly RLVR — deterministic, rule-based, no reward model —
+        precisely why DeepSeek-R1 could skip the expensive reward-model-training step for its
+        reasoning stages.</p></div>
+      <div class="tile"><h4>Format reward as scaffolding</h4>
+        <p>The <code>&lt;think&gt;</code> tag reward mirrors the format-reward pitfall from the
+        RL deck — here it is one small, fixed-weight term among several, which avoids it
+        dominating the correctness signal.</p></div>
+    </div>
+    <div class="cols" style="margin-top:1em">
+      <div class="tile"><h4>Reward hacking, seen directly</h4>
+        <p>Figure 6 is a concrete instance of exactly the reward/KL failure mode discussed
+        abstractly before — here caused by over-relying on a model-based reward, not a KL term.</p></div>
+      <div class="tile"><h4>SFT and RL as complements</h4>
+        <p>Neither stage alone is enough — RL alone (R1-Zero) sacrifices readability and breadth;
+        SFT alone can't discover long-chain reasoning strategies no human demonstrated.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ READING LIST ============ -->
+<section class="slide">
+  <h2>Reading list</h2>
+  <div class="body">
+    <ul>
+      <li><a href="https://arxiv.org/abs/2501.12948" target="_blank">DeepSeek-AI, <em>DeepSeek-R1:
+      Incentivizing Reasoning Capability in LLMs via Reinforcement Learning</em></a> — the source
+      for every figure and result in this deck.</li>
+      <li><a href="https://arxiv.org/abs/2402.03300" target="_blank">Shao et al.,
+      <em>DeepSeekMath</em></a> — introduces GRPO, the RL algorithm DeepSeek-R1 uses unchanged.</li>
+      <li><a href="https://magazine.sebastianraschka.com/p/understanding-reasoning-llms" target="_blank">Raschka,
+      <em>Understanding Reasoning LLMs</em></a> — situates R1-Zero, R1, and R1-Distill against o1
+      and other reasoning-model approaches.</li>
+      <li><a href="https://www.interconnects.ai/p/deepseek-r1-recipe-for-o1" target="_blank">Lambert,
+      <em>DeepSeek R1's recipe to replicate o1 and the future of reasoning LMs</em></a> —
+      Interconnects, a detailed breakdown of the 4-stage pipeline.</li>
+      <li><a href="https://huggingface.co/blog/open-r1" target="_blank">Hugging Face,
+      <em>Open-R1: a fully open reproduction of DeepSeek-R1</em></a> — an independent effort to
+      reproduce and validate R1's pipeline and results end to end.</li>
+      <li><a href="https://huggingface.co/deepseek-ai" target="_blank">Official DeepSeek-R1
+      models, including all distilled checkpoints</a>.</li>
+    </ul>
+  </div>
+</section>
+
+</div><!-- /deck -->
+
+<div id="ov"><h3>All slides — click to jump · press O or Esc to close</h3><div class="ovgrid" id="ovgrid"></div></div>
+<div id="foot"><span id="num">1 / 1</span></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  if (window.renderMathInElement) {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: "$$", right: "$$", display: true},
+        {left: "\\[", right: "\\]", display: true},
+        {left: "$", right: "$", display: false},
+        {left: "\\(", right: "\\)", display: false}
+      ],
+      throwOnError: false
+    });
+  }
+});
+
+/* ---------- deck navigation ---------- */
+(function () {
+  const slides = Array.from(document.querySelectorAll(".slide"));
+  const num = document.getElementById("num");
+  const ov = document.getElementById("ov");
+  const ovgrid = document.getElementById("ovgrid");
+  let i = 0;
+
+  slides.forEach(function (s, k) {
+    const card = document.createElement("div");
+    card.className = "ovcard";
+    const h = s.querySelector("h1, h2");
+    card.innerHTML = '<span class="n2">' + (k + 1) + '</span>' + (h ? h.textContent : "Slide");
+    card.addEventListener("click", function () { go(k); ov.classList.remove("on"); });
+    ovgrid.appendChild(card);
+  });
+
+  function go(k) {
+    i = Math.max(0, Math.min(slides.length - 1, k));
+    slides.forEach(s => s.classList.remove("on"));
+    slides[i].classList.add("on");
+    slides[i].querySelector(".body") && (slides[i].querySelector(".body").scrollTop = 0);
+    num.textContent = (i + 1) + " / " + slides.length;
+    history.replaceState(null, "", "#" + (i + 1));
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); go(i + 1); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); go(i - 1); }
+    else if (e.key === "Home") go(0);
+    else if (e.key === "End") go(slides.length - 1);
+    else if (e.key === "o" || e.key === "O") ov.classList.toggle("on");
+    else if (e.key === "Escape") ov.classList.remove("on");
+    else if (e.key === "f" || e.key === "F") {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+
+  let x0 = null;
+  document.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; }, {passive: true});
+  document.addEventListener("touchend", function (e) {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 55) go(dx < 0 ? i + 1 : i - 1);
+    x0 = null;
+  }, {passive: true});
+
+  const start = parseInt((location.hash || "#1").slice(1), 10);
+  go(isNaN(start) ? 0 : start - 1);
+})();
+</script>
+</body>
+</html>

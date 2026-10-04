@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DeepSeekMath</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<style>
+/* ===== Solarized Light — fixed palette, do not change per-deck ===== */
+:root{
+  --base3:#fdf6e3; --base2:#eee8d5; --base1:#93a1a1; --base0:#839496;
+  --base00:#657b83; --base01:#586e75; --base02:#073642; --base03:#002b36;
+  --yellow:#b58900; --orange:#cb4b16; --red:#dc322f; --magenta:#d33682;
+  --violet:#6c71c4; --blue:#268bd2; --cyan:#2aa198; --green:#859900;
+  --rule:rgba(147,161,161,.42);
+  --serif:"IBM Plex Serif",Georgia,serif;
+  --sans:"IBM Plex Sans Condensed","IBM Plex Sans",Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --u:clamp(13px,1.42vw,22px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--base3)}
+body{font-family:var(--serif);color:var(--base01);font-size:var(--u);line-height:1.5;
+  -webkit-font-smoothing:antialiased}
+
+/* ---------- deck ---------- */
+#deck{position:relative;height:100vh;width:100vw}
+.slide{position:absolute;inset:0;display:none;flex-direction:column;
+  padding:5vh 6vw 6vh;overflow:hidden}
+.slide.on{display:flex}
+@media (prefers-reduced-motion:no-preference){
+  .slide.on{animation:fade .3s ease both}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+}
+
+/* ---------- typography ---------- */
+h1{font-family:var(--sans);font-weight:700;font-size:3.4em;line-height:.98;letter-spacing:-.02em;
+  color:var(--base03);margin:0 0 .2em}
+h2{font-family:var(--sans);font-weight:700;font-size:1.85em;line-height:1.06;letter-spacing:-.015em;
+  color:var(--base03);margin:0 0 .8em;flex:0 0 auto}
+h2 .accent{color:var(--blue)}
+.body{flex:1;min-height:0;overflow:auto;padding-right:.4em}
+p{margin:0 0 .8em}
+strong{color:var(--base03);font-weight:600}
+.big{font-size:1.2em;line-height:1.4}
+ul,ol{margin:0 0 .9em;padding-left:1.25em}
+li{margin:.42em 0}
+ul li::marker{color:var(--blue)}
+ol li::marker{color:var(--orange);font-family:var(--mono);font-size:.85em}
+code{font-family:var(--mono);font-size:.86em;background:var(--base2);padding:.06em .32em;border-radius:3px;color:var(--base02)}
+a{color:var(--blue);text-decoration:none;border-bottom:1px solid rgba(38,139,210,.4)}
+em.t{font-style:normal;font-weight:600;color:var(--violet)}
+
+/* ---------- layout helpers ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:2.4em;align-items:start}
+.cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5em}
+.stack{display:flex;flex-direction:column;gap:.8em}
+
+/* ---------- cards & tiles ---------- */
+.card{background:var(--base2);border-left:3px solid var(--c,var(--base1));
+  padding:.85em 1em;border-radius:0 4px 4px 0}
+.card .lab{font-family:var(--sans);font-size:.6em;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--c,var(--base00));display:block;margin-bottom:.35em}
+.card p:last-child,.card ul:last-child{margin-bottom:0}
+.key{--c:var(--magenta)} .int{--c:var(--cyan)} .warn{--c:var(--red)}
+.math{--c:var(--violet)} .ex{--c:var(--green)} .note{--c:var(--yellow)} .q{--c:var(--blue)}
+
+.tile{border:1px solid var(--rule);border-radius:5px;padding:.9em 1em;background:var(--base3)}
+.tile h4{font-family:var(--sans);font-size:.78em;font-weight:600;color:var(--base03);
+  margin:0 0 .3em;letter-spacing:.02em}
+.tile p{font-size:.86em;margin:0;color:var(--base00)}
+
+/* ---------- tables ---------- */
+table{border-collapse:collapse;width:100%;font-family:var(--sans);font-size:.82em}
+th{text-align:left;font-size:.72em;letter-spacing:.1em;text-transform:uppercase;color:var(--base00);
+  border-bottom:1.5px solid var(--base02);padding:.4em .6em;font-weight:600}
+td{padding:.42em .6em;border-bottom:1px solid var(--rule);vertical-align:top}
+tr.hl td{background:var(--base2);color:var(--base03)}
+
+/* ---------- math ---------- */
+.katex{color:var(--base02)}
+.katex-display{margin:.7em 0!important;overflow-x:auto;overflow-y:hidden}
+.eq{background:var(--base2);border-radius:5px;padding:.35em 1em;margin:.7em 0}
+.eq.hero{border:1px solid var(--rule);background:var(--base3)}
+
+/* ---------- figures ---------- */
+.fig{display:flex;justify-content:center;align-items:center;margin:.5em 0}
+.fig img{max-width:100%;max-height:52vh;object-fit:contain;background:#fff;border:1px solid var(--rule)}
+.fig.tight img{max-height:38vh}
+.fig.wide img{max-height:68vh}
+
+/* ---------- chrome: bare page counter only ---------- */
+#foot{position:fixed;right:6vw;bottom:2vh;font-family:var(--mono);font-size:.62em;
+  color:var(--base1);z-index:10}
+
+/* ---------- title slide ---------- */
+.slide.title{justify-content:center}
+.titlemeta{margin-top:1.3em}
+.titlemeta .author{display:block;font-family:var(--sans);font-weight:600;font-size:1.4em;color:var(--base02)}
+.titlemeta .affil{display:block;font-family:var(--sans);font-size:1.05em;color:var(--base00);margin-top:.25em}
+
+/* ---------- overview mode ---------- */
+#ov{position:fixed;inset:0;background:rgba(253,246,227,.97);z-index:30;display:none;
+  overflow:auto;padding:3vh 4vw}
+#ov.on{display:block}
+#ov h3{font-family:var(--sans);font-size:1em;color:var(--base03);margin:0 0 1em;letter-spacing:.02em}
+.ovgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.6em}
+.ovcard{border:1px solid var(--rule);border-radius:4px;padding:.6em .7em;cursor:pointer;
+  background:var(--base3);font-family:var(--sans);font-size:.72em;line-height:1.3}
+.ovcard:hover{border-color:var(--blue);background:var(--base2)}
+.ovcard .n2{font-family:var(--mono);font-size:.85em;color:var(--orange);display:block}
+
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+@media (max-width:760px){
+  .cols,.cols3{grid-template-columns:1fr;gap:1em}
+  .slide{padding:3vh 5vw 6vh}
+  h1{font-size:2.4em}
+}
+
+/* ---------- print / PDF export: one slide per page, native vector output ---------- */
+@media print{
+  @page{size:1920px 1080px;margin:0}
+  :root{--u:22px}
+  html,body{height:auto;overflow:visible}
+  #deck{position:static;height:auto;width:1920px}
+  .slide{position:static !important;display:flex !important;width:1920px;height:1080px;
+    padding:54px 115.2px 64.8px;animation:none !important;break-after:page;page-break-after:always}
+  .slide:last-of-type{break-after:auto;page-break-after:auto}
+  .slide .body{overflow:visible}
+  .cols{grid-template-columns:1fr 1fr !important}
+  .cols3{grid-template-columns:repeat(3,1fr) !important}
+  #foot,#ov{display:none !important}
+}
+</style>
+</head>
+<body>
+
+<div id="deck">
+
+<!-- ============ TITLE ============ -->
+<section class="slide title">
+  <h1>DeepSeekMath</h1>
+  <div class="titlemeta"><span class="author">Pushing the Limits of Mathematical Reasoning<br>in Open Language Models</span>
+  <span class="affil">Dhruv Kumar &middot; BITS Pilani</span></div>
+</section>
+
+<!-- ============ HEADLINE RESULT ============ -->
+<section class="slide">
+  <h2>A 7B open model approaching GPT-4 on competition math</h2>
+  <div class="body">
+    <div class="fig"><img src="images/fig1_headline.png" alt="Bar chart from the DeepSeekMath paper: Top-1 accuracy of open-source models on the competition-level MATH benchmark, without external toolkits or voting, showing DeepSeekMath-RL 7B reaching 51.7%, far above other open 7B-70B models, approaching GPT-4 and Gemini-Ultra."></div>
+    <p>Shao et al. (2024) train <strong>DeepSeekMath-RL 7B</strong>, which reaches
+    <strong>51.7%</strong> Top-1 accuracy on the competition-level MATH benchmark — no tools, no
+    voting — approaching GPT-4 and Gemini-Ultra, and far ahead of every other open 7B–70B model.
+    Two contributions explain this: a meticulously engineered <strong>pretraining corpus</strong>,
+    and <strong>GRPO</strong> — the RL algorithm this paper introduces, later used to train
+    DeepSeek-R1.</p>
+  </div>
+</section>
+
+<!-- ============ SCOPE ============ -->
+<section class="slide">
+  <h2>Two contributions, in the order they're built</h2>
+  <div class="body">
+    <div class="cols3">
+      <div class="tile"><h4>1. DeepSeekMath Corpus</h4>
+        <p>120B math tokens mined from Common Crawl via an iterative classifier pipeline —
+        2.3× larger than any prior public math pretraining corpus.</p></div>
+      <div class="tile"><h4>2. GRPO</h4>
+        <p>Group Relative Policy Optimization — a lighter-weight alternative to PPO that drops
+        the value model entirely, introduced here and used unchanged in DeepSeek-R1.</p></div>
+      <div class="tile"><h4>A unifying lens</h4>
+        <p>The paper also reframes SFT, RFT, DPO, PPO, and GRPO as one family of algorithms
+        differing in just three choices — useful for the whole rest of this deck.</p></div>
+    </div>
+    <p>DeepSeekMath-Base 7B starts from <strong>DeepSeek-Coder-Base-v1.5</strong>, not a general
+    LLM — a deliberate choice this deck returns to later.</p>
+  </div>
+</section>
+
+<!-- ============ DATA PIPELINE ============ -->
+<section class="slide">
+  <h2>Mining 120B math tokens: the iterative pipeline</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/fig2_pipeline.png" alt="Diagram from the DeepSeekMath paper: an iterative pipeline that trains a fastText model on a math seed corpus, uses it to recall math-related webpages from 40B deduplicated Common Crawl HTML pages, discovers math-related domains, and has labelers annotate math-related URL paths from those domains, feeding back into the seed corpus."></div>
+    <p>Four stages, repeated in a loop: <strong>(1)</strong> train a fastText classifier on a
+    seed corpus, <strong>(2)</strong> use it to recall math-like pages from Common Crawl,
+    <strong>(3)</strong> find whole domains where recall was high (e.g. mathoverflow.net),
+    <strong>(4)</strong> have human annotators mark the specific math-related URL paths within
+    those domains — which then enlarge the seed corpus for the next round.</p>
+  </div>
+</section>
+
+<!-- ============ FASTTEXT INTUITION ============ -->
+<section class="slide">
+  <h2>Intuition: bootstrapping a classifier with itself</h2>
+  <div class="body">
+    <p>A classifier trained once on a small, narrow seed set (OpenWebMath) only recognizes
+    pages that <em>look like</em> that seed set — it misses math content in a different style
+    or domain entirely. The fix is to let the classifier's own blind spots point to where to
+    look next.</p>
+    <div class="card key"><span class="lab">Why domains, not individual pages</span>
+      <p>Checking every one of 40B pages by hand is impossible. But if &gt;10% of a
+      <em>domain's</em> pages were already recalled, that whole domain is very likely
+      math-related — annotators only need to mark the URL <em>patterns</em> worth keeping (e.g.
+      <code>mathoverflow.net/questions</code>), and every matching page is added at once. This
+      converts millions of individual judgments into a handful of domain-level ones.</p></div>
+    <p>After 4 iterations: <strong>35.5M web pages, 120B tokens</strong> — nearly
+    <strong>9×</strong> the size of OpenWebMath (120.2B vs. 13.6B tokens, verified). Iteration 4
+    was stopped because 98% of its pages were already found in iteration 3 — the seed corpus
+    had converged.</p>
+  </div>
+</section>
+
+<!-- ============ CORPUS QUALITY TABLE ============ -->
+<section class="slide">
+  <h2>Does the extra scale actually help? Yes.</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/table1_corpus.png" alt="Table 1 from the DeepSeekMath paper comparing a 1.3B model trained on no math data, MathPile, OpenWebMath, Proof-Pile-2, and the DeepSeekMath Corpus, across GSM8K, MATH, OCW, SAT, MMLU-STEM, CMATH, Gaokao-MathCloze, and Gaokao-MathQA — the DeepSeekMath Corpus row leads on every column."></div>
+    <p>Same 1.3B model, same 150B training tokens, only the corpus changes. The DeepSeekMath
+    Corpus wins on every single benchmark — including the Chinese ones (CMATH, Gaokao), where
+    English-only corpora like Proof-Pile-2 barely help at all, since this corpus was
+    deliberately built to be multilingual.</p>
+  </div>
+</section>
+
+<!-- ============ BENCHMARK CURVES ============ -->
+<section class="slide">
+  <h2>Bigger doesn't just mean "same curve, further" — it's a better curve</h2>
+  <div class="body">
+    <div class="fig tight"><img src="images/fig3_curves.png" alt="Four line charts from the DeepSeekMath paper showing GSM8K, MATH, CMATH, and BBH accuracy as training tokens increase from 0 to 150B, comparing MathPile, OpenWebMath, Proof-Pile-2, and DeepSeekMath Corpus; the smaller corpora plateau early since they get repeated multiple epochs, while DeepSeekMath Corpus keeps climbing."></div>
+    <p>MathPile and OpenWebMath are so much smaller that 150B tokens means repeating them many
+    times — performance plateaus fast. The DeepSeekMath Corpus is large enough that the model is
+    still seeing mostly <em>new</em> text late into training, so the curve keeps climbing instead
+    of flattening.</p>
+  </div>
+</section>
+
+<!-- ============ DEEPSEEKMATH-BASE RESULTS ============ -->
+<section class="slide">
+  <h2>DeepSeekMath-Base 7B vs. a 77×-larger closed model</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/table2_base.png" alt="Table 2 from the DeepSeekMath paper comparing DeepSeekMath-Base 7B against closed-source Minerva 7B/62B/540B and open-source Mistral 7B and Llemma 7B/34B, across GSM8K, MATH, OCW, SAT, MMLU-STEM, CMATH, Gaokao-MathCloze, and Gaokao-MathQA, with DeepSeekMath-Base 7B leading every column."></div>
+    <p>DeepSeekMath-Base 7B beats every open baseline on all 8 benchmarks, and even
+    outperforms <strong>Minerva 540B</strong> — a closed model 77× larger, built on PaLM and
+    further trained on math text. Parameter count isn't the only lever; corpus quality is
+    another.</p>
+  </div>
+</section>
+
+<!-- ============ CODE PRETRAINING ABLATION ============ -->
+<section class="slide">
+  <h2>Why start from a code model? A controlled test</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/table6_code_ablation.png" alt="Table 6 from the DeepSeekMath paper comparing two-stage training (code then math, or general text then math) against one-stage training (math only, or code+math mixed), evaluated on GSM8K, MATH, CMATH without tool use, and GSM8K+Python, MATH+Python with tool use."></div>
+    <p>Same recipe, two different first stages: 400B tokens of <strong>code</strong> vs. 400B
+    tokens of generic <strong>text</strong>, both followed by 150B tokens of math. Code-first
+    wins on every column — GSM8K 21.9% vs. 19.1%, GSM8K+Python 17.4% vs. 14.3% — a controlled
+    answer to "does code training help math reasoning," at least in this domain.</p>
+  </div>
+</section>
+
+<!-- ============ ARXIV NEGATIVE RESULT ============ -->
+<section class="slide">
+  <h2>A negative result worth keeping: arXiv papers don't help</h2>
+  <div class="body">
+    <p>ArXiv papers are a standard ingredient in prior math corpora (Proof-Pile-2, Minerva,
+    MathPile) on the assumption that formal mathematical writing teaches formal mathematical
+    reasoning. Training DeepSeek-LLM 1.3B and DeepSeek-Coder-Base-v1.5 7B on
+    <strong>arXiv-only</strong> corpora (MathPile, ArXiv-RedPajama) shows <strong>no
+    improvement, and sometimes deterioration</strong>, across GSM8K, MATH, MMLU-STEM, and formal
+    theorem proving (miniF2F).</p>
+    <div class="card note"><span class="lab">Why this is worth reporting, not just discarding</span>
+      <p>The authors explicitly flag this as preliminary — untested at larger scale, and
+      untested combined with other data types. A clearly-scoped negative result is still useful:
+      it means "arXiv papers = better math reasoning" should not be assumed without evidence.</p></div>
+  </div>
+</section>
+
+<!-- ============ WHY GRPO: MOTIVATION ============ -->
+<section class="slide">
+  <h2>From PPO to GRPO: what gets removed</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/fig4_ppo_vs_grpo.png" alt="Diagram from the DeepSeekMath paper comparing PPO and GRPO: PPO uses a policy model, a frozen reference model, a frozen reward model, and a trained value model, combining KL and reward into GAE to compute the advantage; GRPO samples a group of outputs from the policy model, scores each with the reward model, and computes advantages directly via group computation, with no value model."></div>
+    <p>In PPO, the <strong>value model</strong> — another network roughly the size of the policy
+    — estimates a baseline reward for variance reduction, and needs its own training. GRPO
+    replaces it entirely with something free: sample several responses to the <em>same</em>
+    prompt, and use their own <strong>group average</strong> as the baseline. No extra model,
+    no extra training.</p>
+  </div>
+</section>
+
+<!-- ============ WHY GRPO: DEEPER INTUITION ============ -->
+<section class="slide">
+  <h2>Intuition: why a group average is a good baseline</h2>
+  <div class="body">
+    <p>PPO's value model has to answer a hard, general question: "starting from <em>this exact
+    partial response</em>, how good an outcome should I expect?" — for every token, for every
+    prompt, requiring a trained predictor.</p>
+    <div class="card key"><span class="lab">GRPO sidesteps the question entirely</span>
+      <p>Instead of predicting what a good outcome looks like in the abstract, GRPO just
+      <em>generates several actual outcomes</em> for the same prompt and compares them to each
+      other. The value model's job — "what's a typical reward here?" — is answered empirically
+      by the group itself, at zero extra training cost. This is only cheap because generating a
+      few extra rollouts is far less expensive than training and running a second full-size
+      model at every step.</p></div>
+    <p>The paper notes a second benefit: reward models are usually trained on <em>comparisons</em>
+    between outputs to the same question in the first place — so grading rollouts
+    relative to their own group matches how the reward signal was built.</p>
+  </div>
+</section>
+
+<!-- ============ GRPO OBJECTIVE ============ -->
+<section class="slide">
+  <h2>The GRPO objective</h2>
+  <div class="body">
+    <div class="eq hero">$$\mathcal{J}_{\mathrm{GRPO}}(\theta)=\mathbb{E}\Big[\tfrac{1}{G}\sum_{i=1}^{G}\tfrac{1}{|o_i|}\sum_{t=1}^{|o_i|}
+    \min\!\Big(\tfrac{\pi_\theta(o_{i,t}\mid q,o_{i,&lt;t})}{\pi_{\theta_{\text{old}}}(o_{i,t}\mid q,o_{i,&lt;t})}\hat A_{i,t},\
+    \text{clip}\big(\cdot,1{-}\varepsilon,1{+}\varepsilon\big)\hat A_{i,t}\Big) - \beta\, D_{KL}\big(\pi_\theta\Vert\pi_{ref}\big)\Big]$$</div>
+    <p>$G$ — group size, the number of sampled responses per question $q$; $o_i$ — the $i$-th
+    response, with $|o_i|$ tokens; $\pi_\theta,\pi_{\theta_{\text{old}}}$ — current and
+    pre-update policy; $\hat A_{i,t}$ — group-relative advantage (next slide); $\varepsilon$ —
+    clip range; $\beta$ — KL penalty strength against a fixed reference policy $\pi_{ref}$.</p>
+    <p>This is <strong>token-level</strong> clipping — unlike DeepSeek-R1's later simplification
+    to one ratio per whole response — and the KL term is added directly to the loss, not folded
+    into the reward as PPO does.</p>
+  </div>
+</section>
+
+<!-- ============ ADVANTAGE + UNBIASED KL ============ -->
+<section class="slide">
+  <h2>Group-relative advantage, and an unbiased KL estimator</h2>
+  <div class="body">
+    <div class="eq hero">$$\hat A_{i,t} = \tilde r_i = \frac{r_i - \text{mean}(\mathbf{r})}{\text{std}(\mathbf{r})},
+    \qquad D_{KL}(\pi_\theta\Vert\pi_{ref}) = \frac{\pi_{ref}(o_{i,t}\mid q,o_{i,&lt;t})}{\pi_\theta(o_{i,t}\mid q,o_{i,&lt;t})}
+    - \log\frac{\pi_{ref}(o_{i,t}\mid q,o_{i,&lt;t})}{\pi_\theta(o_{i,t}\mid q,o_{i,&lt;t})} - 1$$</div>
+    <p>$\mathbf r=\{r_1,\dots,r_G\}$ — rewards for the whole group; every token in response $o_i$
+    gets the same advantage $\hat A_{i,t}$ under <strong>outcome supervision</strong> (one reward
+    per full response). The KL formula is an unbiased estimator (Schulman, 2020) guaranteed to be
+    non-negative — unlike a naive log-ratio, it can't accidentally reward the policy for drifting
+    from the reference.</p>
+  </div>
+</section>
+
+<!-- ============ UNIFIED PARADIGM: EQUATION ============ -->
+<section class="slide">
+  <h2>A unifying lens: one gradient formula for five algorithms</h2>
+  <div class="body">
+    <div class="fig"><img src="images/eq5_unified.png" alt="Equation 5 from the DeepSeekMath paper: the gradient of any training method's objective equals an expectation over the data source, of the average over tokens of a gradient coefficient (depending on the algorithm, the data, and the reward function) times the gradient of the log probability of that token."></div>
+    <p>SFT, RFT, DPO, PPO, and GRPO all turn out to be the <em>same equation</em> — the only
+    differences are: where the training data $(q,o)$ comes from (the <strong>data
+    source</strong>), and how strongly each token gets pushed up or down (the <strong>gradient
+    coefficient</strong> $GC$). Everything from here is just filling in these two blanks
+    differently.</p>
+  </div>
+</section>
+
+<!-- ============ UNIFIED PARADIGM: TABLE ============ -->
+<section class="slide">
+  <h2>Filling in the blanks, method by method</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/table10_unified.png" alt="Table 10 from the DeepSeekMath paper listing, for SFT, RFT, DPO, Online RFT, PPO, and GRPO: their data source distribution and which numbered equation defines their gradient coefficient, with reward function marked as none, rule-based, or model-based."></div>
+    <p><strong>SFT</strong> has a fixed coefficient of 1 — every human-written token is pushed
+    equally hard, unconditionally. <strong>RFT/Online RFT</strong> use a binary indicator — 1 if
+    the sampled answer was correct, 0 otherwise; no notion of "how much better." <strong>GRPO</strong>
+    is the only one whose coefficient is a continuous, signed number that can differentially
+    reward and <em>penalize</em> responses by degree — that extra expressiveness is exactly what
+    the next two slides show mattering in practice.</p>
+  </div>
+</section>
+
+<!-- ============ DATA SOURCE: ONLINE VS OFFLINE ============ -->
+<section class="slide">
+  <h2>The data-source axis: online beats offline</h2>
+  <div class="body">
+    <p><strong>Offline</strong> methods (RFT, DPO) train on responses sampled once from the
+    fixed, frozen SFT model. <strong>Online</strong> methods (Online RFT, GRPO) resample from the
+    <em>current</em>, continuously-updating policy at every step.</p>
+    <div class="fig wide"><img src="images/fig5_rft_grpo.png" alt="Figure 5 from the DeepSeekMath paper: GSM8K and MATH accuracy over training steps for RFT, Online RFT, GRPO with outcome supervision, and GRPO with process supervision, showing RFT plateauing lowest, Online RFT above it, and both GRPO variants highest, with GRPO+PS above GRPO+OS."></div>
+    <p>Early in training the SFT model and the current policy are nearly identical, so online
+    sampling barely matters yet. As training progresses they diverge, and online methods pull
+    ahead — Online RFT clearly beats offline RFT on both benchmarks.</p>
+  </div>
+</section>
+
+<!-- ============ GRADIENT COEFFICIENT: GRPO VS ONLINE RFT ============ -->
+<section class="slide">
+  <h2>The gradient-coefficient axis: GRPO beats Online RFT</h2>
+  <div class="body">
+    <p>Online RFT and GRPO share the same online data source — the only difference is the
+    gradient coefficient. Online RFT's binary indicator reinforces every correct rollout
+    <strong>equally</strong>, and does nothing for incorrect ones. GRPO's continuous advantage
+    reinforces <em>more strongly</em> for above-average rollouts and actively
+    <strong>penalizes</strong> below-average ones.</p>
+    <p>Figure 5 (previous slide) shows GRPO clearly ahead of Online RFT on both GSM8K and MATH —
+    this gap is the direct payoff of the richer gradient coefficient. GRPO+PS (process
+    supervision — one reward per reasoning <em>step</em>, not just the final answer) edges out
+    GRPO+OS further, showing fine-grained credit assignment helps too.</p>
+  </div>
+</section>
+
+<!-- ============ ITERATIVE RL ============ -->
+<section class="slide">
+  <h2>Iterative RL: retraining the reward model mid-flight</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/fig6_iterative.png" alt="Figure 6 from the DeepSeekMath paper showing GSM8K and MATH accuracy over training steps across three RL iterations, where the reward model is periodically retrained with fresh rollout data, and each new iteration continues to improve accuracy, especially in the first round."></div>
+    <p>As the policy improves, the old reward model — trained on an earlier, weaker policy's
+    outputs — starts to see rollouts unlike anything in its own training data, and its judgments
+    grow less trustworthy. <strong>Iterative GRPO</strong> periodically retrains the reward model
+    on fresh rollouts (keeping 10% older data via replay) and resets the reference policy, and
+    training resumes. Iteration-1 shows the largest jump — the first update is where the reward
+    model was staling fastest.</p>
+  </div>
+</section>
+
+<!-- ============ RL HEADLINE RESULTS ============ -->
+<section class="slide">
+  <h2>DeepSeekMath-RL: verified end-to-end gains</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/table5_rl_results.png" alt="Table 5 from the DeepSeekMath paper comparing GPT-4, Gemini Ultra, and other closed and open models against DeepSeekMath-Instruct 7B and DeepSeekMath-RL 7B, on GSM8K, MATH, MGSM-zh, and CMATH, under both chain-of-thought and tool-integrated reasoning, with DeepSeekMath-RL 7B beating all 7B-70B open models."></div>
+    <p>GRPO is applied to DeepSeekMath-Instruct using <em>only</em> the chain-of-thought
+    instruction-tuning data for GSM8K and MATH — nothing new. Verified gains: GSM8K
+    <strong>82.9→88.2</strong> (+5.3), MATH <strong>46.8→51.7</strong> (+4.9), CMATH
+    <strong>84.6→88.8</strong> (+4.2) — CMATH is <em>out-of-domain</em> for the RL data, showing
+    the improvement generalizes beyond exactly what was trained on.</p>
+  </div>
+</section>
+
+<!-- ============ WHY RL WORKS: MAJ@K VS PASS@K ============ -->
+<section class="slide">
+  <h2>Why does RL work? Maj@K improves, Pass@K doesn't</h2>
+  <div class="body">
+    <div class="fig tight"><img src="images/fig7_majk_passk.png" alt="Figure 7 from the DeepSeekMath paper plotting Maj@K and Pass@K accuracy for the Instruct and RL models on GSM8K and MATH as K (the number of sampled candidates) increases from 1 to 64, showing Pass@K nearly identical for both models while Maj@K is consistently higher for the RL model."></div>
+    <p><strong>Pass@K</strong> = is a correct answer <em>somewhere</em> among $K$ samples?
+    <strong>Maj@K</strong> = does the most <em>common</em> answer among $K$ samples happen to be
+    correct? RL barely moves Pass@K — the model's underlying ability to <em>ever</em> produce a
+    correct answer is basically unchanged. It substantially improves Maj@K.</p>
+    <div class="card warn"><span class="lab">The paper's own interpretation</span>
+      <p>RL isn't teaching new reasoning capability here — it's making the correct answer more
+      <em>likely to dominate</em> the output distribution, so that simple top-of-distribution
+      decoding surfaces it more often. A sharpening of what the model already knew, not
+      necessarily new knowledge.</p></div>
+  </div>
+</section>
+
+<!-- ============ FUTURE DIRECTIONS ============ -->
+<section class="slide">
+  <h2>Open threads, in the unified paradigm's own terms</h2>
+  <div class="body">
+    <p>The paper closes by mapping its own limitations onto the three components of Equation 5:</p>
+    <div class="cols3">
+      <div class="tile"><h4>Data source</h4>
+        <p>Only in-distribution instruction-tuning questions were used, with naive sampling —
+        likely why Pass@K didn't move. Out-of-distribution prompts and better decoding
+        (tree search) are flagged as next steps.</p></div>
+      <div class="tile"><h4>Algorithm</h4>
+        <p>Every method here fully trusts its reward signal — but even carefully human-annotated
+        process-reward data (PRM800K) has ~20% labeling errors. Algorithms robust to noisy
+        rewards are an open problem.</p></div>
+      <div class="tile"><h4>Reward function</h4>
+        <p>Generalizing reward models to out-of-distribution outputs, quantifying their
+        uncertainty, and building better process-level (step-by-step) reward models.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ READING LIST ============ -->
+<section class="slide">
+  <h2>Reading list</h2>
+  <div class="body">
+    <ul>
+      <li><a href="https://arxiv.org/abs/2402.03300" target="_blank">Shao, Wang, Zhu, Xu, Song,
+      Bi, Zhang, Zhang, Li, Wu &amp; Guo, <em>DeepSeekMath: Pushing the Limits of Mathematical
+      Reasoning in Open Language Models</em></a> — the source for every figure and result in this
+      deck.</li>
+      <li><a href="https://arxiv.org/pdf/1707.06347" target="_blank">Schulman, Wolski, Dhariwal,
+      Radford &amp; Klimov, <em>Proximal Policy Optimization Algorithms</em></a> — the PPO
+      algorithm GRPO simplifies.</li>
+      <li><a href="https://magazine.sebastianraschka.com/p/the-state-of-llm-reasoning-model-training" target="_blank">Raschka,
+      <em>The State of Reinforcement Learning for LLM Reasoning</em></a> — a detailed side-by-side
+      of PPO vs. GRPO.</li>
+      <li><a href="https://huggingface.co/learn/llm-course/en/chapter12/3b" target="_blank">Yamani,
+      <em>Advanced Understanding of Group Relative Policy Optimization (GRPO) in
+      DeepSeekMath</em></a> — Hugging Face LLM Course, worked intuition for the advantage,
+      clipping, and KL terms.</li>
+      <li><a href="https://huggingface.co/blog/herooooooooo/demystifying-deepseekmaths-data-pipeline-a-fasttex" target="_blank">Sulahian,
+      <em>Demystifying DeepSeekMath's Data Pipeline</em></a> — a reproduction of the fastText
+      iterative mining pipeline.</li>
+      <li><a href="https://www.interconnects.ai/p/papers-im-reading-base-model-rl-grpo" target="_blank">Lambert,
+      <em>Recent reasoning research: GRPO tweaks, base model RL, and data curation</em></a> —
+      Interconnects, surveys GRPO variants that followed this paper.</li>
+      <li><a href="https://github.com/deepseek-ai/DeepSeek-Math" target="_blank">Official
+      DeepSeekMath code, data, and model checkpoints</a>.</li>
+    </ul>
+  </div>
+</section>
+
+</div><!-- /deck -->
+
+<div id="ov"><h3>All slides — click to jump · press O or Esc to close</h3><div class="ovgrid" id="ovgrid"></div></div>
+<div id="foot"><span id="num">1 / 1</span></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  if (window.renderMathInElement) {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: "$$", right: "$$", display: true},
+        {left: "\\[", right: "\\]", display: true},
+        {left: "$", right: "$", display: false},
+        {left: "\\(", right: "\\)", display: false}
+      ],
+      throwOnError: false
+    });
+  }
+});
+
+/* ---------- deck navigation ---------- */
+(function () {
+  const slides = Array.from(document.querySelectorAll(".slide"));
+  const num = document.getElementById("num");
+  const ov = document.getElementById("ov");
+  const ovgrid = document.getElementById("ovgrid");
+  let i = 0;
+
+  slides.forEach(function (s, k) {
+    const card = document.createElement("div");
+    card.className = "ovcard";
+    const h = s.querySelector("h1, h2");
+    card.innerHTML = '<span class="n2">' + (k + 1) + '</span>' + (h ? h.textContent : "Slide");
+    card.addEventListener("click", function () { go(k); ov.classList.remove("on"); });
+    ovgrid.appendChild(card);
+  });
+
+  function go(k) {
+    i = Math.max(0, Math.min(slides.length - 1, k));
+    slides.forEach(s => s.classList.remove("on"));
+    slides[i].classList.add("on");
+    slides[i].querySelector(".body") && (slides[i].querySelector(".body").scrollTop = 0);
+    num.textContent = (i + 1) + " / " + slides.length;
+    history.replaceState(null, "", "#" + (i + 1));
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); go(i + 1); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); go(i - 1); }
+    else if (e.key === "Home") go(0);
+    else if (e.key === "End") go(slides.length - 1);
+    else if (e.key === "o" || e.key === "O") ov.classList.toggle("on");
+    else if (e.key === "Escape") ov.classList.remove("on");
+    else if (e.key === "f" || e.key === "F") {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+
+  let x0 = null;
+  document.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; }, {passive: true});
+  document.addEventListener("touchend", function (e) {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 55) go(dx < 0 ? i + 1 : i - 1);
+    x0 = null;
+  }, {passive: true});
+
+  const start = parseInt((location.hash || "#1").slice(1), 10);
+  go(isNaN(start) ? 0 : start - 1);
+})();
+</script>
+</body>
+</html>

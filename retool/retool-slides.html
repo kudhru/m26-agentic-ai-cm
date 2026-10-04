@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReTool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<style>
+/* ===== Solarized Light — fixed palette, do not change per-deck ===== */
+:root{
+  --base3:#fdf6e3; --base2:#eee8d5; --base1:#93a1a1; --base0:#839496;
+  --base00:#657b83; --base01:#586e75; --base02:#073642; --base03:#002b36;
+  --yellow:#b58900; --orange:#cb4b16; --red:#dc322f; --magenta:#d33682;
+  --violet:#6c71c4; --blue:#268bd2; --cyan:#2aa198; --green:#859900;
+  --rule:rgba(147,161,161,.42);
+  --serif:"IBM Plex Serif",Georgia,serif;
+  --sans:"IBM Plex Sans Condensed","IBM Plex Sans",Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --u:clamp(13px,1.42vw,22px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--base3)}
+body{font-family:var(--serif);color:var(--base01);font-size:var(--u);line-height:1.5;
+  -webkit-font-smoothing:antialiased}
+
+/* ---------- deck ---------- */
+#deck{position:relative;height:100vh;width:100vw}
+.slide{position:absolute;inset:0;display:none;flex-direction:column;
+  padding:5vh 6vw 6vh;overflow:hidden}
+.slide.on{display:flex}
+@media (prefers-reduced-motion:no-preference){
+  .slide.on{animation:fade .3s ease both}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+}
+
+/* ---------- typography ---------- */
+h1{font-family:var(--sans);font-weight:700;font-size:3.4em;line-height:.98;letter-spacing:-.02em;
+  color:var(--base03);margin:0 0 .2em}
+h2{font-family:var(--sans);font-weight:700;font-size:1.85em;line-height:1.06;letter-spacing:-.015em;
+  color:var(--base03);margin:0 0 .8em;flex:0 0 auto}
+h2 .accent{color:var(--blue)}
+.body{flex:1;min-height:0;overflow:auto;padding-right:.4em}
+p{margin:0 0 .8em}
+strong{color:var(--base03);font-weight:600}
+.big{font-size:1.2em;line-height:1.4}
+ul,ol{margin:0 0 .9em;padding-left:1.25em}
+li{margin:.42em 0}
+ul li::marker{color:var(--blue)}
+ol li::marker{color:var(--orange);font-family:var(--mono);font-size:.85em}
+code{font-family:var(--mono);font-size:.86em;background:var(--base2);padding:.06em .32em;border-radius:3px;color:var(--base02)}
+a{color:var(--blue);text-decoration:none;border-bottom:1px solid rgba(38,139,210,.4)}
+em.t{font-style:normal;font-weight:600;color:var(--violet)}
+
+/* ---------- layout helpers ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:2.4em;align-items:start}
+.cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5em}
+.stack{display:flex;flex-direction:column;gap:.8em}
+
+/* ---------- cards & tiles ---------- */
+.card{background:var(--base2);border-left:3px solid var(--c,var(--base1));
+  padding:.85em 1em;border-radius:0 4px 4px 0}
+.card .lab{font-family:var(--sans);font-size:.6em;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--c,var(--base00));display:block;margin-bottom:.35em}
+.card p:last-child,.card ul:last-child{margin-bottom:0}
+.key{--c:var(--magenta)} .int{--c:var(--cyan)} .warn{--c:var(--red)}
+.math{--c:var(--violet)} .ex{--c:var(--green)} .note{--c:var(--yellow)} .q{--c:var(--blue)}
+
+.tile{border:1px solid var(--rule);border-radius:5px;padding:.9em 1em;background:var(--base3)}
+.tile h4{font-family:var(--sans);font-size:.78em;font-weight:600;color:var(--base03);
+  margin:0 0 .3em;letter-spacing:.02em}
+.tile p{font-size:.86em;margin:0;color:var(--base00)}
+
+/* ---------- tables ---------- */
+table{border-collapse:collapse;width:100%;font-family:var(--sans);font-size:.82em}
+th{text-align:left;font-size:.72em;letter-spacing:.1em;text-transform:uppercase;color:var(--base00);
+  border-bottom:1.5px solid var(--base02);padding:.4em .6em;font-weight:600}
+td{padding:.42em .6em;border-bottom:1px solid var(--rule);vertical-align:top}
+tr.hl td{background:var(--base2);color:var(--base03)}
+
+/* ---------- math ---------- */
+.katex{color:var(--base02)}
+.katex-display{margin:.7em 0!important;overflow-x:auto;overflow-y:hidden}
+.eq{background:var(--base2);border-radius:5px;padding:.35em 1em;margin:.7em 0}
+.eq.hero{border:1px solid var(--rule);background:var(--base3)}
+
+/* ---------- figures ---------- */
+.fig{display:flex;justify-content:center;align-items:center;margin:.5em 0}
+.fig img{max-width:100%;max-height:52vh;object-fit:contain;background:#fff;border:1px solid var(--rule)}
+.fig.tight img{max-height:38vh}
+.fig.wide img{max-height:68vh}
+
+/* ---------- chrome: bare page counter only ---------- */
+#foot{position:fixed;right:6vw;bottom:2vh;font-family:var(--mono);font-size:.62em;
+  color:var(--base1);z-index:10}
+
+/* ---------- title slide ---------- */
+.slide.title{justify-content:center}
+.titlemeta{margin-top:1.3em}
+.titlemeta .author{display:block;font-family:var(--sans);font-weight:600;font-size:1.4em;color:var(--base02)}
+.titlemeta .affil{display:block;font-family:var(--sans);font-size:1.05em;color:var(--base00);margin-top:.25em}
+
+/* ---------- overview mode ---------- */
+#ov{position:fixed;inset:0;background:rgba(253,246,227,.97);z-index:30;display:none;
+  overflow:auto;padding:3vh 4vw}
+#ov.on{display:block}
+#ov h3{font-family:var(--sans);font-size:1em;color:var(--base03);margin:0 0 1em;letter-spacing:.02em}
+.ovgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.6em}
+.ovcard{border:1px solid var(--rule);border-radius:4px;padding:.6em .7em;cursor:pointer;
+  background:var(--base3);font-family:var(--sans);font-size:.72em;line-height:1.3}
+.ovcard:hover{border-color:var(--blue);background:var(--base2)}
+.ovcard .n2{font-family:var(--mono);font-size:.85em;color:var(--orange);display:block}
+
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+@media (max-width:760px){
+  .cols,.cols3{grid-template-columns:1fr;gap:1em}
+  .slide{padding:3vh 5vw 6vh}
+  h1{font-size:2.4em}
+}
+
+/* ---------- print / PDF export: one slide per page, native vector output ---------- */
+@media print{
+  @page{size:1920px 1080px;margin:0}
+  :root{--u:22px}
+  html,body{height:auto;overflow:visible}
+  #deck{position:static;height:auto;width:1920px}
+  .slide{position:static !important;display:flex !important;width:1920px;height:1080px;
+    padding:54px 115.2px 64.8px;animation:none !important;break-after:page;page-break-after:always}
+  .slide:last-of-type{break-after:auto;page-break-after:auto}
+  .slide .body{overflow:visible}
+  .cols{grid-template-columns:1fr 1fr !important}
+  .cols3{grid-template-columns:repeat(3,1fr) !important}
+  #foot,#ov{display:none !important}
+}
+</style>
+</head>
+<body>
+
+<div id="deck">
+
+<!-- ============ TITLE ============ -->
+<section class="slide title">
+  <h1>ReTool</h1>
+  <div class="titlemeta"><span class="author">Reinforcement Learning for Strategic Tool Use in LLMs</span><span class="affil">Feng, Huang, et al. &middot; ByteDance Seed</span></div>
+</section>
+
+<!-- ============ 1. Motivation ============ -->
+<section class="slide">
+  <h2>Where text-only reasoning hits a wall</h2>
+  <div class="body">
+    <p>Reasoning models like OpenAI o1 and DeepSeek-R1 learn to produce long chains of thought purely in
+    text, and this works very well for problems that reward patient, step-by-step argument.</p>
+    <p>But some problems are not naturally argument-shaped &mdash; they are naturally
+    <strong>computation-shaped</strong>: geometric reasoning, exact arithmetic over many cases, solving a
+    system of equations, checking 1,000 candidate values one by one. Doing this in pure text means the
+    model has to carry out arithmetic and bookkeeping <em class="t">inside its own token stream</em>, where
+    a single slipped digit silently corrupts every step after it.</p>
+    <div class="card int"><span class="lab">The idea</span>
+    <p>A code interpreter does not make these mistakes. ReTool asks: instead of teaching a model to
+    <em>talk about</em> running code, can reinforcement learning teach it to actually <em class="t">stop,
+    run real code, read the real output, and keep reasoning</em> &mdash; and to decide entirely on its own
+    when that is worth doing?</p></div>
+  </div>
+</section>
+
+<!-- ============ 2. Two training paradigms ============ -->
+<section class="slide">
+  <h2>From a text-only rollout to a rollout with real code execution</h2>
+  <div class="body">
+    <div class="fig"><img src="images/fig2_training_diagram.png" alt="Diagram from the ReTool paper comparing text-based RL training, where the policy LLM generates a text-only rollout that is scored by a reward and advantage, against ReTool RL training, where the policy LLM interleaves text, code, and interpreter feedback by collaborating with a code sandbox across multiple turns before the final rollout is scored."></div>
+    <p>In ordinary text-based RL (top), the policy LLM generates one text rollout, which is scored once
+    by a reward model, producing one advantage. In ReTool's RL (bottom), the rollout is built turn by turn:
+    the policy writes a chunk of text and some code, a real <strong>code sandbox</strong> executes that
+    code, and its output is spliced back into the same rollout before the model continues &mdash; repeating
+    until a final answer is produced.</p>
+  </div>
+</section>
+
+<!-- ============ 3. Rollout mechanics ============ -->
+<section class="slide">
+  <h2>The rollout: one trajectory, three kinds of tokens</h2>
+  <div class="body">
+    <div class="eq hero">$$[\,t_1 \oplus c_1 \oplus f_1 \oplus \cdots \oplus o\,]$$</div>
+    <p>$t_1$ &mdash; a chunk of natural-language reasoning the model writes; $c_1$ &mdash; a code block the
+    model writes, marked off with <code>&lt;code&gt;&hellip;&lt;/code&gt;</code> tags; $f_1$ &mdash; the
+    sandbox's real feedback (printed output, or an error traceback if the code crashed), spliced back in
+    between <code>&lt;interpreter&gt;&hellip;&lt;/interpreter&gt;</code> tags; $o$ &mdash; the final answer,
+    inside <code>\boxed{}</code>; $\oplus$ &mdash; concatenation into one single token sequence.</p>
+    <p>Whenever the model emits <code>&lt;/code&gt;</code>, generation pauses, the code is sent to a real
+    sandbox, and the result is fed back before generation resumes &mdash; it can write more code, or give
+    its final answer.</p>
+    <div class="card key"><span class="lab">Prompt given to the model</span>
+    <p>&ldquo;You now have the ability to selectively write executable Python code to enhance your reasoning
+    process. The Python code will be executed by an external sandbox, and the output &hellip; can be
+    returned to aid your reasoning.&rdquo; Nothing tells the model <em>when</em> to use this &mdash; that
+    timing is exactly what RL has to teach it.</p></div>
+  </div>
+</section>
+
+<!-- ============ 4. Cold-start data ============ -->
+<section class="slide">
+  <h2>Before any RL: teaching the format with cold-start data</h2>
+  <div class="body">
+    <p>RL explores by trying variations of what a model already does &mdash; so the base model first needs
+    <em>some</em> ability to use the <code>&lt;code&gt;</code>/<code>&lt;interpreter&gt;</code> protocol at
+    all. ReTool builds this with a two-step pipeline, entirely before RL begins:</p>
+    <ol>
+      <li>Collect existing, verified text-only reasoning traces (filtered by human review and by
+      DeepSeek-R1 itself), giving a dataset $D_{init}$.</li>
+      <li>Automatically rewrite each trace: replace manual calculation steps with the equivalent code
+      block and its real execution output, while leaving the surrounding reasoning &mdash; including any
+      failed attempts &mdash; untouched. Keep only traces that pass both a format check and an
+      answer-correctness check, giving a code-augmented dataset $D_{CI}$.</li>
+    </ol>
+    <p>The base model is then supervised-fine-tuned on $D_{CI}$. This <strong>cold start</strong> is not
+    where the model learns good tool-use strategy &mdash; it only learns the mechanics of the protocol.
+    Strategy is what the RL stage has to discover.</p>
+  </div>
+</section>
+
+<!-- ============ 5. PPO objective ============ -->
+<section class="slide">
+  <h2>Training objective: PPO over a hybrid trajectory</h2>
+  <div class="body">
+    <div class="eq hero">$$\mathcal J_{PPO}(\theta)=\mathbb E_{(q,a)\sim D,\ o_{\le t}\sim\pi_{\theta_{old}}(\cdot\mid q)}\Big[\min\big(r_t(\theta)\,\hat A_t,\ \operatorname{clip}(r_t(\theta),\,1-\varepsilon,\,1+\varepsilon)\,\hat A_t\big)\Big]$$</div>
+    <p>$r_t(\theta)=\dfrac{\pi_\theta(o_t\mid q,o_{&lt;t};\,CI)}{\pi_{\theta_{old}}(o_t\mid q,o_{&lt;t};\,CI)}$
+    &mdash; ratio of the current policy's probability for token $o_t$ to the old policy's; $q,a$ &mdash;
+    question and ground-truth answer, drawn from the training set $D$; $o_{\le t}$ &mdash; the rollout so
+    far, a mix of reasoning, code, and interpreter-feedback tokens, sampled from the old policy
+    $\pi_{\theta_{old}}$; the $CI$ in $\pi_\theta(\cdot\mid q,o_{&lt;t};CI)$ marks that the real code
+    interpreter's output is already sitting inside $o_{&lt;t}$ when the model predicts $o_t$; $\hat A_t$
+    &mdash; estimated advantage at token $t$; $\varepsilon$ &mdash; clip range.</p>
+    <div class="card note"><span class="lab">Not GRPO</span>
+    <p>Unlike DeepSeekMath and DeepSeek-R1, ReTool trains with plain <strong>PPO</strong>, which needs a
+    learned value function to produce $\hat A_t$ &mdash; not GRPO's group-relative advantage from sampling
+    many rollouts per question.</p></div>
+  </div>
+</section>
+
+<!-- ============ 6. Intuition on clipping ============ -->
+<section class="slide">
+  <h2>Intuition: the same clipped ratio, now over a longer story</h2>
+  <div class="body">
+    <p>The clipping mechanism itself is exactly the one from ordinary PPO/GRPO training: don't let a
+    single update trust a rollout's advantage so much that it moves the policy's probability for a token
+    far outside what the old policy actually assigned.</p>
+    <p>What's new is <em class="t">what counts as the trajectory</em>. A token $o_t$ here might be part of
+    the model's own reasoning, part of a code block it chose to write, or part of the interpreter's
+    feedback that got spliced in. The ratio $r_t(\theta)$ is computed the same way at every position &mdash;
+    but credit for a good final answer now has to flow back through turns where the model <em>decided to
+    hand control to the sandbox</em>, not just through turns where it kept talking.</p>
+    <div class="card int"><span class="lab">Why this matters</span>
+    <p>This is exactly why the reward can't just check "did it reach the answer" in a vacuum &mdash; the
+    policy is being credited for a strategy that includes <em>when</em> to call the tool, not only what it
+    says.</p></div>
+  </div>
+</section>
+
+<!-- ============ 7. Reward design ============ -->
+<section class="slide">
+  <h2>Reward design: correctness only, nothing else</h2>
+  <div class="body">
+    <div class="eq hero">$$R(a,\hat a)=\begin{cases}1, & \texttt{is\_equivalent}(a,\hat a)\\[.3em] -1, & \text{otherwise}\end{cases}$$</div>
+    <p>$a$ &mdash; the ground-truth answer; $\hat a$ &mdash; the model's final predicted answer, read out of
+    its <code>\boxed{}</code>; <code>is_equivalent</code> &mdash; a rule-based checker, not a learned
+    model. That's the entire reward: $+1$ for a correct final answer, $-1$ for anything else.</p>
+    <div class="card warn"><span class="lab">Intuition: no credit for merely running code</span>
+    <p>It would be tempting to also reward "code executed successfully" as a shaping signal. ReTool's
+    authors deliberately leave this out: a reward for executability alone is something a model can collect
+    by writing <em>any</em> code that runs, whether or not it helps &mdash; a direct invitation to reward
+    hacking. A correctness-only reward forces every code call to earn its keep by actually contributing to
+    the right final answer.</p></div>
+  </div>
+</section>
+
+<!-- ============ 8. Engineering details ============ -->
+<section class="slide">
+  <h2>Two engineering details that make this trainable at scale</h2>
+  <div class="body">
+    <div class="cols">
+      <div class="card key"><span class="lab">Mask the interpreter's own tokens</span>
+      <p>The text between <code>&lt;interpreter&gt;&hellip;&lt;/interpreter&gt;</code> did not come from
+      the policy &mdash; it came from the sandbox. Those tokens are excluded from the loss entirely, so the
+      model is never pushed to "predict" output it didn't generate, and its own coherent reasoning tokens
+      aren't disrupted by foreign content sitting in the middle of them.</p></div>
+      <div class="card q"><span class="lab">Reuse the KV-cache across a code call</span>
+      <p>When <code>&lt;/code&gt;</code> is detected, everything generated so far is cached. Only the new
+      interpreter-feedback tokens need their KV-cache computed and appended when generation resumes &mdash;
+      the whole prefix doesn't need to be recomputed, which is what makes multi-turn rollouts with real
+      code execution affordable at RL scale.</p></div>
+    </div>
+    <p style="margin-top:.9em">Both are specific to the fact that part of every rollout now comes from
+    outside the model &mdash; an asynchronous sandbox pool handles the actual code execution so slow
+    executions don't stall the rest of training.</p>
+  </div>
+</section>
+
+<!-- ============ 9. Main results ============ -->
+<section class="slide">
+  <h2>The headline result</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/table1_main_results.png" alt="Table 1 from the ReTool paper. Existing baselines on AIME2024/AIME2025 pass@1 range from Qwen2.5-Math-72B-Instruct at 30.0 up to s1-32B at 56.7 and OpenAI o1-preview at 44.6/37.9. ReTool on Qwen2.5-32B-Instruct reaches 67.0/49.3, and on a DeepSeek-R1-Distill-Qwen-32B backbone reaches 72.5/54.3. An ablation row shows the untrained base model at 26.7, text-based RL without the code interpreter at 40.0/36.7, and cold-start-only without RL at 40.9/34.5."></div>
+    <p>On Qwen2.5-32B-Instruct, ReTool reaches <strong>67.0%</strong> on AIME2024 and <strong>49.3%</strong>
+    on AIME2025 &mdash; beating every listed baseline, including OpenAI's o1-preview (44.6% / 37.9%) and the
+    72B Qwen2.5-Math-Instruct-TIR model (40.0%). Swapping in a stronger backbone
+    (DeepSeek-R1-Distill-Qwen-32B) pushes this further, to 72.5% / 54.3%.</p>
+  </div>
+</section>
+
+<!-- ============ 10. Ablation ladder ============ -->
+<section class="slide">
+  <h2>Where do the gains actually come from?</h2>
+  <div class="body">
+    <table>
+      <tr><th>Configuration</th><th>AIME2024</th><th>&Delta; vs. base</th></tr>
+      <tr><td>Base model, no training</td><td>26.7%</td><td>&mdash;</td></tr>
+      <tr><td>+ cold-start SFT only, no RL</td><td>40.9%</td><td>+14.2</td></tr>
+      <tr><td>+ RL, text-only, no code interpreter</td><td>40.0%</td><td>+13.3</td></tr>
+      <tr class="hl"><td>+ RL, with code interpreter (ReTool)</td><td>67.0%</td><td>+40.3</td></tr>
+    </table>
+    <div class="card int" style="margin-top:.9em"><span class="lab">The surprising comparison</span>
+    <p>Cold-start SFT alone (40.9%) and RL without tool use (40.0%) land within a point of each other
+    &mdash; <em class="t">RL by itself, on pure text, buys almost nothing here</em> that SFT hadn't already
+    bought. The 27-point jump only shows up once RL is combined with the ability to call a real code
+    interpreter: the gain is specifically from learning <em>when and how</em> to use the tool, not from RL
+    or tools alone.</p></div>
+  </div>
+</section>
+
+<!-- ============ 11. Training efficiency ============ -->
+<section class="slide">
+  <h2>Same destination, far fewer steps</h2>
+  <div class="body">
+    <div class="fig tight"><img src="images/fig1_aime_curves.png" alt="Two line charts from the ReTool paper. Left: AIME 2024 accuracy over training steps, ReTool (blue) rising sharply to 67.0 by step 400, while text-based RL (teal) stays flat around 30-40 even past 1000 steps, reaching 40.0. Right: the same pattern on AIME 2025, ReTool reaching 49.3 by step 400 versus text-based RL's 36.7 after over 1100 steps."></div>
+    <p>ReTool's accuracy curve (blue) shoots up almost immediately and plateaus around step 400. The
+    text-based RL baseline (teal) is still climbing slowly past step 1000 and never catches up. ReTool
+    reaches a <em>higher</em> accuracy using only about <strong>37%</strong> of the training steps the
+    text-only baseline needs &mdash; tool use doesn't just raise the ceiling, it makes the exploration
+    problem itself easier to solve.</p>
+  </div>
+</section>
+
+<!-- ============ 12. Cognitive analysis overview ============ -->
+<section class="slide">
+  <h2>Six signals of a strategy changing during RL</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/fig3_behavior_evolution.png" alt="Six line charts from the ReTool paper tracking behavior over 400 RL training steps on AIME2024/2025: (a) response length drops sharply from about 10000 to 2000 tokens then rises back to about 6000; (b) code ratio rises from under 20 percent to nearly 100 percent of responses; (c) code lines rise steadily from under 10 to over 40; (d) total correct code counts on the test set rise from under 1000 to about 5000; (e) code pass rate stays near 100 percent for correct responses but declines for incorrect ones; (f) code invocation timing shifts earlier in the response, from about 0.62 to about 0.53."></div>
+    <p>All six metrics are computed directly from the model's own generated responses at each saved RL
+    checkpoint &mdash; nothing here was specified by hand; it all emerges from optimizing the single
+    correctness reward.</p>
+  </div>
+</section>
+
+<!-- ============ 13. Reading the six panels ============ -->
+<section class="slide">
+  <h2>Reading the six panels together</h2>
+  <div class="body">
+    <ul>
+      <li><strong>(a) Response length</strong> falls sharply at first (code replaces laborious manual
+      calculation), then rises again as the model learns more elaborate code strategies &mdash; ending
+      about 40% shorter than before RL (10k &rarr; 6k tokens).</li>
+      <li><strong>(b) Code ratio</strong> climbs from under 20% to nearly 98% of responses: the model
+      goes from rarely bothering with code to using it almost everywhere.</li>
+      <li><strong>(c) Code lines</strong> keep rising throughout training &mdash; nearly 5&times; longer by
+      the end &mdash; as the model's code tackles more of the problem, not just the easy arithmetic.</li>
+      <li><strong>(d)</strong> correct code counts on the test set rise 5&times; alongside it.</li>
+      <li><strong>(e) Code pass rate</strong> stays near 100% for responses that end up correct, but
+      <em>declines</em> for ones that end up wrong &mdash; buggy code is a leading indicator of a wrong
+      final answer.</li>
+      <li><strong>(f) Code invocation timing</strong> shifts earlier in the response: the model learns to
+      reach for the tool sooner rather than reasoning in text first and only checking at the end.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ 14. Aha moment ============ -->
+<section class="slide">
+  <h2>An emergent &ldquo;aha moment&rdquo;: code self-correction</h2>
+  <div class="body">
+    <div class="fig"><img src="images/fig4_aha_moment.png" alt="Figure 4 from the ReTool paper, a transcript showing the model writing Python code that calls an undefined function 'greedy', receiving a NameError traceback from the interpreter, responding 'Oops, the functions need to be defined in the same scope. Let's correct that,' rewriting the code with the function properly defined, getting a correct interpreter result, and arriving at the final boxed answer 610."></div>
+    <p>Here the model's first code block calls a function, <code>greedy()</code>, that was never defined
+    &mdash; the sandbox returns a real <code>NameError</code> traceback. The model reads that error,
+    responds <em>&ldquo;Oops, the functions need to be defined in the same scope. Let&rsquo;s correct
+    that&rdquo;</em>, and rewrites working code.</p>
+    <p>No training example ever explicitly demonstrated this fix-after-error behavior &mdash; it emerged
+    purely because the correctness reward only pays off if the model keeps going after a crash instead of
+    giving up.</p>
+  </div>
+</section>
+
+<!-- ============ 15. Code purpose shift ============ -->
+<section class="slide">
+  <h2>What the code is actually for shifts, too</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/fig5_code_purpose.png" alt="Figure 5 from the ReTool paper: word clouds and pie charts of code purposes before and after RL training. Before RL, calculation dominates at 79.1 percent, with verification at 10.7 percent and smaller slices for probability calculation, computation, and data processing. After RL, calculation drops to 51.4 percent, with verification at 8.63 percent and new, larger slices for optimization (7.58 percent), geometric calculation (4.65 percent), solution search (3.82 percent), and probability calculation (2.31 percent)."></div>
+    <p>Before RL, code is used almost entirely for raw <strong>calculation</strong> (79.1% of code
+    snippets). After RL, calculation's share drops to 51.4%, and new categories gain ground: optimization,
+    geometric calculation, solution search. The model isn't just calculating more accurately &mdash; it's
+    discovered more distinct <em class="t">roles</em> code can play in a solution.</p>
+  </div>
+</section>
+
+<!-- ============ 16. Case study ============ -->
+<section class="slide">
+  <h2>Same question, two reasoning styles</h2>
+  <div class="body">
+    <div class="fig wide"><img src="images/fig6_ci_vs_text.png" alt="Figure 6 from the ReTool paper: side-by-side transcripts answering the same number-theory question. The text-based reasoning (before RL) performs a long hand-derivation with modular arithmetic, makes an arithmetic slip, and arrives at the wrong boxed answer 629. The CI-powered reasoning (after RL) computes modular values with a short code snippet, then brute-forces the search for the valid digits with a second code snippet, verifying N = 5694 and arriving at the correct boxed answer 699."></div>
+    <p>Same four-digit-integer question, two transcripts. Text-only reasoning (left) hand-derives modular
+    arithmetic across many lines and lands on the wrong answer, <code>629</code> &mdash; a single slipped
+    step upstream corrupts everything after it. CI-powered reasoning (right) offloads the same arithmetic
+    to two short code blocks and reaches the correct answer, <code>699</code>, confirmed by the
+    interpreter itself.</p>
+  </div>
+</section>
+
+<!-- ============ 17. Tying back ============ -->
+<section class="slide">
+  <h2>Tying back to the course's RL arc</h2>
+  <div class="body">
+    <ul>
+      <li><strong>DeepSeekMath</strong> introduced GRPO: group-relative advantages from many sampled
+      rollouts, no value function.</li>
+      <li><strong>DeepSeek-R1</strong> reused GRPO unchanged, but applied it to long, free-form reasoning
+      chains verified only by a rule-based correctness reward (RLVR).</li>
+      <li><strong>ReTool</strong> keeps the same ingredients &mdash; a clipped policy-gradient objective,
+      a simple rule-based outcome reward &mdash; but widens what a &ldquo;rollout&rdquo; is allowed to
+      contain: not just the model's own tokens, but real feedback from an external tool the model chooses
+      to call.</li>
+    </ul>
+    <div class="card int"><span class="lab">The throughline</span>
+    <p>Every one of these papers is the same underlying idea &mdash; sample trajectories, score them by
+    whether they reached the right answer, push up the ones that worked &mdash; applied to a progressively
+    richer notion of what a trajectory is: a single answer, then a long reasoning chain, then a reasoning
+    chain that can reach out into the world and act. That progression is exactly what &ldquo;agentic
+    RL&rdquo; means.</p></div>
+  </div>
+</section>
+
+<!-- ============ 18. References ============ -->
+<section class="slide">
+  <h2>References</h2>
+  <div class="body">
+    <ul>
+      <li>Feng, Huang, Qu, Zhang, Qin, Zhong, Jiang, Chi, Zhong. <em>ReTool: Reinforcement Learning for
+      Strategic Tool Use in LLMs.</em> ByteDance Seed, 2025. <a href="https://arxiv.org/abs/2504.11536">arxiv.org/abs/2504.11536</a></li>
+      <li>Project page: <a href="https://retool-rl.github.io/">retool-rl.github.io</a></li>
+      <li>MarkTechPost. <em>ReTool: A Tool-Augmented Reinforcement Learning Framework for Optimizing LLM
+      Reasoning with Computational Tools.</em> <a href="https://www.marktechpost.com/2025/04/20/retool-a-tool-augmented-reinforcement-learning-framework-for-optimizing-llm-reasoning-with-computational-tools/">marktechpost.com</a></li>
+      <li>Schulman, Wolski, Dhariwal, Radford, Klimov. <em>Proximal Policy Optimization Algorithms.</em>
+      2017. <a href="https://arxiv.org/abs/1707.06347">arxiv.org/abs/1707.06347</a> &mdash; the PPO
+      algorithm ReTool trains with.</li>
+      <li>DeepSeek-AI et al. <em>DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via
+      Reinforcement Learning.</em> 2025. <a href="https://arxiv.org/abs/2501.12948">arxiv.org/abs/2501.12948</a></li>
+    </ul>
+  </div>
+</section>
+
+</div><!-- /deck -->
+
+<div id="ov"><h3>All slides — click to jump · press O or Esc to close</h3><div class="ovgrid" id="ovgrid"></div></div>
+<div id="foot"><span id="num">1 / 1</span></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  if (window.renderMathInElement) {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: "$$", right: "$$", display: true},
+        {left: "\\[", right: "\\]", display: true},
+        {left: "$", right: "$", display: false},
+        {left: "\\(", right: "\\)", display: false}
+      ],
+      throwOnError: false
+    });
+  }
+});
+
+/* ---------- deck navigation ---------- */
+(function () {
+  const slides = Array.from(document.querySelectorAll(".slide"));
+  const num = document.getElementById("num");
+  const ov = document.getElementById("ov");
+  const ovgrid = document.getElementById("ovgrid");
+  let i = 0;
+
+  slides.forEach(function (s, k) {
+    const card = document.createElement("div");
+    card.className = "ovcard";
+    const h = s.querySelector("h1, h2");
+    card.innerHTML = '<span class="n2">' + (k + 1) + '</span>' + (h ? h.textContent : "Slide");
+    card.addEventListener("click", function () { go(k); ov.classList.remove("on"); });
+    ovgrid.appendChild(card);
+  });
+
+  function go(k) {
+    i = Math.max(0, Math.min(slides.length - 1, k));
+    slides.forEach(s => s.classList.remove("on"));
+    slides[i].classList.add("on");
+    slides[i].querySelector(".body") && (slides[i].querySelector(".body").scrollTop = 0);
+    num.textContent = (i + 1) + " / " + slides.length;
+    history.replaceState(null, "", "#" + (i + 1));
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); go(i + 1); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); go(i - 1); }
+    else if (e.key === "Home") go(0);
+    else if (e.key === "End") go(slides.length - 1);
+    else if (e.key === "o" || e.key === "O") ov.classList.toggle("on");
+    else if (e.key === "Escape") ov.classList.remove("on");
+    else if (e.key === "f" || e.key === "F") {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+
+  let x0 = null;
+  document.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; }, {passive: true});
+  document.addEventListener("touchend", function (e) {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 55) go(dx < 0 ? i + 1 : i - 1);
+    x0 = null;
+  }, {passive: true});
+
+  const start = parseInt((location.hash || "#1").slice(1), 10);
+  go(isNaN(start) ? 0 : start - 1);
+})();
+</script>
+</body>
+</html>
